@@ -1,14 +1,15 @@
+#include "Arduino.h"
 #include "ggLCD.h"
-
-#include <Wire.h>
-#include <LiquidCrystal_I2C.h>
-#include <String.h>
+#include "Wire.h"
+#include "LiquidCrystal_I2C.h"
 
 
-ggLCD::ggLCD(int aAddress)
-: LiquidCrystal_I2C(aAddress, 2, 1, 0, 4, 5, 6, 7, 3, POSITIVE),
-  mNumberOfColumns(GG_LCD_DEFAULT_NUMBER_OF_COLUMNS),
-  mNumberOfRows(GG_LCD_DEFAULT_NUMBER_OF_ROWS),
+ggLCD::ggLCD(int aAddress,
+             int aNumberOfColumns,
+             int aNumberOfRows)
+: LiquidCrystal_I2C(aAddress, aNumberOfColumns, aNumberOfRows),
+  mNumberOfColumns(aNumberOfColumns),
+  mNumberOfRows(aNumberOfRows),
   mCursorColumn(0),
   mCursorRow(0)
 {
@@ -18,16 +19,17 @@ ggLCD::ggLCD(int aAddress)
 void ggLCD::begin(int aNumberOfColumns,
                   int aNumberOfRows)
 {
-  mNumberOfColumns = aNumberOfColumns;
-  mNumberOfRows = aNumberOfRows;
+  if (aNumberOfColumns > 0) mNumberOfColumns = aNumberOfColumns;
+  if (aNumberOfRows > 0) mNumberOfRows = aNumberOfRows;
   LiquidCrystal_I2C::begin(mNumberOfColumns, mNumberOfRows);
+  LiquidCrystal_I2C::init();
   LiquidCrystal_I2C::clear();
   LiquidCrystal_I2C::backlight();
   beginProgressBar();
 }
 
 
-void ggLCD::PrintValue(const String& aName,
+void ggLCD::PrintValue(const char* aName,
                        int aValue,
                        int aRow,
                        int aColumnBegin,
@@ -37,7 +39,7 @@ void ggLCD::PrintValue(const String& aName,
 }
 
 
-void ggLCD::PrintValue(const String& aName,
+void ggLCD::PrintValue(const char* aName,
                        float aValue,
                        int aRow,
                        int aColumnBegin,
@@ -47,9 +49,9 @@ void ggLCD::PrintValue(const String& aName,
 }
 
 
-void ggLCD::PrintValue(const String& aName,
+void ggLCD::PrintValue(const char* aName,
                        int aValue,
-                       const String& aUnit,
+                       const char* aUnit,
                        int aRow,
                        int aColumnBegin,
                        int aColumnEnd)
@@ -63,9 +65,9 @@ void ggLCD::PrintValue(const String& aName,
 }
 
 
-void ggLCD::PrintValue(const String& aName,
+void ggLCD::PrintValue(const char* aName,
                        float aValue,
-                       const String& aUnit,
+                       const char* aUnit,
                        int aRow,
                        int aColumnBegin,
                        int aColumnEnd)
@@ -137,6 +139,18 @@ uint8_t ggLCD::getCursorColumn() const
 uint8_t ggLCD::getCursorRow() const
 {
   return mCursorRow;
+}
+
+
+void ggLCD::println()
+{
+  clearLineEnd();
+  if (mCursorRow + 1 < mNumberOfRows) {
+    setCursor(0, mCursorRow + 1);
+  }
+  else {
+    home();
+  }
 }
 
 
