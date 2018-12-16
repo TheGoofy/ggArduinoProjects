@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 
-
 class ggButton2
 {
   
@@ -16,7 +15,6 @@ public:
   : mPin(aPin),
     mInverted(aInverted),
     mEnablePullUp(aEnablePullUp),
-    // mSampler(1000.0f / aDecayMillis),
     mMillisDelta(aMillisDelay),
     mMillis(0),
     mInput(false)
@@ -80,5 +78,5 @@ private:
   
 };
 
-
 #endif // __GG_BUTTON_2__
+

@@ -1,31 +1,73 @@
 #include <Wire.h>
 #include <Servo.h>
 #include <LiquidCrystal_I2C.h>
+#include <AccelStepper.h>
 #include "ggLCD.h"
 #include "ggQuadratureDecoder.h"
-#include "ggSampler.h"
 #include "ggStepper.h"
 #include "ggMotorController.h"
 #include "ggButton2.h"
 
+// **********************************************************************************
+// Motion control points
+
+// perimeter: 150 mm
+// number of holes: 60
+// drill diameter: 5 mm
+// gap between holes: 2.85 mm
+
+const int mRotations = 1;
+const int mNumberOfHoles = 60; // # count
+const int mHoleIndexBegin = 0;
+const int mHoleIndexEnd = mNumberOfHoles;
+
+const float mAnglePositionHome = 0.0f; // degrees
+const float mAnglePositionDelta = 360.0f / mNumberOfHoles; // degrees
+const float mAngleSpeedInit = 30.0f; // degrees per second
+const float mAngleSpeed = 180.0f; // degrees per second
+const float mAngleAcceleration = 720.0f; // degrees per second^2
+
+const float mRadiusPositionHome = 40.0f; // mm
+const float mRadiusPositionDrillStart = 56.0f; // mm
+const float mRadiusPositionDrillStop = mRadiusPositionDrillStart + 0.25f; // mm
+const float mRadiusPositionDelta = 0.5f; // mm
+const float mRadiusSpeedInit = 5.0f; // mm per second
+const float mRadiusSpeedDrilling = 0.1f; // 1/3 * 0.6 mm per second for stainless steel
+const float mRadiusSpeed = 13.0f; // mm per second
+const float mRadiusAcceleration = 100.0f; // mm per second^2
+
+const int mDrillSpeedOff = 0;
+const int mDrillSpeedLow = 15;
+const int mDrillSpeedHigh = 20;
+
+// **********************************************************************************
+// Motors
 
 #define GG_STEPPER_ENABLE_PIN 8
-#define GG_STEPPER_0_STEP_PIN 2
-#define GG_STEPPER_1_STEP_PIN 3
-#define GG_STEPPER_0_DIR_PIN 5
-#define GG_STEPPER_1_DIR_PIN 6
-#define GG_STEPPER_0_SENSOR_PIN 9
-#define GG_STEPPER_1_SENSOR_PIN 10
 
-ggStepper mMotor0(GG_STEPPER_ENABLE_PIN,
-                  GG_STEPPER_0_DIR_PIN,
-                  GG_STEPPER_0_STEP_PIN,
-                  GG_STEPPER_0_SENSOR_PIN);
+#define GG_STEPPER_ANGLE_STEP_PIN 2
+#define GG_STEPPER_ANGLE_DIR_PIN 5
+#define GG_STEPPER_ANGLE_SENSOR_PIN 9
+
+ggStepper mMotorAngle(GG_STEPPER_ENABLE_PIN,
+                      GG_STEPPER_ANGLE_DIR_PIN,
+                      GG_STEPPER_ANGLE_STEP_PIN,
+                      GG_STEPPER_ANGLE_SENSOR_PIN);
                   
-ggStepper mMotor1(GG_STEPPER_ENABLE_PIN,
-                  GG_STEPPER_1_DIR_PIN,
-                  GG_STEPPER_1_STEP_PIN,
-                  GG_STEPPER_1_SENSOR_PIN);
+const long mMotorAngleStepsPerRevolution = 4L * 200L * 128L / 16L;
+const float mMotorAngleDegreesPerStep = 360.0f / mMotorAngleStepsPerRevolution;
+
+#define GG_STEPPER_X_STEP_PIN 3
+#define GG_STEPPER_X_DIR_PIN 6
+#define GG_STEPPER_X_SENSOR_PIN 10
+
+ggStepper mMotorX(GG_STEPPER_ENABLE_PIN,
+                  GG_STEPPER_X_DIR_PIN,
+                  GG_STEPPER_X_STEP_PIN,
+                  GG_STEPPER_X_SENSOR_PIN);
+
+const long mMotorXStepsPerRevolution = 2L * 200L;
+const float mMotorXMMPerStep = 1.5f / mMotorXStepsPerRevolution;
 
 #define GG_MOTOR_DRILL_POWER_PIN 12
 #define GG_MOTOR_DRILL_BEC_PIN A1
@@ -33,45 +75,93 @@ ggStepper mMotor1(GG_STEPPER_ENABLE_PIN,
 ggMotorController mMotorDrill(GG_MOTOR_DRILL_POWER_PIN,
                               GG_MOTOR_DRILL_BEC_PIN);
 
-ggQuadratureDecoder mCounter0(0x60);
+ggQuadratureDecoder mSensorAngle(0x60);
 ggQuadratureDecoder mCounter1(0x61);
 
-ggLCD mLCD(0x27);
+const long mSensorAngleStepsPerRevolution = 4L * 400L * 128L / 16L;
+const float mSensorAngleDegreesPerStep = 360.0f / mSensorAngleStepsPerRevolution;
+
+float GetSensorAngle()
+{
+  return mSensorAngle.Get() * mSensorAngleDegreesPerStep;
+}
+
+float GetMotorAngle()
+{
+  return mMotorAngle.GetPosition();
+}
+
+// **********************************************************************************
+// UI: Displays & LEDs & Buttons ...
+
+ggLCD mLCD(0x26);
 
 ggButton2 mButton(A0, true, true);
 
-ggSampler mSampler(10);
-
-
-void PrintMessage(const char* aMessage)
+void PrintMessage(const char* aMessage, int aRow = 0)
 {
-  mLCD.setCursor(0, 0);
+  mLCD.setCursor(0, aRow);
   mLCD.print(aMessage);
   mLCD.clearLineEnd();
 }
 
-
-void PrintValue(const char* aName, float aValue, byte aDecimals = 3)
+void PrintValue(const char* aName, int aValue, int aRow = 0)
 {
-  mLCD.setCursor(0, 0);
+  mLCD.setCursor(0, aRow);
+  mLCD.print(aName);
+  mLCD.print(": ");
+  mLCD.print(aValue);
+  mLCD.clearLineEnd();
+}
+
+void PrintValue(const char* aName, float aValue, byte aDecimals = 3, int aRow = 0)
+{
+  mLCD.setCursor(0, aRow);
   mLCD.print(aName);
   mLCD.print(": ");
   mLCD.print(aValue, aDecimals);
   mLCD.clearLineEnd();
 }
 
+void PrintStatus(const char* aMessage,
+                 int aHoleIndex)
+{
+  PrintMessage(aMessage, 0);
+  PrintValue("Hole", aHoleIndex + 1, 1);
+  PrintValue("Angle Set", GetMotorAngle(), 1, 2);
+  PrintValue("Angle Act", GetSensorAngle(), 1, 3);
+}
 
-const long mCounterStepsPerRevolution = 4L * 400L * 128L / 16L;
-const float mCounterDegreesPerStep = 360.0f / mCounterStepsPerRevolution;
+void PanicStop(const char* aMessage)
+{
+  PrintMessage(aMessage);
+  mMotorAngle.Disable();
+  mMotorX.Disable();
+  mMotorDrill.SetSpeed(mDrillSpeedOff);
+  while (true);
+}
 
-const long mMotor0StepsPerRevolution = 4L * 200L * 128L / 16L;
-const float mMotor0DegreesPerStep = 360.0f / mMotor0StepsPerRevolution;
+void CheckAngle(float aAngleErrorMax)
+{
+  float vAngleError = GetSensorAngle() - mMotorAngle.GetPosition();
+  if (abs(vAngleError) > aAngleErrorMax) {
+    PanicStop("Angle Error!");
+  }
+}
 
-const long mMotor1StepsPerRevolution = 4L * 200L;
-const float mMotor1MMPerStep = 1.5f / mMotor1StepsPerRevolution;
+// **********************************************************************************
+// Initialisation
 
-boolean mRun = true;
+typedef enum tPosition {
+  ePositionUndefined,
+  ePositionInit,
+  ePositionStart,
+  ePositionDrillStart,
+  ePositionDrillStop,
+  ePositionStop
+};
 
+tPosition mPosition = ePositionUndefined;
 
 void setup()
 {
@@ -86,76 +176,127 @@ void setup()
   
   while (!mButton.SwitchingOn());
   
-  mCounter0.begin();
+  mSensorAngle.begin();
 
-  PrintMessage("Init Motor 0 ...");  
+  PrintMessage("Init X ...");  
 
-  mMotor0.begin();
-  mMotor0.SetUnitPerStep(mMotor0DegreesPerStep);
-  mMotor0.Enable();
-  mMotor0.SetSpeed(45.0f);
-  mMotor0.InitPosition();
-  mCounter0.Set(0);
+  mMotorX.begin();
+  mMotorX.SetUnitPerStep(mMotorXMMPerStep);
+  mMotorX.SetAcceleration(mRadiusAcceleration);
+  mMotorX.SetSpeed(mRadiusSpeedInit);
+  mMotorX.Enable();
+  mMotorX.InitPosition();
+
+  PrintMessage("Init Angle ...");  
+
+  mMotorAngle.begin();
+  mMotorAngle.SetUnitPerStep(mMotorAngleDegreesPerStep);
+  mMotorAngle.SetAcceleration(mAngleAcceleration);
+  mMotorAngle.SetSpeed(mAngleSpeedInit);
+  mMotorAngle.Enable();
+  mMotorAngle.InitPosition();
+  delay(200); // wait a wgile until system stops oscillations ...
+  mSensorAngle.Set(0);
   
-  PrintMessage("Init Motor 1 ...");  
-
-  mMotor1.begin();
-  mMotor1.SetUnitPerStep(mMotor1MMPerStep);
-  mMotor1.Enable();
-  mMotor1.SetSpeed(2.0f);
-  mMotor1.InitPosition();
-
-  PrintMessage("Init Motor Drill ...");  
+  PrintMessage("Power on Drill!", 0);
+  PrintMessage("Click to continue.", 1);
 
   mMotorDrill.begin();
-  while (!mMotorDrill.IsArmed()) mMotorDrill.run();
-  mMotorDrill.SetSpeed(0);
 
-  PrintMessage("Click to run!");  
-  
   while (!mButton.SwitchingOn());
 
-  PrintMessage(mRun ? "Running" : "Pause");  
+  mLCD.clear();
+
+  PrintMessage("Init Drill ...");  
+
+  while (!mMotorDrill.IsArmed()) mMotorDrill.run();
+  mMotorDrill.SetSpeed(0);
+  mPosition = ePositionInit;
+
+  PrintMessage("Click to Start!");  
+  
+  while (!mButton.SwitchingOn());
 }
 
+// **********************************************************************************
+// Main program
+
+boolean mRun = true;
+int mHoleIndex = mHoleIndexBegin;
+int mRotationIndex = 0;
 
 void loop()
 { 
-  if (mSampler.IsDue()) {
-
-    if (!mMotor0.IsMoving()) {
-      if (mMotor0.GetPosition() < 1.0f) {
-        mMotor0.SetSpeed(120.0f);
-        mMotor0.MoveToPosition(360.0f);
-        mMotorDrill.SetSpeed(0);
+  if (!mMotorAngle.IsMoving() &&
+      !mMotorX.IsMoving()) {
+    
+    // move from init- or stop-position to next start-position
+    if ((mPosition == ePositionInit) ||
+        (mPosition == ePositionStop)) {
+      if (mHoleIndex >= mHoleIndexEnd) {
+        mRotationIndex++;
+        if (mRotationIndex < mRotations) {
+          mHoleIndex = mHoleIndexBegin;
+        }
+      }    
+      if (mHoleIndex < mHoleIndexEnd) {
+        PrintStatus("Change Angle", mHoleIndex);
+        mMotorAngle.SetSpeed(mAngleSpeed);
+        mMotorAngle.MoveToPosition(mAnglePositionHome + mHoleIndex*mAnglePositionDelta);
+        mMotorX.SetSpeed(mRadiusSpeed);
+        mMotorX.MoveToPosition(mRadiusPositionHome);
+        mMotorDrill.SetSpeed(mDrillSpeedLow);
+        mPosition = ePositionStart;
       }
       else {
-        mMotor0.SetSpeed(60.0f);
-        mMotor0.MoveToPosition(0.0f);
-        mMotorDrill.SetSpeed(100);
+        PrintStatus("Finished", mHoleIndex - 1);
+        mMotorAngle.Disable();
+        mMotorX.Disable();
+        mMotorDrill.SetSpeed(mDrillSpeedOff);
+        mPosition = ePositionUndefined;
       }
     }
 
-    if (!mMotor1.IsMoving()) {
-      if (mMotor1.GetPosition() < 1.0f) {
-        mMotor1.SetSpeed(5.0f);
-        mMotor1.MoveToPosition(10.0f);
-      }
-      else {
-        mMotor1.SetSpeed(6.0f);
-        mMotor1.MoveToPosition(0.0f);
-      }
+    // move from start-position to drill-start-position
+    else if (mPosition == ePositionStart) {
+      PrintStatus("Move Drill down", mHoleIndex);
+      CheckAngle(0.6f);
+      mMotorX.SetSpeed(mRadiusSpeed);
+      mMotorX.MoveToPosition(mRadiusPositionDrillStart + mRotationIndex*mRadiusPositionDelta);
+      mMotorDrill.SetSpeed(mDrillSpeedLow);
+      mPosition = ePositionDrillStart;
+    }
+    
+    // move from drill-start-position to drill-stop-position
+    else if (mPosition == ePositionDrillStart) {
+      PrintStatus("Drilling", mHoleIndex);
+      CheckAngle(0.5f);
+      mMotorX.SetSpeed(mRadiusSpeedDrilling);
+      mMotorX.MoveToPosition(mRadiusPositionDrillStop + mRotationIndex*mRadiusPositionDelta);
+      mMotorDrill.SetSpeed(mDrillSpeedHigh);
+      mPosition = ePositionDrillStop;
+    }
+    
+    // move from drill-stop-position to stop-position
+    else if (mPosition == ePositionDrillStop) {
+      PrintStatus("Move Drill up", mHoleIndex);
+      mMotorX.SetSpeed(mRadiusSpeed);
+      mMotorX.MoveToPosition(mRadiusPositionHome);
+      mMotorDrill.SetSpeed(mDrillSpeedLow);
+      mHoleIndex++; // hole finished - go to next hole
+      mPosition = ePositionStop;
     }
   }
   
   if (mButton.SwitchingOn()) {
     mRun = !mRun;
-    PrintMessage(mRun ? "Running" : "Pause");  
+    PrintMessage(mRun ? "Running" : "Pause");
+    if (!mRun) mMotorDrill.SetSpeed(0);  
   }
     
   if (mRun) {
-    mMotor0.run();
-    mMotor1.run();
+    mMotorAngle.run();
+    mMotorX.run();
     mMotorDrill.run();
   }
 

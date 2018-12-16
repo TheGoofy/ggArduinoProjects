@@ -2,7 +2,6 @@
 #define __GG_MOTOR_CONTROLLER__
 
 #include <Arduino.h>
-#include <Servo.h>
 
 
 /**
