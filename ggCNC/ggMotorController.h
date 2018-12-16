@@ -5,9 +5,9 @@
 
 
 /**
- * RC controllers usually don't output poper, if the throttle isn't in OFF-position.
- * This prevents that the motor starts accidentially, when the battery is plugged to the 
- * speed controller. The controller only starts, if the throttle is constant at the minimum
+ * When connecting the battery, power output of RC controllers is usually disabled, if the
+ * throttle isn't in OFF-position. This prevents that the motor starts accidentially.
+ * The controller only starts, if the throttle is constant at the minimum
  * for a while. This class uses the BEC as input signal in order to check, if the battery
  * is plugged. When the BEC-signal goes HIGH, it waits  a few seconds, until it's armed ...
  */
