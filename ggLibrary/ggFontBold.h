@@ -17,7 +17,7 @@ private:
   
   byte GetCharIndex(char aChar) const;
   
-  static const byte mCharSize = 109;
+  static const byte mCharSize = 140 - 32 + 1;
   static const byte mChars[mCharSize][9];
   
 };

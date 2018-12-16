@@ -1117,7 +1117,7 @@ const byte ggFontBold::mChars[mCharSize][9] =
     B000,
     3
   },
-  { // ^3
+  { // ^3 - 131
     B111,
     B001,
     B111,
@@ -1128,7 +1128,7 @@ const byte ggFontBold::mChars[mCharSize][9] =
     B000,
     3
   },
-  { // ^4
+  { // ^4 - 132
     B101,
     B101,
     B111,
@@ -1139,7 +1139,7 @@ const byte ggFontBold::mChars[mCharSize][9] =
     B000,
     3
   },
-  { // ^5
+  { // ^5 - 133
     B111,
     B100,
     B111,
@@ -1150,7 +1150,7 @@ const byte ggFontBold::mChars[mCharSize][9] =
     B000,
     3
   },
-  { // ^6
+  { // ^6 - 134
     B111,
     B100,
     B111,
@@ -1161,7 +1161,7 @@ const byte ggFontBold::mChars[mCharSize][9] =
     B000,
     3
   },
-  { // ^7
+  { // ^7 - 135
     B111,
     B001,
     B010,
@@ -1172,7 +1172,7 @@ const byte ggFontBold::mChars[mCharSize][9] =
     B000,
     3
   },
-  { // ^8
+  { // ^8 - 136
     B111,
     B101,
     B111,
@@ -1183,7 +1183,7 @@ const byte ggFontBold::mChars[mCharSize][9] =
     B000,
     3
   },
-  { // ^9
+  { // ^9 - 137
     B111,
     B101,
     B111,
@@ -1194,7 +1194,7 @@ const byte ggFontBold::mChars[mCharSize][9] =
     B000,
     3
   },
-  { // <-
+  { // <- - 138
     B000100,
     B001100,
     B011111,
@@ -1205,7 +1205,7 @@ const byte ggFontBold::mChars[mCharSize][9] =
     B000000,
     6
   },
-  { // ->
+  { // -> - 139
     B001000,
     B001100,
     B111110,
@@ -1216,7 +1216,7 @@ const byte ggFontBold::mChars[mCharSize][9] =
     B000000,
     6
   },
-  { // :-)
+  { // :-) - 140
     B00111100,
     B01111110,
     B11011011,
