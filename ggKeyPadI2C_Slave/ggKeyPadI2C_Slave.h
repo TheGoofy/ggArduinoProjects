@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 
+
 template <typename T>
 void SerialPrintType(T aValue) {Serial.print(sizeof(T)); }
 void SerialPrintType(bool) { Serial.print("bool"); }
@@ -15,6 +16,7 @@ void SerialPrintType(unsigned long) { Serial.print("unsigned long"); }
 void SerialPrintType(float) { Serial.print("float"); }
 void SerialPrintType(double) { Serial.print("double"); }
 
+
 template <typename TValue>
 void Request(TValue aValue) {
   // Serial.print("Request<");
@@ -24,6 +26,7 @@ void Request(TValue aValue) {
   // Serial.println(")");
   Wire.write((byte*)(&aValue), sizeof(aValue));
 }
+
 
 template <typename TValue>
 void Receive(TValue& aValue) {
@@ -42,4 +45,3 @@ void Receive(TValue& aValue) {
 }
 
 #endif // __GG_KEY_PAD__
-

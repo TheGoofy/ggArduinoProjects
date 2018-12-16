@@ -1,6 +1,6 @@
 #include <Wire.h>
+#include "ggKEyPad.h"
 #include "ggQuadratureDecoder.h"
-#include "ggKeyPadI2C_Slave.h"
 #include "ggButtonSimple.h"
 
 #define I2C_SLAVE_ADDRESS 0x67
