@@ -1,6 +1,7 @@
 #include <ESP8266WebServer.h>
-#include <ESP8266mDNS.h>
+#include <ESP8266mDNS.h>      // https://github.com/esp8266/Arduino
 #include <WebSocketsServer.h>
+#include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager
 
 #include "ggOutputPins.h"
 #include "ggHtmlData.h"
@@ -77,10 +78,9 @@ void setup()
   Serial.println("");
   
   // connect to wifi
-  WiFi.mode(WIFI_STA);
-  WiFi.begin(mWiFiSSID, mWiFiPassword);
-  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
-  Serial.println("");
+  WiFiManager mWifiManager;
+  mWifiManager.setDebugOutput(false);
+  mWifiManager.autoConnect("ESP8266_WifiMgr");
   Serial.print("Connected to: ");
   Serial.println(WiFi.SSID());
   Serial.print("IP address: ");
