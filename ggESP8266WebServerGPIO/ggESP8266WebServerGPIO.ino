@@ -1,121 +1,123 @@
+#include <ESP8266WebServer.h>
+#include <ESP8266mDNS.h>
+#include <WebSocketsServer.h>
 
-#include <ESP8266WiFi.h>
-
-
-const char* ssid = "Gardunkel";
-const char* password = "goofy123";
-
-
-// Create an instance of the server
-// specify the port to listen on as an argument
-WiFiServer server(80);
+#include "ggOutputPins.h"
+#include "ggHtmlData.h"
+#include "ggClients.h"
 
 
-/*
-String DecodeURL(const String& aString)
+const char* mWiFiSSID = "........";
+const char* mWiFiPassword = "........";
+const char* mMdnsHostName = "ESP8266-GPIO";
+
+
+// Create web server on port 80
+ESP8266WebServer mServer(80);
+
+// Create web sockets server on port 81
+WebSocketsServer mWebSockets(81);
+
+// convenienc interface for clients communication via websockets
+ggClients mClients(mWebSockets);
+
+
+void ToggleOutput(int aIndex)
 {
-  String vString = aString;
+  // get the inverted pin value from output
+  bool aValue = !ggOutputPins::Get(aIndex);
 
-  const int vLength = vString.length();
-  int vIndexSrc = 0;
-  int vIndexDst = 0;
+  // set the inverted pin value to output
+  ggOutputPins::Set(aIndex, aValue);
 
-  while (vIndexSrc < vLength) {
-    char vChar = vString[vIndexSrc];
-    if (vChar == '+') vChar = ' ';
-    else if (vChar == '%') {
-      char vH = vString[++vIndexSrc];
-      char vL = vString[++vIndexSrc];
-      if (vH > 0x39) vH -= 7;
-      if (vL > 0x39) vL -= 7;
-      vChar = (vH << 4) | (vL & 0x0f);
-    }
-    vString[vIndexDst] = vChar;
-    ++vIndexSrc;
-    ++vIndexDst;
-  }
-
-  vString.remove(vIndexDst);
-
-  return vString;
+  // update (status) display on all connected clients
+  mClients.UpdateDisplay(aIndex, aValue);
 }
-*/
+
+
+void WebSocketEvent(uint8_t aClientNumber,
+                    WStype_t aEventType,
+                    uint8_t* aPayLoad,
+                    size_t aPayLoadLength)
+{
+  switch (aEventType) {
+    case WStype_CONNECTED: {
+      const String vURL((char*)aPayLoad);
+      mClients.UpdateDisplay(aClientNumber);
+    }
+    case WStype_TEXT: {
+      const String vText((char*)aPayLoad);
+      if (vText == "ToggleOutput(0)") { ToggleOutput(0); return; }
+      if (vText == "ToggleOutput(1)") { ToggleOutput(1); return; }
+      if (vText == "ToggleOutput(2)") { ToggleOutput(2); return; }
+      if (vText == "ToggleOutput(3)") { ToggleOutput(3); return; }
+    }
+  }  
+}
+
+
+void ServerOnRoot()
+{
+  mServer.send_P(200, "text/html", mHtmlRoot);
+}
+
+
+void ServerOnNotFound()
+{
+  mServer.send(404, "text/plain", "fail");
+}
+
 
 void setup()
 {
-  // configure GPIO pins as output
-  pinMode(0, OUTPUT);
-  pinMode(1, OUTPUT);
-  pinMode(2, OUTPUT);
-  pinMode(3, OUTPUT);
-
-  // connect
-  WiFi.begin(ssid, password);
+  // serial communication (for debugging)
+  Serial.begin(115200);
+  
+  // connect to wifi
+  WiFi.mode(WIFI_STA);
+  WiFi.begin(mWiFiSSID, mWiFiPassword);
+  Serial.println("");
 
   // wait until connected
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
+    Serial.print(".");
+  }
+  Serial.println("");
+  Serial.print("Connected to: ");
+  Serial.println(WiFi.SSID());
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+
+  // Multicast DNS
+  if (MDNS.begin(mMdnsHostName, WiFi.localIP())) {
+    MDNS.addService("http", "tcp", 80);
+    Serial.println("MDNS responder started");
   }
   
-  // Start the server
-  server.begin();
+  // install various handlers
+  mServer.on("/", ServerOnRoot);
+  mServer.onNotFound(ServerOnNotFound);
+  
+  // start the server
+  mServer.begin();
+  Serial.println("HTTP server started");
+
+  // start websockets
+  mWebSockets.begin();
+  mWebSockets.onEvent(WebSocketEvent);
+  Serial.println("Web sockets started");
+  Serial.flush();
+
+  // configure GPIO pins.
+  // serial communication gets interrupted, if those pins are interfering
+  ggOutputPins::Begin();
 }
 
 
 void loop()
-{  
-  // Check if a client has connected
-  WiFiClient client = server.available();
-  if (!client) {
-    return;
-  }
-  
-  // Wait until the client sends some data
-  while (!client.available()) {
-    delay(1);
-  }
-  
-  // Read the first line of the request
-  String req = client.readStringUntil('\r');
-  Serial.println(req);
-  client.flush();
-  
-  // Match the request
-  int pin = -1;
-  if (req.indexOf("pin=00") != -1) pin = 0;
-  else if (req.indexOf("pin=01") != -1) pin = 1;
-  else if (req.indexOf("pin=02") != -1) pin = 2;
-  else if (req.indexOf("pin=03") != -1) pin = 3;
-  else {
-    // unknown request
-  }
-
-  // Set GPIO according to the request
-  if (pin != -1) {
-    digitalWrite(pin, digitalRead(pin) ? LOW: HIGH);
-  }
-  
-  client.flush();
-
-  // respond
-  client.print("HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n<!DOCTYPE HTML>\r\n<html>\r\n");
-  client.print("<form action='gpio' method='get'>\r\n");
-  client.print("<table border='0' bgcolor='white' cellpadding='5' width='100%'>\r\n");
-  for (int i=0; i<4; i++) {
-    String s = "";
-    String vBgColor = digitalRead(i) ? "'orange'" : "'skyblue'";
-    s += "  <tr bgcolor=" + vBgColor + ">";
-    s += "<td align='center' valign='middle'><button name='pin' type='submit' value='";
-    s += i<10 ? "0" : "";
-    s += i;
-    s += "'>GPIO ";
-    s += i;
-    s += "</button></td>";
-    s += "</tr>\r\n";
-    client.print(s);
-  }
-  client.print("</table>\r\n");
-  client.print("</form>\r\n");
-  client.print("</html>\n");
+{
+  mServer.handleClient();
+  mWebSockets.loop();
 }
 
