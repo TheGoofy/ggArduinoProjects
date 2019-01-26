@@ -18,7 +18,7 @@ ESP8266WebServer mServer(80);
 // Create web sockets server on port 81
 WebSocketsServer mWebSockets(81);
 
-// convenienc interface for clients communication via websockets
+// interface for clients communication via websockets
 ggClients mClients(mWebSockets);
 
 
@@ -64,7 +64,7 @@ void ServerOnRoot()
 
 void ServerOnNotFound()
 {
-  mServer.send(404, "text/plain", "fail");
+  mServer.send(404, "text/plain", "url not found");
 }
 
 
@@ -72,45 +72,40 @@ void setup()
 {
   // serial communication (for debugging)
   Serial.begin(115200);
+  Serial.println("");
   
   // connect to wifi
   WiFi.mode(WIFI_STA);
   WiFi.begin(mWiFiSSID, mWiFiPassword);
-  Serial.println("");
-
-  // wait until connected
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
-  }
+  while (WiFi.status() != WL_CONNECTED) { delay(500); Serial.print("."); }
   Serial.println("");
   Serial.print("Connected to: ");
   Serial.println(WiFi.SSID());
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
-  // Multicast DNS
-  if (MDNS.begin(mMdnsHostName, WiFi.localIP())) {
-    MDNS.addService("http", "tcp", 80);
-    Serial.println("MDNS responder started");
-  }
+  // start multicast DNS
+  MDNS.begin(mMdnsHostName, WiFi.localIP());
+  MDNS.addService("http", "tcp", 80);
+  MDNS.addService("ws", "tcp", 81);
+  Serial.println("MDNS responder started");
   
-  // install various handlers
+  // configure and start web-server
   mServer.on("/", ServerOnRoot);
   mServer.onNotFound(ServerOnNotFound);
-  
-  // start the server
   mServer.begin();
-  Serial.println("HTTP server started");
+  Serial.println("Web server started");
 
-  // start websockets
-  mWebSockets.begin();
+  // configure and start web-sockets
   mWebSockets.onEvent(WebSocketEvent);
+  mWebSockets.begin();
   Serial.println("Web sockets started");
+
+  // make sure all status and debug messages are sent before communication gets
+  // interrupted, in case hardware pins are needed for some different use.
   Serial.flush();
 
-  // configure GPIO pins.
-  // serial communication gets interrupted, if those pins are interfering
+  // configure the GPIO pins
   ggOutputPins::Begin();
 }
 
