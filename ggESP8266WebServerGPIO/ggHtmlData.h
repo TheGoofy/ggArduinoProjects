@@ -21,14 +21,30 @@ char mHtmlRoot[] PROGMEM = R"=====(
   </style>  
   <script language='javascript' type='text/javascript'>
   
-    var mSocket;
+    var mWebSocket;
+    var mWebSocketReConnectTimerID = 0;
     
     function initWebSocket() {
-      mSocket = new WebSocket('ws://' + window.location.hostname + ':81/');
-      mSocket.onmessage = onMessage;
+      mWebSocket = new WebSocket('ws://' + window.location.hostname + ':81/');
+      mWebSocket.onopen = onWebSocketOpen;
+      mWebSocket.onclose = onWebSocketClose;
+      mWebSocket.onmessage = onWebSocketMessage;
+    }
+
+    function onWebSocketOpen(aEvent) {
+      if (mWebSocketReConnectTimerID) {
+        window.clearInterval(mWebSocketTimerID);
+        mWebSocketReConnectTimerID = 0;
+      }
     }
     
-    function onMessage(aEvent) {
+    function onWebSocketClose(aEvent) {
+      if (!mWebSocketReConnectTimerID) {
+        mWebSocketReConnectTimerID = window.setInterval(initWebSocket, 5000);
+      }
+    }
+    
+    function onWebSocketMessage(aEvent) {
       // server broadcasts real function names, which are executed by the client
       eval(aEvent.data);
     }
@@ -39,7 +55,7 @@ char mHtmlRoot[] PROGMEM = R"=====(
 
     function onClick(aId) {
       var vToggleOutput = 'ToggleOutput(' + aId + ')';
-      mSocket.send(vToggleOutput);
+      mWebSocket.send(vToggleOutput);
     }
     
   </script>
