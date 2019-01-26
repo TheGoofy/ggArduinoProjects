@@ -44,6 +44,7 @@ void WebSocketEvent(uint8_t aClientNumber,
     case WStype_CONNECTED: {
       const String vURL((char*)aPayLoad);
       mClients.UpdateDisplay(aClientNumber);
+      break;
     }
     case WStype_TEXT: {
       const String vText((char*)aPayLoad);
@@ -51,6 +52,7 @@ void WebSocketEvent(uint8_t aClientNumber,
       if (vText == "ToggleOutput(1)") { ToggleOutput(1); return; }
       if (vText == "ToggleOutput(2)") { ToggleOutput(2); return; }
       if (vText == "ToggleOutput(3)") { ToggleOutput(3); return; }
+      break;
     }
   }  
 }
