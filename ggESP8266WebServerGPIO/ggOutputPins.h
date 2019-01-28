@@ -43,5 +43,11 @@ namespace ggOutputPins {
     return digitalRead(mPins[aIndex]);
   }
 
+  void Print(Stream& aStream) {
+    ForEach([&] (int aIndex) {
+      aStream.printf("Pin[%d] = %d\n", aIndex, Get(aIndex));
+    });
+  }
+
 };
 

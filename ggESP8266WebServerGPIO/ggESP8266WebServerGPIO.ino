@@ -6,11 +6,11 @@
 #include "ggOutputPins.h"
 #include "ggHtmlData.h"
 #include "ggClients.h"
+#include "ggConfig.h"
+#include "ggStringStream.h"
 
 
-const char* mWiFiSSID = "........";
-const char* mWiFiPassword = "........";
-const char* mMdnsHostName = "ESP8266-GPIO";
+String mHostName = "ESP8266-" + ggConfig::GetChipId();
 
 
 // Create web server on port 80
@@ -65,6 +65,25 @@ void ServerOnRoot()
 }
 
 
+void ServerOnDebug()
+{
+  String vDebugString;
+  ggStringStream vDebugStream(vDebugString);
+  ggConfig::Print(vDebugStream);
+  ggOutputPins::Print(vDebugStream);
+  mServer.send(200, "text/plain", vDebugString);
+}
+
+
+void ServerOnReset()
+{
+  mServer.send(200, "text/plain", "Resetting wifi manager ...\n");
+  WiFiManager mWifiManager;
+  mWifiManager.setDebugOutput(false);
+  mWifiManager.resetSettings();
+}
+
+
 void ServerOnNotFound()
 {
   mServer.send(404, "text/plain", "url not found");
@@ -76,24 +95,26 @@ void setup()
   // serial communication (for debugging)
   Serial.begin(115200);
   Serial.println("");
-  
+
   // connect to wifi
   WiFiManager mWifiManager;
-  mWifiManager.setDebugOutput(false);
-  mWifiManager.autoConnect("ESP8266_WifiMgr");
+  mWifiManager.setDebugOutput(true);
+  mWifiManager.autoConnect(mHostName.c_str());
   Serial.print("Connected to: ");
   Serial.println(WiFi.SSID());
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
 
   // start multicast DNS
-  MDNS.begin(mMdnsHostName, WiFi.localIP());
+  MDNS.begin(mHostName.c_str(), WiFi.localIP());
   MDNS.addService("http", "tcp", 80);
   MDNS.addService("ws", "tcp", 81);
-  Serial.println("MDNS responder started");
+  Serial.printf("MDNS responder started: http://%s.local\n", mHostName.c_str());
   
   // configure and start web-server
   mServer.on("/", ServerOnRoot);
+  mServer.on("/debug", ServerOnDebug);
+  mServer.on("/reset", ServerOnReset);
   mServer.onNotFound(ServerOnNotFound);
   mServer.begin();
   Serial.println("Web server started");
@@ -116,5 +137,5 @@ void loop()
 {
   mServer.handleClient();
   mWebSockets.loop();
+  MDNS.update();
 }
-
