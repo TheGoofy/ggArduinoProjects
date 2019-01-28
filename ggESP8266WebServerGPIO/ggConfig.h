@@ -11,8 +11,8 @@ namespace ggConfig {
     aStream.printf("ESP.getChipId() = 0x%08X\n", ESP.getChipId());
     aStream.printf("ESP.getCoreVersion() = %s\n", ESP.getCoreVersion().c_str());
     aStream.printf("ESP.getFreeHeap() = %d\n", ESP.getFreeHeap());
-    // aStream.printf("ESP.getHeapFragmentation() = %d%\n", ESP.getHeapFragmentation());
-    // aStream.printf("ESP.getMaxFreeBlockSize() = %d\n", ESP.getMaxFreeBlockSize());
+    aStream.printf("ESP.getHeapFragmentation() = %d%\n", ESP.getHeapFragmentation());
+    aStream.printf("ESP.getMaxFreeBlockSize() = %d\n", ESP.getMaxFreeBlockSize());
     aStream.println();
     // flash info
     FlashMode_t ideMode = ESP.getFlashChipMode();
