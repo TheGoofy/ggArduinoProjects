@@ -2,12 +2,15 @@
 #include <ESP8266mDNS.h>      // https://github.com/esp8266/Arduino
 #include <WebSocketsServer.h>
 #include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager
+#include <DHTesp.h>
+
 
 #include "ggOutputPins.h"
 #include "ggHtmlData.h"
 #include "ggClients.h"
 #include "ggConfig.h"
 #include "ggStringStream.h"
+#include "ggSampler.h"
 
 
 String mHostName = "ESP8266-" + ggConfig::GetChipId();
@@ -21,6 +24,10 @@ WebSocketsServer mWebSockets(81);
 
 // interface for clients communication via websockets
 ggClients mClients(mWebSockets);
+
+// temperature sensor
+DHTesp mDHT;
+ggSampler mSamplerDHT(1.0);
 
 
 void ToggleOutput(int aIndex)
@@ -129,13 +136,26 @@ void setup()
   Serial.flush();
 
   // configure the GPIO pins
-  ggOutputPins::Begin();
+  // ggOutputPins::Begin();
+
+  // configure temperature and humidity sensor on GPIO PIN 2
+  mDHT.setup(2, DHTesp::DHT22);
 }
 
 
 void loop()
 {
+  // run servers ...
   mServer.handleClient();
   mWebSockets.loop();
   MDNS.update();
+
+  // check temperature
+  if (mSamplerDHT.IsDue()) {
+    float vHumidity = mDHT.getHumidity();
+    float vTemperature = mDHT.getTemperature();
+    mWebSockets.broadcastTXT(String("UpdateHumidity(") + vHumidity + ")");
+    mWebSockets.broadcastTXT(String("UpdateTemperature(") + vTemperature + ")");
+  }
 }
+

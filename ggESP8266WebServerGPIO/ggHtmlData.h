@@ -53,6 +53,14 @@ char mHtmlRoot[] PROGMEM = R"=====(
       document.getElementById('td' + aId).bgColor = aOn ? 'orange' : 'skyblue';
     }
 
+    function UpdateHumidity(aHumidity) {
+      document.getElementById('humidity').innerHTML.value = 'Humidity = ' + aHumidity + '%';
+    }
+
+    function UpdateTemperature(aTemperature) {
+      document.getElementById('temperature').innerHTML.value = 'Temperature = ' + aTemperature + '°C';
+    }
+
     function onClick(aId) {
       var vToggleOutput = 'ToggleOutput(' + aId + ')';
       mWebSocket.send(vToggleOutput);
@@ -68,6 +76,8 @@ char mHtmlRoot[] PROGMEM = R"=====(
     <tr><td id='td2' class='selectnone' align='center' valign='middle' onclick='onClick(2)'>toggle output 2</td></tr>
     <tr><td id='td3' class='selectnone' align='center' valign='middle' onclick='onClick(3)'>toggle output 3</td></tr>
   </table>
+  <div id='humidity'>Humidity</div>
+  <div id='temperature'>Temperature</div>
 </body>
 
 </html>
