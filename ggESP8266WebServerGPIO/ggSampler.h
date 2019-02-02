@@ -4,22 +4,45 @@ class ggSampler {
   
 public:
   
-  ggSampler(float aSamplesPerSecond)
-  : mMicroSecondsSamplingTime(1000000.0f / aSamplesPerSecond),
+  typedef void (*tSampleFunction)();
+  
+  ggSampler(float aSamplesPerSecond,
+            tSampleFunction aSampleFunction = nullptr)
+  : mMicroSecondsSampleTime(1000000.0f / aSamplesPerSecond + 0.5f),
     mMicroSecondsLastSample(0),
-    mMicroSecondsDelta(0) {
+    mMicroSecondsDelta(0),
+    mSampleFunction(aSampleFunction) {
   }
 
-  bool IsDue() {
-    unsigned long vMicroSeconds = micros();
-    unsigned long vMicroSecondsDelta = vMicroSeconds - mMicroSecondsLastSample;
-    if (vMicroSecondsDelta >= mMicroSecondsSamplingTime) {
-      mMicroSecondsDelta = vMicroSecondsDelta;
-      mMicroSecondsLastSample = vMicroSeconds;
-      return true;
-    }
-    else {
-      return false;
+  void SetSampleFrequency(float aSamplesPerSecond) {
+    mMicroSecondsSampleTime = 1000000.0f / aSamplesPerSecond + 0.5f;
+  }
+
+  float GetSampleFrequency() const {
+    return 1000000.0f / mMicroSecondsSampleTime;
+  }
+
+  void SetSamplePeriod(float aSampleTimeSeconds) {
+    mMicroSecondsSampleTime = 1000000.0f * aSampleTimeSeconds + 0.5f;
+  }
+
+  float GetSamplePeriod() const {
+    return 0.000001f * mMicroSecondsSampleTime;
+  }
+
+  void OnSample(tSampleFunction aSampleFunction) {
+    mSampleFunction = aSampleFunction;
+  }
+
+  void Loop() {
+    if (mSampleFunction != nullptr) {
+      unsigned long vMicroSeconds = micros();
+      unsigned long vMicroSecondsDelta = vMicroSeconds - mMicroSecondsLastSample;
+      if (vMicroSecondsDelta >= mMicroSecondsSampleTime) {
+        mMicroSecondsDelta = vMicroSecondsDelta;
+        mMicroSecondsLastSample = vMicroSeconds;
+        mSampleFunction();
+      }
     }
   }
 
@@ -33,8 +56,10 @@ public:
   
 private:
   
-  const unsigned long mMicroSecondsSamplingTime;
-  unsigned long mMicroSecondsLastSample;
-  unsigned long mMicroSecondsDelta;
+  unsigned long mMicroSecondsSampleTime;
+  tSampleFunction mSampleFunction;
+  
+  mutable unsigned long mMicroSecondsLastSample;
+  mutable unsigned long mMicroSecondsDelta;
   
 };

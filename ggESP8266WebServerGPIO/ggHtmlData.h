@@ -54,11 +54,11 @@ char mHtmlRoot[] PROGMEM = R"=====(
     }
 
     function UpdateHumidity(aHumidity) {
-      document.getElementById('humidity').innerHTML.value = 'Humidity = ' + aHumidity + '%';
+      document.getElementById('humidity').innerHTML = 'Humidity = ' + aHumidity + '%';
     }
 
     function UpdateTemperature(aTemperature) {
-      document.getElementById('temperature').innerHTML.value = 'Temperature = ' + aTemperature + '°C';
+      document.getElementById('temperature').innerHTML = 'Temperature = ' + aTemperature + '°C';
     }
 
     function onClick(aId) {
@@ -82,4 +82,3 @@ char mHtmlRoot[] PROGMEM = R"=====(
 
 </html>
 )=====";
-

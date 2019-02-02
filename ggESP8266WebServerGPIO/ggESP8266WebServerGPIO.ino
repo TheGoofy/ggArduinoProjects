@@ -1,8 +1,8 @@
-#include <ESP8266WebServer.h>
+#include <ESP8266WebServer.h> // https://github.com/esp8266/Arduino
 #include <ESP8266mDNS.h>      // https://github.com/esp8266/Arduino
-#include <WebSocketsServer.h>
+#include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets
 #include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager
-#include <DHTesp.h>
+#include <DHTesp.h>           // https://github.com/beegee-tokyo/DHTesp
 
 
 #include "ggOutputPins.h"
@@ -27,7 +27,7 @@ ggClients mClients(mWebSockets);
 
 // temperature sensor
 DHTesp mDHT;
-ggSampler mSamplerDHT(1.0);
+ggSampler mSamplerDHT(0.5);
 
 
 void ToggleOutput(int aIndex)
@@ -97,6 +97,16 @@ void ServerOnNotFound()
 }
 
 
+void OnSampleDHT()
+{
+  TempAndHumidity vDataDHT = mDHT.getTempAndHumidity();
+  mWebSockets.broadcastTXT(String("UpdateHumidity(") + vDataDHT.humidity + ")");
+  mWebSockets.broadcastTXT(String("UpdateTemperature(") + vDataDHT.temperature + ")");
+  Serial.printf("Humidity: %f%%\n", vDataDHT.humidity);
+  Serial.printf("Temperature: %f°C\n", vDataDHT.temperature);
+}
+
+
 void setup()
 {
   // serial communication (for debugging)
@@ -139,7 +149,9 @@ void setup()
   // ggOutputPins::Begin();
 
   // configure temperature and humidity sensor on GPIO PIN 2
-  mDHT.setup(2, DHTesp::DHT22);
+  mDHT.setup(2, DHTesp::AM2302); // DHTesp::AM2302 DHTesp::DHT22
+  Serial.printf("DHT status: %s\n", mDHT.getStatusString());
+  mSamplerDHT.OnSample(OnSampleDHT);
 }
 
 
@@ -149,13 +161,5 @@ void loop()
   mServer.handleClient();
   mWebSockets.loop();
   MDNS.update();
-
-  // check temperature
-  if (mSamplerDHT.IsDue()) {
-    float vHumidity = mDHT.getHumidity();
-    float vTemperature = mDHT.getTemperature();
-    mWebSockets.broadcastTXT(String("UpdateHumidity(") + vHumidity + ")");
-    mWebSockets.broadcastTXT(String("UpdateTemperature(") + vTemperature + ")");
-  }
+  mSamplerDHT.Loop();
 }
-
