@@ -27,7 +27,7 @@ ggClients mClients(mWebSockets);
 
 // temperature sensor
 DHTesp mDHT;
-ggSampler mSamplerDHT(0.5);
+ggSampler mSamplerDHT(0.5f);
 
 
 void ToggleOutput(int aIndex)
@@ -102,8 +102,6 @@ void OnSampleDHT()
   TempAndHumidity vDataDHT = mDHT.getTempAndHumidity();
   mWebSockets.broadcastTXT(String("UpdateHumidity(") + vDataDHT.humidity + ")");
   mWebSockets.broadcastTXT(String("UpdateTemperature(") + vDataDHT.temperature + ")");
-  Serial.printf("Humidity: %f%%\n", vDataDHT.humidity);
-  Serial.printf("Temperature: %f°C\n", vDataDHT.temperature);
 }
 
 
@@ -141,17 +139,17 @@ void setup()
   mWebSockets.begin();
   Serial.println("Web sockets started");
 
+  // configure temperature and humidity sensor on GPIO (module: 2, thermo-ssr: 3)
+  mDHT.setup(3, DHTesp::AM2302);
+  Serial.printf("DHT status: %s\n", mDHT.getStatusString());
+  mSamplerDHT.OnSample(OnSampleDHT);
+  
   // make sure all status and debug messages are sent before communication gets
   // interrupted, in case hardware pins are needed for some different use.
   Serial.flush();
 
   // configure the GPIO pins
   // ggOutputPins::Begin();
-
-  // configure temperature and humidity sensor on GPIO PIN 2
-  mDHT.setup(2, DHTesp::AM2302); // DHTesp::AM2302 DHTesp::DHT22
-  Serial.printf("DHT status: %s\n", mDHT.getStatusString());
-  mSamplerDHT.OnSample(OnSampleDHT);
 }
 
 
@@ -161,5 +159,5 @@ void loop()
   mServer.handleClient();
   mWebSockets.loop();
   MDNS.update();
-  mSamplerDHT.Loop();
+  mSamplerDHT.Run();
 }

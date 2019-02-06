@@ -75,9 +75,9 @@ char mHtmlRoot[] PROGMEM = R"=====(
     <tr><td id='td1' class='selectnone' align='center' valign='middle' onclick='onClick(1)'>toggle output 1</td></tr>
     <tr><td id='td2' class='selectnone' align='center' valign='middle' onclick='onClick(2)'>toggle output 2</td></tr>
     <tr><td id='td3' class='selectnone' align='center' valign='middle' onclick='onClick(3)'>toggle output 3</td></tr>
+    <tr><td id='temperature' class='selectnone' align='center' valign='middle' bgcolor='lightgray'>Temperature</td></tr>
+    <tr><td id='humidity' class='selectnone' align='center' valign='middle' bgcolor='lightgray'>Humidity</td></tr>
   </table>
-  <div id='humidity'>Humidity</div>
-  <div id='temperature'>Temperature</div>
 </body>
 
 </html>

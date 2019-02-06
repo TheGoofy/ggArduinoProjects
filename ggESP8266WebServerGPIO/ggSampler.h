@@ -34,7 +34,7 @@ public:
     mSampleFunction = aSampleFunction;
   }
 
-  void Loop() {
+  void Run() {
     if (mSampleFunction != nullptr) {
       unsigned long vMicroSeconds = micros();
       unsigned long vMicroSecondsDelta = vMicroSeconds - mMicroSecondsLastSample;
