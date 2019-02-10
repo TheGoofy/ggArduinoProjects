@@ -1,12 +1,12 @@
 #pragma once
 
-#include "ggInput.h"
+#include "ggButton.h"
 #include "ggOutput.h"
 #include "ggSensor.h"
 
 struct ggPeriphery {
 
-  ggInput mKey;
+  ggButton mKey;
   ggOutput mSSR;
   ggOutput mStatusLED;
   ggSensor mSensor;
@@ -29,6 +29,7 @@ struct ggPeriphery {
   }
 
   void Run() {
+    mKey.Run();
     mSensor.Run();
     mBlinker.Run();
   }

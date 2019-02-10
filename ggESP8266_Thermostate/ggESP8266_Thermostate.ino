@@ -52,6 +52,9 @@ void setup()
   mPeriphery.Begin();
 
   // connect events ...
+  mPeriphery.mKey.OnChanged([&] (bool aPressed) {
+    mWebSockets.UpdateKey(aPressed);
+  }); 
   mPeriphery.mSensor.OnStatusChanged([&] (const char* aStatus) {
     mWebSockets.UpdateSensorStatus(aStatus);
   });
@@ -62,6 +65,7 @@ void setup()
     mWebSockets.UpdateHumidity(aHumidity);
   });
   mWebSockets.OnClientConnect([&] (int aClientID) {
+    mWebSockets.UpdateKey(mPeriphery.mKey.GetPressed(), aClientID);
     mWebSockets.UpdateSensorStatus(mPeriphery.mSensor.GetStatus(), aClientID);
     mWebSockets.UpdateTemperature(mPeriphery.mSensor.GetTemperature(), aClientID);
     mWebSockets.UpdateHumidity(mPeriphery.mSensor.GetHumidity(), aClientID);
