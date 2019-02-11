@@ -73,6 +73,9 @@ void setup()
   mWebSockets.OnSetTemperatureRef([&] (float aTemperatureRef) {
     mWebSockets.UpdateTemperatureRef(aTemperatureRef);
   });
+  mWebSockets.OnSetControlMode([&] (int aControlMode) {
+    mWebSockets.UpdateControlMode(aControlMode);
+  });
 }
 
 void loop()

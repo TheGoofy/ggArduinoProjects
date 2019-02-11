@@ -34,31 +34,57 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
       mWebSocket = new WebSocket('ws://' + window.location.hostname + ':81/');
       mWebSocket.onopen = onWebSocketOpen;
       mWebSocket.onclose = onWebSocketClose;
+      mWebSocket.onerror = onWebSocketError;
       mWebSocket.onmessage = onWebSocketMessage;
     }
 
     function onWebSocketOpen(aEvent) {
+      mWebSocketStatus.innerHTML = 'connected';
       if (mWebSocketReConnectTimerID) {
         window.clearInterval(mWebSocketTimerID);
         mWebSocketReConnectTimerID = 0;
       }
     }
-    
+
     function onWebSocketClose(aEvent) {
+      mWebSocketStatus.innerHTML = 'disconnected';
       if (!mWebSocketReConnectTimerID) {
         mWebSocketReConnectTimerID = window.setInterval(initWebSocket, 5000);
       }
     }
-    
+
+    function onWebSocketError(aEvent) {
+      mWebSocketStatus.innerHTML = aEvent;
+    }
+
     function onWebSocketMessage(aEvent) {
-      // server broadcasts function names, which are executed by the client
+      // server sends actual function names, which can directly be executed by the client
       eval(aEvent.data);
     }
 
+    var tControlMode = {
+      eOff : 0,
+      eOnBelow : 1,
+      eOnAbove : 2,
+      eOn : 3
+    };
+  
     function initHtmlElements() {
       mTemperatureRef.onchange = function() {
         mWebSocket.send('SetTemperatureRef(' + mTemperatureRef.value + ')');
       };
+      mControlModeOff.onchange = function() {
+        mWebSocket.send('SetControlMode(' + tControlMode.eOff + ')');
+      }
+      mControlModeOnBelow.onchange = function() {
+        mWebSocket.send('SetControlMode(' + tControlMode.eOnBelow + ')');
+      }
+      mControlModeOnAbove.onchange = function() {
+        mWebSocket.send('SetControlMode(' + tControlMode.eOnAbove + ')');
+      }
+      mControlModeOn.onchange = function() {
+        mWebSocket.send('SetControlMode(' + tControlMode.eOn + ')');
+      }
     }
     
     function UpdateSensorStatus(aSensorStatus) {
@@ -75,6 +101,16 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
 
     function UpdateTemperatureRef(aTemperatureRef) {
       mTemperatureRef.value = aTemperatureRef;
+    }
+
+    function UpdateControlMode(aControlMode) {
+      switch (aControlMode) {
+        case tControlMode.eOff: mControlModeOff.checked = true; break;
+        case tControlMode.eOnBelow: mControlModeOnBelow.checked = true; break;
+        case tControlMode.eOnAbove: mControlModeOnAbove.checked = true; break;
+        case tControlMode.eOn: mControlModeOn.checked = true; break;
+        default: alert("unknown control mode"); break;
+      }
     }
 
     function UpdateSSR(aSSR) {
@@ -99,6 +135,11 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
   <table border='0' cellspacing='2' cellpadding='5'>
     
     <tr>
+      <td>Web Socket Status</td>
+      <td id='mWebSocketStatus'>(na)</td>
+    </tr>
+    
+    <tr>
       <td>Sensor Status</td>
       <td id='mSensorStatus'>(na)</td>
     </tr>
@@ -116,6 +157,16 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
     <tr>
       <td>Temperature Ref</td>
       <td><input id='mTemperatureRef' type='number' min='0' max='30' step='0.1' value='(na)'> °C</td>
+    </tr>
+
+    <tr>
+      <td valign='top'>SSR Control</td>
+      <td>
+        <input id='mControlModeOff' type='radio' name='control'><label for='mControlModeOff'> Off<label><br>
+        <input id='mControlModeOnBelow' type='radio' name='control'><label for='mControlModeOnBelow'> On, if below ref (heater)</label><br>
+        <input id='mControlModeOnAbove' type='radio' name='control'><label for='mControlModeOnAbove'> On, if above ref (cooler)</label><br>
+        <input id='mControlModeOn' type='radio' name='control'><label for='mControlModeOn'> On</label><br>
+      </td>
     </tr>
 
     <tr>

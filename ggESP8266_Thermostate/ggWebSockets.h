@@ -9,11 +9,13 @@ public:
 
   typedef std::function<void(int aClientNumber)> tClientConnectFunc;
   typedef std::function<void(float aValue)> tSetFloatValueFunc;
+  typedef std::function<void(int aControlMode)> tSetControlModeFunc;
 
   ggWebSockets(int aPort)
   : mServer(aPort),
     mClientConnectFunc(nullptr),
-    mSetTemperatureRefFunc(nullptr) {
+    mSetTemperatureRefFunc(nullptr),
+    mSetControlModeFunc(nullptr) {
   }
 
   void Begin() {
@@ -42,6 +44,10 @@ public:
     UpdateClientTXT(String("UpdateTemperatureRef(") + aTemperatureRef + ")", aClientID);
   }
 
+  void UpdateControlMode(int aControlMode, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateControlMode(") + aControlMode + ")", aClientID);
+  }
+
   void UpdateHumidity(float aHumidity, int aClientID = -1) {
     UpdateClientTXT(String("UpdateHumidity(") + aHumidity + ")", aClientID);
   }
@@ -64,6 +70,10 @@ public:
 
   void OnSetTemperatureRef(tSetFloatValueFunc aSetTemperatureRefFunc) {
     mSetTemperatureRefFunc = aSetTemperatureRefFunc;
+  }
+
+  void OnSetControlMode(tSetControlModeFunc aSetControlModeFunc) {
+    mSetControlModeFunc = aSetControlModeFunc;
   }
 
 private:
@@ -92,13 +102,21 @@ private:
 
   void Eval(const String& aText) {
     ggFunctionParser vFunction(aText);
-    if ((vFunction.GetName() == "SetTemperatureRef") && (mSetTemperatureRefFunc != nullptr)) { mSetTemperatureRefFunc(vFunction.ArgFloat(0)); return; }
+    if (vFunction.GetName() == "SetTemperatureRef") {
+      if (mSetTemperatureRefFunc != nullptr) mSetTemperatureRefFunc(vFunction.ArgFloat(0));
+      return;
+    }
+    if (vFunction.GetName() == "SetControlMode") {
+      if (mSetControlModeFunc != nullptr) mSetControlModeFunc(vFunction.ArgInt(0));
+      return;
+    }
   }
 
   WebSocketsServer mServer;
 
   tClientConnectFunc mClientConnectFunc;
   tSetFloatValueFunc mSetTemperatureRefFunc;
+  tSetControlModeFunc mSetControlModeFunc;
   
 };
 
