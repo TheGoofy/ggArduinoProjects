@@ -6,22 +6,26 @@ class ggInput : public ggInputOutput {
 
 public:
 
-  ggInput(int aPin, bool aInv = false)
+  ggInput(int aPin,
+          bool aInverted = false,
+          bool aEnablePullUp = false)
   : ggInputOutput(aPin),
-    mInv(aInv) {
+    mInverted(aInverted),
+    mEnablePullUp(aEnablePullUp) {
   }
 
   void Begin() {
-    pinMode(GetPin(), INPUT);
+    pinMode(GetPin(), mEnablePullUp ? INPUT_PULLUP : INPUT);
   }
 
   bool Get() const {
-    return digitalRead(GetPin()) ^ mInv;
+    return digitalRead(GetPin()) ^ mInverted;
   }
 
 private:
 
-  bool mInv;
+  const bool mInverted;
+  const bool mEnablePullUp;
   
 };
 

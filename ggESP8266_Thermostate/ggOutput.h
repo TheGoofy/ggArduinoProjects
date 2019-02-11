@@ -6,9 +6,10 @@ class ggOutput : public ggInputOutput {
 
 public:
 
-  ggOutput(int aPin, bool aInv = false)
+  ggOutput(int aPin,
+           bool aInverted = false)
   : ggInputOutput(aPin),
-    mInv(aInv) {
+    mInverted(aInverted) {
   }
 
   void Begin() {
@@ -21,16 +22,16 @@ public:
   }
 
   bool Get() const {
-    return digitalRead(GetPin()) ^ mInv;
+    return digitalRead(GetPin()) ^ mInverted;
   }
 
   void Set(bool aValue) {
-    digitalWrite(GetPin(), aValue ^ mInv);
+    digitalWrite(GetPin(), aValue ^ mInverted);
   }
 
 private:
 
-  bool mInv;
+  const bool mInverted;
   
 };
 

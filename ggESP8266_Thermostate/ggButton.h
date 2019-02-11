@@ -1,11 +1,12 @@
 #pragma once
 
 #include <functional>
+#include "ggInput.h"
 
 /**
  * button with software debouncing
  */
-class ggButton {
+class ggButton : public ggInput {
 
 public:
 
@@ -16,19 +17,13 @@ public:
            bool aInverted = false,
            bool aEnablePullUp = false,
            int aDebounceMillis = 30)
-  : mPin(aPin),
-    mInverted(aInverted),
-    mEnablePullUp(aEnablePullUp),
+  : ggInput(aPin, aInverted, aEnablePullUp),
     mDebounceMillis(aDebounceMillis),
     mPressed(false),
     mMillis(0),
     mChangedFunc(nullptr),
     mPressedFunc(nullptr),
     mReleasedFunc(nullptr) {
-  }
-
-  void Begin() {
-    pinMode(mPin, mEnablePullUp ? INPUT_PULLUP : INPUT);
   }
 
   void Run() {
@@ -57,7 +52,7 @@ private:
     long vMillis = millis();
     long vMillisDelta = vMillis - mMillis;
     if (vMillisDelta > mDebounceMillis) {
-      bool vPressed = digitalRead(mPin) ^ mInverted;
+      bool vPressed = Get();
       if (vPressed != mPressed) {
         mPressed = vPressed;
         mMillis = vMillis;
@@ -68,10 +63,8 @@ private:
     }
   }
 
-  int mPin;
-  bool mInverted;
-  bool mEnablePullUp;
-  int mDebounceMillis;
+  const int mDebounceMillis;
+  
   bool mPressed;
   long mMillis;
 

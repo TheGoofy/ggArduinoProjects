@@ -12,9 +12,9 @@ public:
     return mPin;
   }
 
-protected:
+private:
 
-  int mPin;
+  const int mPin;
   
 };
 
