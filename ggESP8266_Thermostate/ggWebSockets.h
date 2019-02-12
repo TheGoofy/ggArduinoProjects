@@ -60,8 +60,8 @@ public:
     UpdateClientTXT(String("UpdateStatusLED(") + aStatusLED + ")", aClientID);
   }
 
-  void UpdateSSR(float aSSR, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateSSR(") + aSSR + ")", aClientID);
+  void UpdateOutput(float aOutput, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateOutput(") + aOutput + ")", aClientID);
   }
 
   void OnClientConnect(tClientConnectFunc aClientConnectFunc) {

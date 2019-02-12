@@ -7,6 +7,7 @@
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
 #include "ggPeriphery.h"
+#include "ggController.h"
 
 String mHostName = "ESP8266-" + String(ESP.getChipId(), HEX);
 
@@ -19,6 +20,9 @@ ggWebSockets mWebSockets(81);
 
 // input and ouput configuration
 ggPeriphery mPeriphery;
+
+// controls an output based on input and reference value
+ggController mController;
 
 
 void setup()
@@ -51,30 +55,50 @@ void setup()
   // setup connected hardware
   mPeriphery.Begin();
 
-  // connect events ...
-  mPeriphery.mKey.OnChanged([&] (bool aPressed) {
-    mWebSockets.UpdateKey(aPressed);
-  }); 
-  mPeriphery.mSensor.OnStatusChanged([&] (const char* aStatus) {
-    mWebSockets.UpdateSensorStatus(aStatus);
-  });
-  mPeriphery.mSensor.OnTemperatureChanged([&] (float aTemperature) {
-    mWebSockets.UpdateTemperature(aTemperature);
-  });
-  mPeriphery.mSensor.OnHumidityChanged([&] (float aHumidity) {
-    mWebSockets.UpdateHumidity(aHumidity);
-  });
+  // when a new client is conneted, it needs a complete update
   mWebSockets.OnClientConnect([&] (int aClientID) {
     mWebSockets.UpdateKey(mPeriphery.mKey.GetPressed(), aClientID);
     mWebSockets.UpdateSensorStatus(mPeriphery.mSensor.GetStatus(), aClientID);
     mWebSockets.UpdateTemperature(mPeriphery.mSensor.GetTemperature(), aClientID);
     mWebSockets.UpdateHumidity(mPeriphery.mSensor.GetHumidity(), aClientID);
+    mWebSockets.UpdateControlMode(mController.GetMode(), aClientID);
+    mWebSockets.UpdateTemperatureRef(mController.GetReference(), aClientID);
+    mWebSockets.UpdateOutput(mController.GetOutput(), aClientID);
+  });
+  
+  // controller event: when output changes, the SSR needs to be switched
+  mController.OnOutputChanged([&] (float aOutputValue) {
+    mPeriphery.mOutput.Set(aOutputValue > 0.5f);
+    mWebSockets.UpdateOutput(aOutputValue);
+  });
+
+  // when button "key" is pressed we switch off the SSR (emergency)
+  mPeriphery.mKey.OnChanged([&] (bool aPressed) {
+    mController.SetMode(ggController::eModeOff);
+    mWebSockets.UpdateControlMode(mController.GetMode());
+    mWebSockets.UpdateKey(aPressed);
+  });
+
+  // connect sensor events
+  mPeriphery.mSensor.OnStatusChanged([&] (const char* aStatus) {
+    mWebSockets.UpdateSensorStatus(aStatus);
+  });
+  mPeriphery.mSensor.OnTemperatureChanged([&] (float aTemperature) {
+    mController.SetInput(aTemperature);
+    mWebSockets.UpdateTemperature(aTemperature);
+  });
+  mPeriphery.mSensor.OnHumidityChanged([&] (float aHumidity) {
+    mWebSockets.UpdateHumidity(aHumidity);
+  });
+
+  // events from client: control mode, reference temperature
+  mWebSockets.OnSetControlMode([&] (int aControlMode) {
+    mController.SetMode(static_cast<ggController::tMode>(aControlMode));
+    mWebSockets.UpdateControlMode(mController.GetMode());
   });
   mWebSockets.OnSetTemperatureRef([&] (float aTemperatureRef) {
-    mWebSockets.UpdateTemperatureRef(aTemperatureRef);
-  });
-  mWebSockets.OnSetControlMode([&] (int aControlMode) {
-    mWebSockets.UpdateControlMode(aControlMode);
+    mController.SetReference(aTemperatureRef);
+    mWebSockets.UpdateTemperatureRef(mController.GetReference());
   });
 }
 

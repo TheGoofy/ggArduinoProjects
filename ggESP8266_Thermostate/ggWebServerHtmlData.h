@@ -113,9 +113,9 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
       }
     }
 
-    function UpdateSSR(aSSR) {
-      mSSR.bgColor = aSSR > 0.5 ? 'Gold' : 'LightGray';
-      mSSR.innerHTML = 100 * aSSR + '%';
+    function UpdateOutput(aOutput) {
+      mOutput.bgColor = aOutput > 0.5 ? 'Gold' : 'LightGray';
+      mOutput.innerHTML = 100 * aOutput + '%';
     }
 
     function UpdateStatusLED(aStatusLED) {
@@ -155,12 +155,7 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
     </tr>
 
     <tr>
-      <td>Temperature Ref</td>
-      <td><input id='mTemperatureRef' type='number' min='0' max='30' step='0.1' value='(na)'> °C</td>
-    </tr>
-
-    <tr>
-      <td valign='top'>SSR Control</td>
+      <td valign='top'>Output Control</td>
       <td>
         <input id='mControlModeOff' type='radio' name='control'><label for='mControlModeOff'> Off<label><br>
         <input id='mControlModeOnBelow' type='radio' name='control'><label for='mControlModeOnBelow'> On, if below ref (heater)</label><br>
@@ -170,8 +165,13 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
     </tr>
 
     <tr>
-      <td>SSR</td>
-      <td id='mSSR'>(na)</td>
+      <td>Temperature Ref</td>
+      <td><input id='mTemperatureRef' type='number' min='0' max='30' step='0.1' value='(na)'> °C</td>
+    </tr>
+
+    <tr>
+      <td>Output</td>
+      <td id='mOutput'>(na)</td>
     </tr>
 
     <tr>
