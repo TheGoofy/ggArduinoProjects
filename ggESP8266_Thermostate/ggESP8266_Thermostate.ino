@@ -9,9 +9,11 @@
 #include "ggPeriphery.h"
 #include "ggController.h"
 
-String mHostName = "ESP8266-" + String(ESP.getChipId(), HEX);
+String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
 
-
+// runs AP, if no wifi connection
+WiFiManager mWifiManager;
+  
 // create web server on port 80
 ggWebServer mWebServer(80);
 
@@ -32,9 +34,8 @@ void setup()
   Serial.println("");
   
   // connect to wifi
-  WiFiManager vWifiManager;
-  vWifiManager.setDebugOutput(true);
-  vWifiManager.autoConnect(mHostName.c_str());
+  mWifiManager.setDebugOutput(true);
+  mWifiManager.autoConnect(mHostName.c_str());
   Serial.print("Connected to: ");
   Serial.println(WiFi.SSID());
   Serial.print("IP address: ");
@@ -77,6 +78,13 @@ void setup()
     mController.SetMode(ggController::eModeOff);
     mWebSockets.UpdateControlMode(mController.GetMode());
     mWebSockets.UpdateKey(aPressed);
+  });
+  mPeriphery.mKey.OnReleased([&] () {
+    if (mPeriphery.mKey.GetMillisDelta() > 2000) {
+      mWifiManager.resetSettings();
+      mController.SetReference(0.0f);
+      mWebSockets.UpdateTemperatureRef(mController.GetReference());
+    }
   });
 
   // connect sensor events

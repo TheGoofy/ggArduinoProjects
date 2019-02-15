@@ -21,6 +21,7 @@ public:
     mDebounceMillis(aDebounceMillis),
     mPressed(false),
     mMillis(0),
+    mMillisDelta(0),
     mChangedFunc(nullptr),
     mPressedFunc(nullptr),
     mReleasedFunc(nullptr) {
@@ -32,6 +33,10 @@ public:
 
   bool GetPressed() const {
     return mPressed;
+  }
+
+  long GetMillisDelta() const {
+    return mMillisDelta;
   }
 
   void OnChanged(tChangedFunc aChangedFunc) {
@@ -56,6 +61,7 @@ private:
       if (vPressed != mPressed) {
         mPressed = vPressed;
         mMillis = vMillis;
+        mMillisDelta = vMillisDelta;
         if (mChangedFunc != nullptr) mChangedFunc(mPressed);
         if (mPressedFunc != nullptr && mPressed) mPressedFunc();
         if (mReleasedFunc != nullptr && !mPressed) mReleasedFunc();
@@ -67,6 +73,7 @@ private:
   
   bool mPressed;
   long mMillis;
+  long mMillisDelta;
 
   tChangedFunc mChangedFunc;
   tEventFunc mPressedFunc;
