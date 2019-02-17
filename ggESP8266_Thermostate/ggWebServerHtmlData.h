@@ -85,6 +85,9 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
       mControlModeOn.onchange = function() {
         mWebSocket.send('SetControlMode(' + tControlMode.eOn + ')');
       }
+      mOutputRange.onchange = function() {
+        mWebSocket.send('SetOutput(' + mOutputRange.value + ')');
+      }
     }
     
     function UpdateSensorStatus(aSensorStatus) {
@@ -115,7 +118,8 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
 
     function UpdateOutput(aOutput) {
       mOutput.bgColor = aOutput > 0.5 ? 'Gold' : 'LightGray';
-      mOutput.innerHTML = 100 * aOutput + '%';
+      mOutputValue.innerHTML = Math.round(100.0 * aOutput) + '%';
+      mOutputRange.value = aOutput;
     }
 
     function UpdateStatusLED(aStatusLED) {
@@ -166,12 +170,15 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
 
     <tr>
       <td>Temperature Ref</td>
-      <td><input id='mTemperatureRef' type='number' min='0' max='30' step='0.1' value='(na)'> °C</td>
+      <td><input id='mTemperatureRef' type='number' min='0' max='30' step='0.1' value='0'> °C</td>
     </tr>
 
     <tr>
       <td>Output</td>
-      <td id='mOutput'>(na)</td>
+      <td id='mOutput'><table cellpadding='0' cellspacing='0' border='0'><tr>
+        <td><input id='mOutputRange' type='range' name='outputrange' min='0' max='1' step='0.1' value='0'></td>
+        <td>&nbsp;<span id='mOutputValue'>(na)</span></td>
+      </tr></table></td>
     </tr>
 
     <tr>
@@ -189,4 +196,3 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
 
 </html>
 )=====";
-

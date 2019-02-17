@@ -15,7 +15,8 @@ public:
   : mServer(aPort),
     mClientConnectFunc(nullptr),
     mSetTemperatureRefFunc(nullptr),
-    mSetControlModeFunc(nullptr) {
+    mSetControlModeFunc(nullptr),
+    mSetOutputFunc(nullptr) {
   }
 
   void Begin() {
@@ -76,6 +77,10 @@ public:
     mSetControlModeFunc = aSetControlModeFunc;
   }
 
+  void OnSetOutput(tSetFloatValueFunc aSetOutputFunc) {
+    mSetOutputFunc = aSetOutputFunc;
+  }
+
 private:
 
   inline void UpdateClientTXT(String aTXT, int aClientID = -1) {
@@ -110,6 +115,10 @@ private:
       if (mSetControlModeFunc != nullptr) mSetControlModeFunc(vFunction.ArgInt(0));
       return;
     }
+    if (vFunction.GetName() == "SetOutput") {
+      if (mSetOutputFunc != nullptr) mSetOutputFunc(vFunction.ArgFloat(0));
+      return;
+    }
   }
 
   WebSocketsServer mServer;
@@ -117,6 +126,6 @@ private:
   tClientConnectFunc mClientConnectFunc;
   tSetFloatValueFunc mSetTemperatureRefFunc;
   tSetControlModeFunc mSetControlModeFunc;
+  tSetFloatValueFunc mSetOutputFunc;
   
 };
-
