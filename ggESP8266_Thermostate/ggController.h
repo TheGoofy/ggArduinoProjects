@@ -17,6 +17,7 @@ public:
 
   ggController()
   : mMode(eModeOff),
+    mInputValid(true),
     mReferenceValue(0.0f),
     mInputValue(0.0f),
     mOutputValue(0.0f),
@@ -43,6 +44,17 @@ public:
       mReferenceValue = aReferenceValue;
       ControlOutput();
     }
+  }
+
+  void SetInputValid(boolean aValid) {
+    if (mInputValid != aValid) {
+      mInputValid = aValid;
+      ControlOutput();
+    }
+  }
+
+  bool GetInputValid() const {
+    return mInputValid;
   }
 
   float GetInput() const {
@@ -77,8 +89,8 @@ private:
     float vOutputValue = 0.0f;
     switch (mMode) {
       case eModeOff: vOutputValue = 0.0f; break;
-      case eModeOnBelow: vOutputValue = mInputValue < mReferenceValue ? 1.0f : 0.0f; break;
-      case eModeOnAbove: vOutputValue = mInputValue > mReferenceValue ? 1.0f : 0.0f; break;
+      case eModeOnBelow: vOutputValue = (mInputValid && (mInputValue < mReferenceValue)) ? 1.0f : 0.0f; break;
+      case eModeOnAbove: vOutputValue = (mInputValid && (mInputValue > mReferenceValue)) ? 1.0f : 0.0f; break;
       case eModeOn: vOutputValue = 1.0f; break;
       default: vOutputValue = 1.0f; break;
     }
@@ -91,7 +103,8 @@ private:
   }
 
   tMode mMode;
-  
+
+  bool mInputValid;
   float mReferenceValue;
   float mInputValue;
   float mOutputValue;
@@ -99,4 +112,3 @@ private:
   tOutputChangedFunc mOutputChangedFunc;
   
 };
-

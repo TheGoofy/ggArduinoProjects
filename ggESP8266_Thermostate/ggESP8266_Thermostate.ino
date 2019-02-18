@@ -91,6 +91,7 @@ void setup()
 
   // connect sensor events
   mPeriphery.mSensor.OnStatusChanged([&] (const char* aStatus) {
+    mTemperatureController.SetInputValid(mPeriphery.mSensor.StatusOK());
     mPeriphery.mStatusLED.SetError(!mPeriphery.mSensor.StatusOK());
     mWebSockets.UpdateSensorStatus(aStatus);
   });
