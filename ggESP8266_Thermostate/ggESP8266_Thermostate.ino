@@ -5,13 +5,15 @@
 
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
+#include "ggWiFiConnection.h"
 #include "ggPeriphery.h"
 #include "ggController.h"
 
-String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
+const String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
 
 // runs AP, if no wifi connection
 WiFiManager mWifiManager;
+ggWiFiConnection mWiFiConnection;
   
 // create web server on port 80
 ggWebServer mWebServer(80);
@@ -39,6 +41,7 @@ void setup()
   Serial.println(WiFi.SSID());
   Serial.print("IP address: ");
   Serial.println(WiFi.localIP());
+  mWiFiConnection.Begin();
 
   // configure and start web-server
   mWebServer.Begin();
@@ -99,6 +102,15 @@ void setup()
     mWebSockets.UpdateHumidity(aHumidity);
   });
 
+  // wifi events
+  mWiFiConnection.OnConnect([&] () {
+    mPeriphery.mStatusLED.SetWarning(false);
+    // mWiFiConnection.Print(Serial);
+  });
+  mWiFiConnection.OnDisconnect([&] () {
+    mPeriphery.mStatusLED.SetWarning(true);
+  });
+
   // events from client: control mode, reference temperature
   mWebSockets.OnSetControlMode([&] (int aControlMode) {
     mTemperatureController.SetMode(static_cast<ggController::tMode>(aControlMode));
@@ -120,5 +132,6 @@ void loop()
   mPeriphery.Run();
   mWebServer.Run();
   mWebSockets.Run();
+  mWiFiConnection.Run();
   yield();
 }
