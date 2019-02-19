@@ -35,15 +35,8 @@ public:
     }
   }
 
-  float GetReference() const {
-    return mReferenceValue;
-  }
-
-  void SetReference(float aReferenceValue) {
-    if (mReferenceValue != aReferenceValue) {
-      mReferenceValue = aReferenceValue;
-      ControlOutput();
-    }
+  bool GetInputValid() const {
+    return mInputValid;
   }
 
   void SetInputValid(boolean aValid) {
@@ -53,8 +46,15 @@ public:
     }
   }
 
-  bool GetInputValid() const {
-    return mInputValid;
+  float GetReference() const {
+    return mReferenceValue;
+  }
+
+  void SetReference(float aReferenceValue) {
+    if (mReferenceValue != aReferenceValue) {
+      mReferenceValue = aReferenceValue;
+      ControlOutput();
+    }
   }
 
   float GetInput() const {

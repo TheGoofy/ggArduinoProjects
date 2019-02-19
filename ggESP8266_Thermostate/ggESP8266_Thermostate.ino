@@ -82,10 +82,8 @@ void setup()
     mWebSockets.UpdateKey(aPressed);
   });
   mPeriphery.mKey.OnReleased([&] () {
-    if (mPeriphery.mKey.GetMillisDelta() > 2000) {
+    if (mPeriphery.mKey.GetMillisDelta() > 5000) {
       mWifiManager.resetSettings();
-      mTemperatureController.SetReference(0.0f);
-      mWebSockets.UpdateTemperatureRef(mTemperatureController.GetReference());
     }
   });
 
@@ -106,7 +104,6 @@ void setup()
   // wifi events
   mWiFiConnection.OnConnect([&] () {
     mPeriphery.mStatusLED.SetWarning(false);
-    // mWiFiConnection.Print(Serial);
   });
   mWiFiConnection.OnDisconnect([&] () {
     mPeriphery.mStatusLED.SetWarning(true);
