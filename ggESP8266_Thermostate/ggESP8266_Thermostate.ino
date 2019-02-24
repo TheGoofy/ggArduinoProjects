@@ -58,6 +58,9 @@ void setup()
   // setup connected hardware
   mPeriphery.Begin();
 
+  // setup controller
+  mTemperatureController.Begin();
+
   // when a new client is conneted, it needs a complete update
   mWebSockets.OnClientConnect([&] (int aClientID) {
     mWebSockets.UpdateKey(mPeriphery.mKey.GetPressed(), aClientID);

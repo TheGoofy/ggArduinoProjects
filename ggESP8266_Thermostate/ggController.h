@@ -2,6 +2,9 @@
 
 #include <functional>
 
+#include "ggPersistT.h"
+#include "ggStringConvertNumbers.h"
+
 class ggController {
 
 public:
@@ -15,22 +18,27 @@ public:
 
   typedef std::function<void(float aOutputValue)> tOutputChangedFunc;
 
-  ggController()
-  : mMode(eModeOff),
+  ggController(const String& aName = "ggController")
+  : mMode("/" + aName + "/mMode", eModeOff),
+    mReferenceValue("/" + aName + "/mRef", 0.0f),
     mInputValid(true),
-    mReferenceValue(0.0f),
     mInputValue(0.0f),
     mOutputValue(0.0f),
     mOutputChangedFunc(nullptr) {
   }
 
+  void Begin() {
+    mMode.Begin();
+    mReferenceValue.Begin();
+  }
+
   tMode GetMode() const {
-    return mMode;
+    return mMode.Get();
   }
 
   void SetMode(tMode aMode) {
-    if (mMode != aMode) {
-      mMode = aMode;
+    if (mMode.Get() != aMode) {
+      mMode.Set(aMode);
       ControlOutput();
     }
   }
@@ -47,12 +55,12 @@ public:
   }
 
   float GetReference() const {
-    return mReferenceValue;
+    return mReferenceValue.Get();
   }
 
   void SetReference(float aReferenceValue) {
-    if (mReferenceValue != aReferenceValue) {
-      mReferenceValue = aReferenceValue;
+    if (mReferenceValue.Get() != aReferenceValue) {
+      mReferenceValue.Set(aReferenceValue);
       ControlOutput();
     }
   }
@@ -77,8 +85,8 @@ public:
   }
 
   void Print(Stream& aStream) const {
-    aStream.printf("mMode = %d\n", mMode);
-    aStream.printf("mReferenceValue = %f\n", mReferenceValue);
+    aStream.printf("mMode = %d\n", mMode.Get());
+    aStream.printf("mReferenceValue = %f\n", mReferenceValue.Get());
     aStream.printf("mInputValue = %f\n", mInputValue);
     aStream.printf("mOutputValue = %f\n", mOutputValue);
   }
@@ -87,10 +95,10 @@ private:
 
   void ControlOutput() {
     float vOutputValue = 0.0f;
-    switch (mMode) {
+    switch (GetMode()) {
       case eModeOff: vOutputValue = 0.0f; break;
-      case eModeOnBelow: vOutputValue = (mInputValid && (mInputValue < mReferenceValue)) ? 1.0f : 0.0f; break;
-      case eModeOnAbove: vOutputValue = (mInputValid && (mInputValue > mReferenceValue)) ? 1.0f : 0.0f; break;
+      case eModeOnBelow: vOutputValue = (mInputValid && (mInputValue < mReferenceValue.Get())) ? 1.0f : 0.0f; break;
+      case eModeOnAbove: vOutputValue = (mInputValid && (mInputValue > mReferenceValue.Get())) ? 1.0f : 0.0f; break;
       case eModeOn: vOutputValue = 1.0f; break;
       default: vOutputValue = 1.0f; break;
     }
@@ -102,13 +110,34 @@ private:
     }
   }
 
-  tMode mMode;
-
+  ggPersistT<tMode> mMode;
+  ggPersistT<float> mReferenceValue;
   bool mInputValid;
-  float mReferenceValue;
   float mInputValue;
   float mOutputValue;
   
   tOutputChangedFunc mOutputChangedFunc;
   
 };
+
+
+template <>
+String ToString(const ggController::tMode& aMode) {
+  switch (aMode) {
+    case ggController::eModeOff: return "eModeOff";
+    case ggController::eModeOnBelow: return "eModeOnBelow";
+    case ggController::eModeOnAbove: return "eModeOnAbove";
+    case ggController::eModeOn: return "eModeOn";
+    default: return "eModeUnknown";
+  }
+}
+
+
+template <>
+ggController::tMode FromString(const String& aString) {
+  if (aString == "eModeOff") return ggController::eModeOff;
+  if (aString == "eModeOnBelow") return ggController::eModeOnBelow;
+  if (aString == "eModeOnAbove") return ggController::eModeOnAbove;
+  if (aString == "eModeOn") return ggController::eModeOn;
+  return ggController::eModeOff;
+}
