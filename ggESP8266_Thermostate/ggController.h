@@ -2,7 +2,7 @@
 
 #include <functional>
 
-#include "ggPersistT.h"
+#include "ggValueEEPromT.h"
 #include "ggStringConvertNumbers.h"
 
 class ggController {
@@ -19,8 +19,8 @@ public:
   typedef std::function<void(float aOutputValue)> tOutputChangedFunc;
 
   ggController(const String& aName = "ggController")
-  : mMode("/" + aName + "/mMode", eModeOff),
-    mReferenceValue("/" + aName + "/mRef", 0.0f),
+  : mMode(eModeOff),
+    mReferenceValue(20.0f),
     mInputValid(true),
     mInputValue(0.0f),
     mOutputValue(0.0f),
@@ -28,8 +28,6 @@ public:
   }
 
   void Begin() {
-    mMode.Begin();
-    mReferenceValue.Begin();
   }
 
   tMode GetMode() const {
@@ -97,8 +95,8 @@ private:
     float vOutputValue = 0.0f;
     switch (GetMode()) {
       case eModeOff: vOutputValue = 0.0f; break;
-      case eModeOnBelow: vOutputValue = (mInputValid && (mInputValue < mReferenceValue.Get())) ? 1.0f : 0.0f; break;
-      case eModeOnAbove: vOutputValue = (mInputValid && (mInputValue > mReferenceValue.Get())) ? 1.0f : 0.0f; break;
+      case eModeOnBelow: vOutputValue = (mInputValid && (mInputValue < GetReference())) ? 1.0f : 0.0f; break;
+      case eModeOnAbove: vOutputValue = (mInputValid && (mInputValue > GetReference())) ? 1.0f : 0.0f; break;
       case eModeOn: vOutputValue = 1.0f; break;
       default: vOutputValue = 1.0f; break;
     }
@@ -110,8 +108,8 @@ private:
     }
   }
 
-  ggPersistT<tMode> mMode;
-  ggPersistT<float> mReferenceValue;
+  ggValueEEPromT<tMode> mMode;
+  ggValueEEPromT<float> mReferenceValue;
   bool mInputValid;
   float mInputValue;
   float mOutputValue;

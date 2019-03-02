@@ -5,11 +5,11 @@
 #include "ggStringConvertT.h"
 
 template <class TValueType>
-class ggPersistT {
+class ggValueFST {
 
 public:
 
-  ggPersistT(const String& aValueName,
+  ggValueFST(const String& aValueName,
              const TValueType& aDefaultValue)
   : mValueName(aValueName),
     mValue(aDefaultValue) {

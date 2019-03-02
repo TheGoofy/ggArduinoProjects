@@ -33,7 +33,10 @@ void setup()
   // serial communication (for debugging)
   Serial.begin(115200);
   Serial.println("");
-  
+
+  // startup eeprom utility class
+  ggValueEEProm::Begin();
+
   // connect to wifi
   mWifiManager.setDebugOutput(true);
   mWifiManager.autoConnect(mHostName.c_str());
