@@ -7,11 +7,6 @@ class ggEEPromValue {
 
 public:
 
-  ggEEPromValue(int aSize) {
-    mIndex = mData.size();    
-    mData.resize(mIndex + aSize);
-  }
-
   static void Begin(size_t aSize = 512) {
     EEPROM.begin(aSize);
     mChecksumSeed = Checksum(0);
@@ -27,6 +22,11 @@ public:
 
 protected:
 
+  ggEEPromValue(int aSize) {
+    mIndex = mData.size();    
+    mData.resize(mIndex + aSize);
+  }
+
   template <typename TValueType>
   inline TValueType& Value() {
     return *reinterpret_cast<TValueType*>(&mData[mIndex]);
@@ -38,10 +38,10 @@ protected:
   }
 
   template <typename TValueType>
-  void Write(const TValueType& aValue) const {
+  void Write() const {
     WriteHeader();
     const int vAddress = sizeof(cHeader) + mIndex;
-    EEPROM.put(vAddress, aValue);
+    EEPROM.put(vAddress, Value<TValueType>());
     EEPROM.commit();
   }
 
