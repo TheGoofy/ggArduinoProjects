@@ -3,11 +3,8 @@
 #include "ggStringConvertT.h"
 
 template <>
-int FromString(const String& aString) {
-  return aString.toInt();
-}
+int FromString(const String& aString);
 
 template <>
-float FromString(const String& aString) {
-  return aString.toFloat();
-}
+float FromString(const String& aString);
+

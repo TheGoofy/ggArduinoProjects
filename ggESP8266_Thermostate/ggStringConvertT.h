@@ -1,5 +1,7 @@
 #pragma once
 
+#include <WString.h>
+
 template <typename TValueType>
 String ToString(const TValueType& aValue) {
   return String(aValue);

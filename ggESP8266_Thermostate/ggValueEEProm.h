@@ -7,25 +7,11 @@ class ggValueEEProm {
 
 public:
 
-  static void Begin(size_t aSize = 512) {
-    EEPROM.begin(aSize);
-    mChecksumSeed = Checksum(0);
-    if (Valid()) {
-      ReadData();
-    }
-    else {
-      WriteHeader();
-      WriteData();
-      EEPROM.commit();
-    }
-  }
+  static void Begin(size_t aSize = 512);
 
 protected:
 
-  ggValueEEProm(int aSize) {
-    mIndex = mData.size();    
-    mData.resize(mIndex + aSize);
-  }
+  ggValueEEProm(int aSize);
 
   template <typename TValueType>
   inline TValueType& Value() {
@@ -52,53 +38,16 @@ private:
     uint16_t mChecksum;
   };
 
-  static bool Valid() {
-    cHeader vHeader;
-    EEPROM.get(0, vHeader);
-    if (vHeader.mSize == sizeof(cHeader) + mData.size()) {
-      uint16_t vChecksum = mChecksumSeed;
-      for (int vIndex = 0; vIndex < mData.size(); vIndex++) {
-        const int vAddress = sizeof(cHeader) + vIndex;
-        uint8_t vData = EEPROM.read(vAddress);
-        ChecksumAdd(vChecksum, vData);
-      }
-      return vHeader.mChecksum == vChecksum;
-    }
-    return false;
-  }
-
-  static void ReadData() {
-    for (int vIndex = 0; vIndex < mData.size(); vIndex++) {
-      const int vAddress = sizeof(cHeader) + vIndex;
-      mData[vIndex] = EEPROM.read(vAddress);
-    }
-  }
-
-  static void WriteHeader() {
-    cHeader vHeader;
-    vHeader.mSize = sizeof(cHeader) + mData.size();
-    vHeader.mChecksum = Checksum(mChecksumSeed);
-    EEPROM.put(0, vHeader);
-  }
-
-  static void WriteData() {
-    for (int vIndex = 0; vIndex < mData.size(); vIndex++) {
-      const int vAddress = sizeof(cHeader) + vIndex;
-      EEPROM.write(vAddress, mData[vIndex]);
-    }
-  }
+  static bool EEPromDataValid();
+  static void ReadData();
+  static void WriteHeader();
+  static void WriteData();
 
   static inline void ChecksumAdd(uint16_t& aChecksum, uint16_t aData) {
     aChecksum = (aChecksum >> 1) + ((aChecksum & 1) << 15) + aData;
   }
 
-  static uint16_t Checksum(uint16_t aChecksumSeed) {
-    uint16_t vChecksum = aChecksumSeed;
-    for (int vIndex = 0; vIndex < mData.size(); vIndex++) {
-      ChecksumAdd(vChecksum, mData[vIndex]);
-    }
-    return vChecksum;
-  }
+  static uint16_t Checksum(uint16_t aChecksumSeed);
 
   // allocate RAM-data as byte array
   static std::vector<uint8_t> mData;
@@ -108,7 +57,4 @@ private:
   int mIndex;
   
 };
-
-std::vector<uint8_t> ggValueEEProm::mData;
-uint16_t ggValueEEProm::mChecksumSeed = 0;
 
