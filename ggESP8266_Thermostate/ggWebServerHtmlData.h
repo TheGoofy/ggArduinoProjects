@@ -70,9 +70,6 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
     };
   
     function initHtmlElements() {
-      mTemperatureRef.onchange = function() {
-        mWebSocket.send('SetTemperatureRef(' + mTemperatureRef.value + ')');
-      };
       mControlModeOff.onchange = function() {
         mWebSocket.send('SetControlMode(' + tControlMode.eOff + ')');
       }
@@ -84,6 +81,15 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
       }
       mControlModeOn.onchange = function() {
         mWebSocket.send('SetControlMode(' + tControlMode.eOn + ')');
+      }
+      mTemperatureRef.onchange = function() {
+        mWebSocket.send('SetTemperatureRef(' + mTemperatureRef.value + ')');
+      }
+      mHysteresis.onchange = function() {
+        mWebSocket.send('SetHysteresis(' + mHysteresis.value + ')');
+      }
+      mOutputAnalog.onchange = function() {
+        mWebSocket.send('SetOutputAnalog(' + mOutputAnalog.checked + ')');
       }
       mOutputRange.onchange = function() {
         mWebSocket.send('SetOutput(' + mOutputRange.value + ')');
@@ -102,10 +108,6 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
       mHumidity.innerHTML = aHumidity + '%'
     }
 
-    function UpdateTemperatureRef(aTemperatureRef) {
-      mTemperatureRef.value = aTemperatureRef;
-    }
-
     function UpdateControlMode(aControlMode) {
       switch (aControlMode) {
         case tControlMode.eOff: mControlModeOff.checked = true; break;
@@ -114,6 +116,18 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
         case tControlMode.eOn: mControlModeOn.checked = true; break;
         default: alert("unknown control mode"); break;
       }
+    }
+
+    function UpdateTemperatureRef(aTemperatureRef) {
+      mTemperatureRef.value = aTemperatureRef;
+    }
+
+    function UpdateHysteresis(aHysteresis) {
+      mHysteresis.value = aHysteresis;
+    }
+
+    function UpdateOutputAnalog(aOutputAnalog) {
+      mOutputAnalog.checked = aOutputAnalog;
     }
 
     function UpdateOutput(aOutput) {
@@ -170,7 +184,17 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
 
     <tr>
       <td>Temperature Ref</td>
-      <td><input id='mTemperatureRef' type='number' min='0' max='30' step='0.1' value='0'> °C</td>
+      <td><input id='mTemperatureRef' type='number' min='-100' max='100' step='0.1' value='0'> °C</td>
+    </tr>
+
+    <tr>
+      <td>Hysteresis</td>
+      <td><input id='mHysteresis' type='number' min='0' max='100' step='0.1' value='0'> °C</td>
+    </tr>
+
+    <tr>
+      <td>Analog Out</td>
+      <td><input id='mOutputAnalog' type='checkbox'></td>
     </tr>
 
     <tr>

@@ -8,14 +8,17 @@ class ggWebSockets {
 public:
 
   typedef std::function<void(int aClientNumber)> tClientConnectFunc;
-  typedef std::function<void(float aValue)> tSetFloatValueFunc;
   typedef std::function<void(int aControlMode)> tSetControlModeFunc;
+  typedef std::function<void(bool aValue)> tSetBoolValueFunc;
+  typedef std::function<void(float aValue)> tSetFloatValueFunc;
 
   ggWebSockets(int aPort)
   : mServer(aPort),
     mClientConnectFunc(nullptr),
-    mSetTemperatureRefFunc(nullptr),
     mSetControlModeFunc(nullptr),
+    mSetTemperatureRefFunc(nullptr),
+    mSetHysteresisFunc(nullptr),
+    mSetOutputAnalogFunc(nullptr),
     mSetOutputFunc(nullptr) {
   }
 
@@ -41,16 +44,24 @@ public:
     UpdateClientTXT(String("UpdateTemperature(") + aTemperature + ")", aClientID);
   }
 
-  void UpdateTemperatureRef(float aTemperatureRef, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateTemperatureRef(") + aTemperatureRef + ")", aClientID);
+  void UpdateHumidity(float aHumidity, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateHumidity(") + aHumidity + ")", aClientID);
   }
 
   void UpdateControlMode(int aControlMode, int aClientID = -1) {
     UpdateClientTXT(String("UpdateControlMode(") + aControlMode + ")", aClientID);
   }
 
-  void UpdateHumidity(float aHumidity, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateHumidity(") + aHumidity + ")", aClientID);
+  void UpdateTemperatureRef(float aTemperatureRef, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateTemperatureRef(") + aTemperatureRef + ")", aClientID);
+  }
+
+  void UpdateHysteresis(float aHysteresis, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateHysteresis(") + aHysteresis + ")", aClientID);
+  }
+
+  void UpdateOutputAnalog(bool aOutputAnalog, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateOutputAnalog(") + aOutputAnalog + ")", aClientID);
   }
 
   void UpdateKey(bool aKey, int aClientID = -1) {
@@ -69,12 +80,20 @@ public:
     mClientConnectFunc = aClientConnectFunc;
   }
 
+  void OnSetControlMode(tSetControlModeFunc aSetControlModeFunc) {
+    mSetControlModeFunc = aSetControlModeFunc;
+  }
+
   void OnSetTemperatureRef(tSetFloatValueFunc aSetTemperatureRefFunc) {
     mSetTemperatureRefFunc = aSetTemperatureRefFunc;
   }
 
-  void OnSetControlMode(tSetControlModeFunc aSetControlModeFunc) {
-    mSetControlModeFunc = aSetControlModeFunc;
+  void OnSetHysteresis(tSetFloatValueFunc aSetHysteresisFunc) {
+    mSetHysteresisFunc = aSetHysteresisFunc;
+  }
+
+  void OnSetOutputAnalog(tSetBoolValueFunc aSetOutputAnalogFunc) {
+    mSetOutputAnalogFunc = aSetOutputAnalogFunc;
   }
 
   void OnSetOutput(tSetFloatValueFunc aSetOutputFunc) {
@@ -107,12 +126,21 @@ private:
 
   void Eval(const String& aText) {
     ggFunctionParser vFunction(aText);
+    // vFunction.Print(Serial);
+    if (vFunction.GetName() == "SetControlMode") {
+      if (mSetControlModeFunc != nullptr) mSetControlModeFunc(vFunction.ArgInt(0));
+      return;
+    }
     if (vFunction.GetName() == "SetTemperatureRef") {
       if (mSetTemperatureRefFunc != nullptr) mSetTemperatureRefFunc(vFunction.ArgFloat(0));
       return;
     }
-    if (vFunction.GetName() == "SetControlMode") {
-      if (mSetControlModeFunc != nullptr) mSetControlModeFunc(vFunction.ArgInt(0));
+    if (vFunction.GetName() == "SetHysteresis") {
+      if (mSetHysteresisFunc != nullptr) mSetHysteresisFunc(vFunction.ArgFloat(0));
+      return;
+    }
+    if (vFunction.GetName() == "SetOutputAnalog") {
+      if (mSetOutputAnalogFunc != nullptr) mSetOutputAnalogFunc(vFunction.ArgBool(0));
       return;
     }
     if (vFunction.GetName() == "SetOutput") {
@@ -124,8 +152,11 @@ private:
   WebSocketsServer mServer;
 
   tClientConnectFunc mClientConnectFunc;
-  tSetFloatValueFunc mSetTemperatureRefFunc;
   tSetControlModeFunc mSetControlModeFunc;
+  tSetFloatValueFunc mSetTemperatureRefFunc;
+  tSetFloatValueFunc mSetHysteresisFunc;
+  tSetBoolValueFunc mSetOutputAnalogFunc;
   tSetFloatValueFunc mSetOutputFunc;
   
 };
+

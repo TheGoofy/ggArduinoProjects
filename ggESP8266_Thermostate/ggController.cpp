@@ -1,5 +1,7 @@
 #include "ggController.h"
 
+#include "ggAlgorithm.h"
+
 
 ggController::ggController()
 : mMode(eModeOff),
@@ -16,6 +18,16 @@ ggController::ggController()
 
 void ggController::Begin()
 {
+}
+
+
+void ggController::ResetSettings()
+{
+  SetMode(eModeOff);
+  SetReference(20.0f);
+  SetHysteresis(1.0f);
+  SetOutputAnalog(false);
+  ControlOutput();
 }
 
 
@@ -40,10 +52,40 @@ float ggController::GetReference() const
 }
 
 
-void ggController::SetReference(float aReferenceValue)
+void ggController::SetReference(float aReference)
 {
-  if (mReferenceValue.Get() != aReferenceValue) {
-    mReferenceValue.Set(aReferenceValue);
+  if (mReferenceValue.Get() != aReference) {
+    mReferenceValue.Set(aReference);
+    ControlOutput();
+  }
+}
+
+
+float ggController::GetHysteresis() const
+{
+  return mHysteresisValue.Get();
+}
+
+
+void ggController::SetHysteresis(float aHysteresis)
+{
+  if (mHysteresisValue.Get() != aHysteresis) {
+    mHysteresisValue.Set(aHysteresis);
+    ControlOutput();
+  }
+}
+
+
+bool ggController::GetOutputAnalog() const
+{
+  return mOutputAnalog.Get();
+}
+
+
+void ggController::SetOutputAnalog(bool aOutputAnalog)
+{
+  if (mOutputAnalog.Get() != aOutputAnalog) {
+    mOutputAnalog.Set(aOutputAnalog);
     ControlOutput();
   }
 }
@@ -70,10 +112,10 @@ float ggController::GetInput() const
 }
 
 
-void ggController::SetInput(float aInputValue)
+void ggController::SetInput(float aInput)
 {
-  if (mInputValue != aInputValue) {
-    mInputValue = aInputValue;
+  if (mInputValue != aInput) {
+    mInputValue = aInput;
     ControlOutput();
   }
 }
@@ -104,19 +146,75 @@ void ggController::Print(Stream& aStream) const
 
 void ggController::ControlOutput()
 {
+  // output is "off" by default (safety)
   float vOutputValue = 0.0f;
-  switch (GetMode()) {
-    case eModeOff: vOutputValue = 0.0f; break;
-    case eModeOnBelow: vOutputValue = (mInputValid && (mInputValue < GetReference())) ? 1.0f : 0.0f; break;
-    case eModeOnAbove: vOutputValue = (mInputValid && (mInputValue > GetReference())) ? 1.0f : 0.0f; break;
-    case eModeOn: vOutputValue = 1.0f; break;
-    default: vOutputValue = 1.0f; break;
+  if (mInputValid) {
+    switch (GetMode()) {
+      case eModeOff: vOutputValue = 0.0f; break;
+      case eModeOnBelow: ControlOutput(true, vOutputValue); break;
+      case eModeOnAbove: ControlOutput(false, vOutputValue); break;
+      case eModeOn: vOutputValue = 1.0f; break;
+      default: vOutputValue = 0.0f; break;
+    }
   }
+
+  // don't do anything if nocthing changed
   if (mOutputValue != vOutputValue) {
     mOutputValue = vOutputValue;
     if (mOutputChangedFunc != nullptr) {
       mOutputChangedFunc(mOutputValue);
     }
+  }
+}
+
+
+void ggController::ControlOutput(bool aInverted, float& aOutput) const
+{
+  if (GetOutputAnalog()) {
+    ControlOutputAnalog(aInverted, aOutput);
+  }
+  else {
+    ControlOutputDigital(aInverted, aOutput);
+  }
+}
+
+
+void ggController::ControlOutputAnalog(bool aInverted, float& aOutput) const
+{
+  // calculate difference between input and reference
+  float vDifference = aInverted ? (GetReference() - mInputValue)
+                                : (mInputValue - GetReference());
+                                
+  // use inverse hysteresis as p-control-value
+  if (GetHysteresis() != 0.0f) {
+    float vOutput = vDifference / GetHysteresis();
+    aOutput = ggClamp<float>(vOutput + 0.5f, 0.0f, 1.0f);
+  }
+  else {
+    aOutput = vDifference > 0.0f ? 1.0f : 0.0f;
+  }
+}
+
+
+void ggController::ControlOutputDigital(bool aInverted, float& aOutput) const
+{
+  // calculate hysteresis range
+  const float vHysteresisHalf = GetHysteresis() / 2.0f;
+  const float vReferenceMin = GetReference() - vHysteresisHalf;
+  const float vReferenceMax = GetReference() + vHysteresisHalf;
+  
+  // compare input and hysteresis range
+  if (mInputValue <= vReferenceMin) {
+    // input is below hysteresis range
+    aOutput = aInverted ? 1.0f : 0.0f;
+  }
+  else if (mInputValue >= vReferenceMax) {
+    // input is above hysteresis range
+    aOutput = aInverted ? 0.0f : 1.0f;
+  }
+  else {
+    // input is within hysteresis range (keep output as it is)
+    aOutput = mOutputValue;
   }
 }
 

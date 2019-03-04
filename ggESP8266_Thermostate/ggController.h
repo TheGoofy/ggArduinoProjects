@@ -13,6 +13,7 @@ public:
   ggController();
 
   void Begin();
+  void ResetSettings();
 
   enum tMode {
     eModeOff = 0,
@@ -24,12 +25,16 @@ public:
   tMode GetMode() const;
   void SetMode(tMode aMode);
   float GetReference() const;
-  void SetReference(float aReferenceValue);
+  void SetReference(float aReference);
+  float GetHysteresis() const;
+  void SetHysteresis(float aHysteresis);
+  bool GetOutputAnalog() const;
+  void SetOutputAnalog(bool aOutputAnalog);
 
   bool GetInputValid() const;
   void SetInputValid(bool aValid);
   float GetInput() const;
-  void SetInput(float aInputValue);
+  void SetInput(float aInput);
   float GetOutput() const;
     
   typedef std::function<void(float aOutputValue)> tOutputChangedFunc;
@@ -40,6 +45,9 @@ public:
 private:
 
   void ControlOutput();
+  void ControlOutput(bool aInverted, float& aOutput) const;
+  void ControlOutputAnalog(bool aInverted, float& aOutput) const;
+  void ControlOutputDigital(bool aInverted, float& aOutput) const;
 
   // persistent settings
   ggValueEEPromT<tMode> mMode;

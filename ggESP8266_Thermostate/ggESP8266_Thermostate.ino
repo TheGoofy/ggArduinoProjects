@@ -66,13 +66,15 @@ void setup()
 
   // when a new client is conneted, it needs a complete update
   mWebSockets.OnClientConnect([&] (int aClientID) {
-    mWebSockets.UpdateKey(mPeriphery.mKey.GetPressed(), aClientID);
     mWebSockets.UpdateSensorStatus(mPeriphery.mSensor.GetStatus(), aClientID);
     mWebSockets.UpdateTemperature(mPeriphery.mSensor.GetTemperature(), aClientID);
     mWebSockets.UpdateHumidity(mPeriphery.mSensor.GetHumidity(), aClientID);
     mWebSockets.UpdateControlMode(mTemperatureController.GetMode(), aClientID);
     mWebSockets.UpdateTemperatureRef(mTemperatureController.GetReference(), aClientID);
+    mWebSockets.UpdateHysteresis(mTemperatureController.GetHysteresis(), aClientID);
+    mWebSockets.UpdateOutputAnalog(mTemperatureController.GetOutputAnalog(), aClientID);
     mWebSockets.UpdateOutput(mTemperatureController.GetOutput(), aClientID);
+    mWebSockets.UpdateKey(mPeriphery.mKey.GetPressed(), aClientID);
   });
   
   // controller event: when output changes, the SSR needs to be switched
@@ -89,6 +91,7 @@ void setup()
   });
   mPeriphery.mKey.OnReleased([&] () {
     if (mPeriphery.mKey.GetMillisDelta() > 5000) {
+      mTemperatureController.ResetSettings();
       mWifiManager.resetSettings();
     }
   });
@@ -115,7 +118,7 @@ void setup()
     mPeriphery.mStatusLED.SetWarning(true);
   });
 
-  // events from client: control mode, reference temperature
+  // events from client: control mode, reference temperature, ...
   mWebSockets.OnSetControlMode([&] (int aControlMode) {
     mTemperatureController.SetMode(static_cast<ggController::tMode>(aControlMode));
     mWebSockets.UpdateControlMode(mTemperatureController.GetMode());
@@ -123,6 +126,14 @@ void setup()
   mWebSockets.OnSetTemperatureRef([&] (float aTemperatureRef) {
     mTemperatureController.SetReference(aTemperatureRef);
     mWebSockets.UpdateTemperatureRef(mTemperatureController.GetReference());
+  });
+  mWebSockets.OnSetHysteresis([&] (float aHysteresis) {
+    mTemperatureController.SetHysteresis(aHysteresis);
+    mWebSockets.UpdateHysteresis(mTemperatureController.GetHysteresis());
+  });
+  mWebSockets.OnSetOutputAnalog([&] (bool aOutputAnalog) {
+    mTemperatureController.SetOutputAnalog(aOutputAnalog);
+    mWebSockets.UpdateOutputAnalog(mTemperatureController.GetOutputAnalog());
   });
   mWebSockets.OnSetOutput([&] (float aOutputValue) {
     mPeriphery.mOutput.Set(aOutputValue);

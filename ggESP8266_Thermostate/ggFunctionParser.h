@@ -26,6 +26,10 @@ public:
     return mArgs[aIndex];
   }
 
+  bool ArgBool(int aIndex) const {
+    return (Arg(aIndex) == "true") || (Arg(aIndex).toInt() != 0);
+  }
+
   long ArgInt(int aIndex) const {
     return Arg(aIndex).toInt();
   }
