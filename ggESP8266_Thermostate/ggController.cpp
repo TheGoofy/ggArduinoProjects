@@ -148,14 +148,12 @@ void ggController::ControlOutput()
 {
   // output is "off" by default (safety)
   float vOutputValue = 0.0f;
-  if (mInputValid) {
-    switch (GetMode()) {
-      case eModeOff: vOutputValue = 0.0f; break;
-      case eModeOnBelow: ControlOutput(true, vOutputValue); break;
-      case eModeOnAbove: ControlOutput(false, vOutputValue); break;
-      case eModeOn: vOutputValue = 1.0f; break;
-      default: vOutputValue = 0.0f; break;
-    }
+  switch (GetMode()) {
+    case eModeOff: vOutputValue = 0.0f; break;
+    case eModeOnBelow: if (mInputValid) ControlOutput(true, vOutputValue); break;
+    case eModeOnAbove: if (mInputValid) ControlOutput(false, vOutputValue); break;
+    case eModeOn: vOutputValue = 1.0f; break;
+    default: vOutputValue = 0.0f; break;
   }
 
   // don't do anything if nocthing changed
