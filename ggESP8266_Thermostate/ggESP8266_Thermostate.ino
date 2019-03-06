@@ -20,7 +20,6 @@ todo:
 - OTA update mode:
   - option A) after startup (reset) for a limited amout of time (safer)
   - option B) activate via web-interface (easyer remote update)
-- use <Ticker.h> instead of ggTicker. long-short tick pattern with counter
 - use <Ticker.h> for PWM output
 */
 

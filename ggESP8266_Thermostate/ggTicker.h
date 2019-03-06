@@ -1,5 +1,6 @@
 #pragma once
 
+#include <Ticker.h>
 #include <functional>
 #include <vector>
 
@@ -9,13 +10,14 @@ public:
 
   typedef std::function<void(int aIntervalIndex)> tTickFunc;
 
-  ggTicker(const std::vector<unsigned long>& aIntervals, bool aRepeat = true)
+  ggTicker(const std::vector<unsigned long>& aIntervals, bool aRepeat = true, unsigned long aTickDurationMillis = 100)
   : mIntervals(aIntervals),
     mRepeat(aRepeat),
+    mTickDurationMillis(aTickDurationMillis),
     mTickFunc(nullptr),
-    mRunning(false),
     mIntervalIndex(0),
-    mMillisNext(millis()) {
+    mTickNext(0),
+    mTick(0) {
   }
 
   unsigned long GetInterval(int aIntervalIndex) const {
@@ -27,48 +29,52 @@ public:
   }
 
   void Start() {
-    mRunning = true;
+    mTicker.attach_ms(mTickDurationMillis, [&] () {
+      Tick();
+    });
   }
 
   void Stop() {
-    mRunning = false;
+    mTicker.detach();
   }
 
   void Reset() {
     mIntervalIndex = 0;
-    mMillisNext = millis();
-  }
-
-  void Run() {
-    if (mRunning) {
-      unsigned long vMillis = millis();
-      if (vMillis >= mMillisNext) {
-        if (mTickFunc != nullptr) {
-          mTickFunc(mIntervalIndex);
-        }
-        mMillisNext += mIntervals[mIntervalIndex];
-        mIntervalIndex++;
-        if (mIntervalIndex >= mIntervals.size()) {
-          if (mRepeat) {
-            mIntervalIndex = 0;
-          }
-          else {
-            mRunning = false;
-          }
-        }
-      }
-    }
+    mTickNext = 0;
+    mTick = 0;
   }
 
 private:
+
+  void Tick() {
+    while (mTick >= mTickNext) {
+      if (mTickFunc != nullptr) {
+        mTickFunc(mIntervalIndex);
+      }
+      mTickNext += mIntervals[mIntervalIndex++];
+      if (mIntervalIndex >= mIntervals.size()) {
+        if (mRepeat) {
+          mIntervalIndex = 0;
+        }
+        else {
+          Stop();
+          break;
+        }
+      }
+    }
+    mTick++;
+  }
+
+  Ticker mTicker;
+  const unsigned long mTickDurationMillis;
 
   const std::vector<unsigned long> mIntervals;
   const bool mRepeat;
 
   tTickFunc mTickFunc;
 
-  bool mRunning;
   int mIntervalIndex;
-  unsigned long mMillisNext;
+  unsigned long mTick;
+  unsigned long mTickNext;
   
 };

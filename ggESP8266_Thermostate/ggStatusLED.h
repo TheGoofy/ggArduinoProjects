@@ -10,12 +10,13 @@ public:
   ggStatusLED(int aPin,
               bool aInverted = false)
   : mOutput(aPin, aInverted),
-    mTickerOK({100, 2900}),
-    mTickerWarning({100, 200, 100, 2600}),
-    mTickerError({100, 200, 100, 200, 100, 2300}),
+    mTickerOK({1, 29}),
+    mTickerWarning({1, 2, 1, 26}),
+    mTickerError({1, 2, 1, 2, 1, 23}),
     mWarning(false),
     mError(false) {
     mTicker = &mTickerOK;
+    mTicker->Start();
   }
 
   void SetWarning(bool aWarning) {
@@ -26,7 +27,7 @@ public:
   }
 
   void SetError(bool aError) {
-    if (mError!= aError) {
+    if (mError != aError) {
       mError = aError;
       UpdateTicker();
     }
@@ -40,13 +41,10 @@ public:
     UpdateTicker();
   }
 
-  void Run() {
-    mTicker->Run();
-  }
-
 private:
 
   void UpdateTicker() {
+    mTicker->Stop();
     if (mError) {
       mTicker = &mTickerError;
     }

@@ -29,7 +29,6 @@ struct ggPeriphery {
   void Run() {
     mKey.Run();
     mOutput.Run();
-    mStatusLED.Run();
     mSensor.Run();
   }
 
