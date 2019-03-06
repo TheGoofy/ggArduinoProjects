@@ -15,7 +15,7 @@ public:
     mTickFunc(nullptr),
     mRunning(false),
     mIntervalIndex(0),
-    mMicrosNext(millis()) {
+    mMillisNext(millis()) {
   }
 
   unsigned long GetInterval(int aIntervalIndex) const {
@@ -36,17 +36,17 @@ public:
 
   void Reset() {
     mIntervalIndex = 0;
-    mMicrosNext = millis();
+    mMillisNext = millis();
   }
 
   void Run() {
     if (mRunning) {
-      unsigned long vMicros = millis();
-      if (vMicros >= mMicrosNext) {
+      unsigned long vMillis = millis();
+      if (vMillis >= mMillisNext) {
         if (mTickFunc != nullptr) {
           mTickFunc(mIntervalIndex);
         }
-        mMicrosNext += mIntervals[mIntervalIndex];
+        mMillisNext += mIntervals[mIntervalIndex];
         mIntervalIndex++;
         if (mIntervalIndex >= mIntervals.size()) {
           if (mRepeat) {
@@ -69,6 +69,6 @@ private:
 
   bool mRunning;
   int mIntervalIndex;
-  unsigned long mMicrosNext;
+  unsigned long mMillisNext;
   
 };
