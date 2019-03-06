@@ -9,7 +9,23 @@
 #include "ggPeriphery.h"
 #include "ggController.h"
 
+
+/*
+todo:
+- "wifimanager" should not block controller operation:
+  - option A) wifiManager.setAPCallback(configModeCallback);
+  - option B) own wifimanager ...
+- indicate AP-mode (wifimanager) with long-blinking status LED
+- in AP-mode also run http-server with controller settings
+- OTA update mode:
+  - option A) after startup (reset) for a limited amout of time (safer)
+  - option B) activate via web-interface (easyer remote update)
+- use <Ticker.h> instead of ggTicker. long-short tick pattern with counter
+- use <Ticker.h> for PWM output
+*/
+
 const String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
+
 
 // runs AP, if no wifi connection
 WiFiManager mWifiManager;
@@ -28,42 +44,8 @@ ggPeriphery mPeriphery;
 ggController mTemperatureController;
 
 
-void setup()
+void ConnectComponents()
 {
-  // serial communication (for debugging)
-  Serial.begin(115200);
-  Serial.println("");
-
-  // startup eeprom utility class
-  ggValueEEProm::Begin();
-
-  // connect to wifi
-  mWifiManager.setDebugOutput(true);
-  mWifiManager.autoConnect(mHostName.c_str());
-  Serial.print("Connected to: ");
-  Serial.println(WiFi.SSID());
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
-  mWiFiConnection.Begin();
-
-  // configure and start web-server
-  mWebServer.Begin();
-  Serial.println("Web server started");
-
-  // configure and start web-sockets
-  mWebSockets.Begin();
-  Serial.println("Web sockets started");
-  
-  // make sure all status and debug messages are sent before communication gets
-  // interrupted, in case hardware pins are needed for some different use.
-  Serial.flush();
-  
-  // setup connected hardware
-  mPeriphery.Begin();
-
-  // setup controller
-  mTemperatureController.Begin();
-
   // when a new client is conneted, it needs a complete update
   mWebSockets.OnClientConnect([&] (int aClientID) {
     mWebSockets.UpdateSensorStatus(mPeriphery.mSensor.GetStatus(), aClientID);
@@ -139,6 +121,47 @@ void setup()
     mPeriphery.mOutput.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
   });
+}
+
+
+void setup()
+{
+  // serial communication (for debugging)
+  Serial.begin(115200);
+  Serial.println("");
+
+  // startup eeprom utility class
+  ggValueEEProm::Begin();
+
+  // connect to wifi
+  mWifiManager.setDebugOutput(false);
+  mWifiManager.autoConnect(mHostName.c_str());
+  Serial.print("Connected to: ");
+  Serial.println(WiFi.SSID());
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  mWiFiConnection.Begin();
+
+  // configure and start web-server
+  mWebServer.Begin();
+  Serial.println("Web server started");
+
+  // configure and start web-sockets
+  mWebSockets.Begin();
+  Serial.println("Web sockets started");
+  
+  // make sure all status and debug messages are sent before communication gets
+  // interrupted, in case hardware pins are needed for some different use.
+  Serial.flush();
+  
+  // setup connected hardware
+  mPeriphery.Begin();
+
+  // setup controller
+  mTemperatureController.Begin();
+
+  // connect inputs, outputs, socket-events, ...
+  ConnectComponents();
 }
 
 
