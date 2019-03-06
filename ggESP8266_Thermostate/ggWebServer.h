@@ -13,7 +13,8 @@ public:
   }
 
   void Begin() {
-    mServer.on("/", [&] () { OnRoot(); });
+    mServer.on("/", [&] () { OnController(); });
+    mServer.on("/controller", [&] () { OnController(); });
     mServer.onNotFound([&] () { OnNotFound(); });
     mServer.begin();
     SPIFFS.begin();
@@ -59,7 +60,7 @@ private:
     mServer.send(404, "text/plain", "url not found");
   }
 
-  void OnRoot() {
+  void OnController() {
     mServer.send_P(200, "text/html", mWebServerHtmlRoot);
   }
 
