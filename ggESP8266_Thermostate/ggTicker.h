@@ -8,19 +8,30 @@ class ggTicker {
 
 public:
 
+  typedef std::vector<int> tIntervals;
   typedef std::function<void(int aIntervalIndex)> tTickFunc;
 
-  ggTicker(const std::vector<unsigned long>& aIntervals, bool aRepeat = true, unsigned long aTickDurationMillis = 100)
-  : mIntervals(aIntervals),
+  ggTicker(const tIntervals& aIntervals = tIntervals(),
+           int aTickDurationMillis = 100,
+           bool aRepeat = true)
+  : mTickDurationMillis(aTickDurationMillis),
+    mIntervals(aIntervals),
     mRepeat(aRepeat),
-    mTickDurationMillis(aTickDurationMillis),
     mTickFunc(nullptr),
-    mIntervalIndex(0),
+    mTick(0),
     mTickNext(0),
-    mTick(0) {
+    mIntervalIndex(0) {
   }
 
-  unsigned long GetInterval(int aIntervalIndex) const {
+  void SetIntervals(const tIntervals& aIntervals) {
+    bool vIsRunning = IsRunning();
+    Stop();
+    Reset();
+    mIntervals = aIntervals;
+    if (vIsRunning) Start();
+  }
+
+  int GetInterval(int aIntervalIndex) const {
     return mIntervals[aIntervalIndex];
   }
 
@@ -39,9 +50,13 @@ public:
   }
 
   void Reset() {
-    mIntervalIndex = 0;
-    mTickNext = 0;
     mTick = 0;
+    mTickNext = 0;
+    mIntervalIndex = 0;
+  }
+
+  bool IsRunning() const {
+    return mTicker.active();
   }
 
 private:
@@ -65,16 +80,20 @@ private:
     mTick++;
   }
 
+  // internal ticker
   Ticker mTicker;
-  const unsigned long mTickDurationMillis;
 
-  const std::vector<unsigned long> mIntervals;
+  // settings
+  const int mTickDurationMillis;
+  tIntervals mIntervals;
   const bool mRepeat;
 
+  // callback
   tTickFunc mTickFunc;
 
+  // internal tick and interval states
+  int mTick;
+  int mTickNext;
   int mIntervalIndex;
-  unsigned long mTick;
-  unsigned long mTickNext;
   
 };
