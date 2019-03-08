@@ -22,8 +22,11 @@ public:
     mPressed(false),
     mMillis(0),
     mMillisDelta(0),
+    mPressedForMillis(1000),
+    mPressedForDone(false),
     mChangedFunc(nullptr),
     mPressedFunc(nullptr),
+    mPressedForFunc(nullptr),
     mReleasedFunc(nullptr) {
   }
 
@@ -47,6 +50,11 @@ public:
     mPressedFunc = aPressedFunc;
   }
 
+  void OnPressedFor(long aMillis, tEventFunc aFunc) {
+    mPressedForMillis = aMillis;
+    mPressedForFunc = aFunc;
+  }
+
   void OnReleased(tEventFunc aReleasedFunc) {
     mReleasedFunc = aReleasedFunc;
   }
@@ -56,15 +64,22 @@ private:
   void CheckInput() {
     long vMillis = millis();
     long vMillisDelta = vMillis - mMillis;
-    if (vMillisDelta > mDebounceMillis) {
+    if (vMillisDelta >= mDebounceMillis) {
       bool vPressed = Get();
       if (vPressed != mPressed) {
         mPressed = vPressed;
         mMillis = vMillis;
         mMillisDelta = vMillisDelta;
+        mPressedForDone = false;
         if (mChangedFunc != nullptr) mChangedFunc(mPressed);
         if (mPressedFunc != nullptr && mPressed) mPressedFunc();
         if (mReleasedFunc != nullptr && !mPressed) mReleasedFunc();
+      }
+      if (vMillisDelta >= mPressedForMillis) {
+        if (mPressed && !mPressedForDone) {
+          if (mPressedForFunc != nullptr) mPressedForFunc();
+          mPressedForDone = true;
+        }
       }
     }
   }
@@ -74,9 +89,12 @@ private:
   bool mPressed;
   long mMillis;
   long mMillisDelta;
+  long mPressedForMillis;
+  bool mPressedForDone;
 
   tChangedFunc mChangedFunc;
   tEventFunc mPressedFunc;
+  tEventFunc mPressedForFunc;
   tEventFunc mReleasedFunc;
 
 };

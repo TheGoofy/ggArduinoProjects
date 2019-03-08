@@ -21,6 +21,8 @@ todo:
   - option A) after startup (reset) for a limited amout of time (safer)
   - option B) activate via web-interface (easyer remote update)
 - use <Ticker.h> for PWM output
+- which web-interface belongs to which device? "ping" flashing status LED
+- scan LAN for connected devices (app for smart-phone)
 */
 
 const String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
@@ -70,11 +72,9 @@ void ConnectComponents()
     mWebSockets.UpdateControlMode(mTemperatureController.GetMode());
     mWebSockets.UpdateKey(aPressed);
   });
-  mPeriphery.mKey.OnReleased([&] () {
-    if (mPeriphery.mKey.GetMillisDelta() > 5000) {
-      mTemperatureController.ResetSettings();
-      mWifiManager.resetSettings();
-    }
+  mPeriphery.mKey.OnPressedFor(5000, [&] () {
+    mTemperatureController.ResetSettings();
+    mWifiManager.resetSettings();
   });
 
   // connect sensor events
@@ -123,6 +123,16 @@ void ConnectComponents()
 }
 
 
+void Run()
+{
+  mPeriphery.Run();
+  mWebServer.Run();
+  mWebSockets.Run();
+  mWiFiConnection.Run();
+  yield();
+}
+
+
 void setup()
 {
   // serial communication (for debugging)
@@ -166,9 +176,5 @@ void setup()
 
 void loop()
 {
-  mPeriphery.Run();
-  mWebServer.Run();
-  mWebSockets.Run();
-  mWiFiConnection.Run();
-  yield();
+  Run();
 }
