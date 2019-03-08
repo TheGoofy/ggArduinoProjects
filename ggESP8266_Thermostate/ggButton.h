@@ -23,7 +23,7 @@ public:
     mMillis(0),
     mMillisDelta(0),
     mPressedForMillis(1000),
-    mPressedForDone(false),
+    mPressedForDone(true),
     mChangedFunc(nullptr),
     mPressedFunc(nullptr),
     mPressedForFunc(nullptr),
@@ -75,7 +75,7 @@ private:
         if (mPressedFunc != nullptr && mPressed) mPressedFunc();
         if (mReleasedFunc != nullptr && !mPressed) mReleasedFunc();
       }
-      if (vMillisDelta >= mPressedForMillis) {
+      else if (vMillisDelta >= mPressedForMillis) {
         if (mPressed && !mPressedForDone) {
           if (mPressedForFunc != nullptr) mPressedForFunc();
           mPressedForDone = true;
