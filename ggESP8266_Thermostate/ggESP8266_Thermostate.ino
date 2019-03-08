@@ -73,8 +73,14 @@ void ConnectComponents()
     mWebSockets.UpdateKey(aPressed);
   });
   mPeriphery.mKey.OnPressedFor(5000, [&] () {
-    mTemperatureController.ResetSettings();
-    mWifiManager.resetSettings();
+    mPeriphery.mStatusLED.SetWarning(true);
+  });
+  mPeriphery.mKey.OnReleased([&] () {
+    if (mPeriphery.mKey.GetMillisDelta() > 5000) {
+      mTemperatureController.ResetSettings();
+      mWifiManager.resetSettings();
+      ESP.restart();
+    }
   });
 
   // connect sensor events
@@ -133,6 +139,19 @@ void Run()
 }
 
 
+void WifiManagerConfigPortalStart(WiFiManager* aWiFiManager)
+{
+  mPeriphery.mStatusLED.Begin();
+  mPeriphery.mStatusLED.SetWarning(true);
+}
+
+
+void WifiManagerConfigPortalEnd()
+{
+  mPeriphery.mStatusLED.SetWarning(false);
+}
+
+
 void setup()
 {
   // serial communication (for debugging)
@@ -144,6 +163,9 @@ void setup()
 
   // connect to wifi
   mWifiManager.setDebugOutput(false);
+  mWifiManager.setAPCallback(WifiManagerConfigPortalStart);
+  mWifiManager.setSaveConfigCallback(WifiManagerConfigPortalEnd);
+  mWifiManager.setConfigPortalTimeout(60); // 1 minute
   mWifiManager.autoConnect(mHostName.c_str());
   Serial.print("Connected to: ");
   Serial.println(WiFi.SSID());

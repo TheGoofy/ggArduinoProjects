@@ -11,7 +11,7 @@ public:
               bool aInverted = false)
   : mOutput(aPin, aInverted),
     mTickerOK({1, 29}),
-    mTickerWarning({1, 2, 1, 26}),
+    mTickerWarning({5, 2, 5, 18}),
     mTickerError({1, 2, 1, 2, 1, 23}),
     mWarning(false),
     mError(false) {
