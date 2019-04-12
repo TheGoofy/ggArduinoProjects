@@ -16,11 +16,6 @@ ggController::ggController()
 }
 
 
-void ggController::Begin()
-{
-}
-
-
 void ggController::ResetSettings()
 {
   SetMode(eModeOff);

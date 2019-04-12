@@ -12,7 +12,6 @@ public:
 
   ggController();
 
-  void Begin();
   void ResetSettings();
 
   enum tMode {
