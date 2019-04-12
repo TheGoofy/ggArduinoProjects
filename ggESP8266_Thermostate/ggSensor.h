@@ -1,5 +1,7 @@
 #pragma once
 
+#include <Wire.h>
+
 #include "ggSampler.h"
 
 class ggSensor {
@@ -9,25 +11,28 @@ public:
   typedef std::function<void(float)> tFloatValueChangedFunc;
   typedef std::function<void(const char* aStatus)> tStatusChangedFunc;
   
-  ggSensor(int aPin,
+  ggSensor(int aPinSDA,
+           int aPinSCL,
            tFloatValueChangedFunc aTemperatureChanged = nullptr,
            tFloatValueChangedFunc aHumidityChanged = nullptr)
-  : mPin(aPin),
-    mDHT(),
+  : mPinSDA(aPinSDA),
+    mPinSCL(aPinSCL),
+    mBME(),
     mSampler(0.5f),
     mTemperature(0.0f),
     mHumidity(0.0f),
-    mStatus(DHTesp::ERROR_NONE),
+    mStatus(eStatusSensorOK),
     mTemperatureChanged(aTemperatureChanged),
     mHumidityChanged(aHumidityChanged),
     mStatusChangedFunc(nullptr) {   
   }
 
   void Begin() {
-    mDHT.setup(mPin, DHTesp::AM2302);
+    Wire.begin(mPinSDA, mPinSCL);
     mSampler.OnSample([&] () {
       OnSample();
     });
+    Init();
   }
 
   void OnTemperatureChanged(tFloatValueChangedFunc aTemperatureChanged) {
@@ -43,7 +48,7 @@ public:
   }
 
   bool StatusOK() const {
-    return mStatus == DHTesp::ERROR_NONE;
+    return mStatus == eStatusSensorOK;
   }
 
   float GetTemperature() const {
@@ -55,7 +60,13 @@ public:
   }
 
   const char* GetStatus() const {
-    return const_cast<DHTesp&>(mDHT).getStatusString();
+    switch (mStatus) {
+      case eStatusSensorOK: return "Status OK";
+      case eStatusSensorNotFound: return "Sensor not found";
+      case eStatusSensorModelUnknown: return "Sensor model unknown";
+      case eStatusSensorReadFailed: return "Read value failed";
+      default: return "Status unknown";
+    }
   }
 
   void Run() {
@@ -64,30 +75,70 @@ public:
 
 private:
 
-  void OnSample() {
+  enum tStatus {
+    eStatusSensorOK,
+    eStatusSensorNotFound,
+    eStatusSensorModelUnknown,
+    eStatusSensorReadFailed  
+  };
 
-    // get the new temperature
-    TempAndHumidity vDataDHT = mDHT.getTempAndHumidity();
-    
-    // check status ...
-    DHTesp::DHT_ERROR_t vStatus = mDHT.getStatus();
-    if (vStatus != mStatus) {
-      mStatus = vStatus;
+  void UpdateStatus(tStatus aStatus) {
+    if (mStatus != aStatus) {
+      mStatus = aStatus;
       if (mStatusChangedFunc != nullptr) {
-        mStatusChangedFunc(mDHT.getStatusString());
+        mStatusChangedFunc(GetStatus());
       }
     }
+  }
 
-    // update temerature and humidity, if all OK
-    if (vStatus == DHTesp::ERROR_NONE) {
-      if (vDataDHT.temperature != mTemperature) {
-        mTemperature = vDataDHT.temperature;
+  void Init() {    
+    if (!mBME.begin()) {
+      UpdateStatus(eStatusSensorNotFound);
+    }
+    else if (mBME.chipModel() == BME280::ChipModel_UNKNOWN) {
+      UpdateStatus(eStatusSensorModelUnknown);
+    }
+    else {
+      UpdateStatus(eStatusSensorOK);
+    }
+  }
+
+  void OnSample() {
+
+    // (re)init in case sensor has a problem
+    if (mStatus != eStatusSensorOK) {
+      Init();
+    }
+
+    // check if there is no problem
+    if (mStatus == eStatusSensorOK) {
+
+      // read the values
+      float vPressure(NAN), vTemperature(NAN), vHumidity(NAN);
+      mBME.read(vPressure,
+                vTemperature,
+                vHumidity,
+                BME280::TempUnit_Celsius,
+                BME280::PresUnit_bar);
+
+      // check read error
+      if (isnan(vPressure) ||
+          isnan(vTemperature) ||
+          isnan(vHumidity)) {
+        UpdateStatus(eStatusSensorReadFailed);
+      }
+
+      // update temperature, if changed
+      if (vTemperature != mTemperature) {
+        mTemperature = vTemperature;
         if (mTemperatureChanged != nullptr) {
           mTemperatureChanged(mTemperature);
         }
       }
-      if (vDataDHT.humidity != mHumidity) {
-        mHumidity = vDataDHT.humidity;
+
+      // update humidity, if changed
+      if (vHumidity != mHumidity) {
+        mHumidity = vHumidity;
         if (mHumidityChanged != nullptr) {
           mHumidityChanged(mHumidity);
         }
@@ -95,12 +146,13 @@ private:
     }
   }
 
-  int mPin;
-  DHTesp mDHT;
+  int mPinSDA;
+  int mPinSCL;
+  BME280I2C mBME;
 
   ggSampler mSampler;
 
-  DHTesp::DHT_ERROR_t mStatus;
+  tStatus mStatus;
   float mTemperature;
   float mHumidity;
 

@@ -1,7 +1,7 @@
 #include <ESP8266WebServer.h> // https://github.com/esp8266/Arduino
 #include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets
 #include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager
-#include <DHTesp.h>           // https://github.com/beegee-tokyo/DHTesp
+#include <BME280I2C.h>        // https://github.com/finitespace/BME280
 
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
@@ -185,14 +185,11 @@ void setup()
   // interrupted, in case hardware pins are needed for some different use.
   Serial.flush();
   
-  // setup connected hardware
-  mPeriphery.Begin();
-
-  // setup controller
-  mTemperatureController.Begin();
-
   // connect inputs, outputs, socket-events, ...
   ConnectComponents();
+  
+  // setup connected hardware
+  mPeriphery.Begin();
 }
 
 

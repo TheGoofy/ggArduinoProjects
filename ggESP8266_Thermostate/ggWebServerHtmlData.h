@@ -7,7 +7,7 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
 <head>
   <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
   <meta http-equiv='Content-Style-Type' content='text/css'>
-  <title>ESP8266 Test GPIO</title>
+  <title>ESP8266 Thermostate</title>
   <style type='text/css'>
   
     .selectnone {
