@@ -40,6 +40,10 @@ public:
     UpdateClientTXT(String("UpdateSensorStatus(\"") + aSensorStatus + "\")", aClientID);
   }
 
+  void UpdatePressure(float aPressure, int aClientID = -1) {
+    UpdateClientTXT(String("UpdatePressure(") + aPressure + ")", aClientID);
+  }
+
   void UpdateTemperature(float aTemperature, int aClientID = -1) {
     UpdateClientTXT(String("UpdateTemperature(") + aTemperature + ")", aClientID);
   }

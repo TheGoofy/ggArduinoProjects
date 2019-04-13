@@ -3,6 +3,7 @@
 #include <Wire.h>
 
 #include "ggSampler.h"
+#include "ggAlgorithm.h"
 
 class ggSensor {
 
@@ -13,15 +14,18 @@ public:
   
   ggSensor(int aPinSDA,
            int aPinSCL,
+           tFloatValueChangedFunc aPressureChanged = nullptr,
            tFloatValueChangedFunc aTemperatureChanged = nullptr,
            tFloatValueChangedFunc aHumidityChanged = nullptr)
   : mPinSDA(aPinSDA),
     mPinSCL(aPinSCL),
     mBME(),
     mSampler(0.5f),
+    mPressure(0.0f),
     mTemperature(0.0f),
     mHumidity(0.0f),
     mStatus(eStatusSensorOK),
+    mPressureChanged(aPressureChanged),
     mTemperatureChanged(aTemperatureChanged),
     mHumidityChanged(aHumidityChanged),
     mStatusChangedFunc(nullptr) {   
@@ -33,6 +37,10 @@ public:
       OnSample();
     });
     Init();
+  }
+
+  void OnPressureChanged(tFloatValueChangedFunc aPressureChanged) {
+    mPressureChanged = aPressureChanged;
   }
 
   void OnTemperatureChanged(tFloatValueChangedFunc aTemperatureChanged) {
@@ -49,6 +57,10 @@ public:
 
   bool StatusOK() const {
     return mStatus == eStatusSensorOK;
+  }
+
+  float GetPressure() const {
+    return mPressure;
   }
 
   float GetTemperature() const {
@@ -115,17 +127,24 @@ private:
 
       // read the values
       float vPressure(NAN), vTemperature(NAN), vHumidity(NAN);
-      mBME.read(vPressure,
-                vTemperature,
-                vHumidity,
-                BME280::TempUnit_Celsius,
-                BME280::PresUnit_bar);
+      mBME.read(vPressure, vTemperature, vHumidity, BME280::TempUnit_Celsius, BME280::PresUnit_hPa);
 
       // check read error
-      if (isnan(vPressure) ||
-          isnan(vTemperature) ||
-          isnan(vHumidity)) {
+      if (isnan(vPressure) || isnan(vTemperature) || isnan(vHumidity)) {
         UpdateStatus(eStatusSensorReadFailed);
+      }
+
+      // round to most significant digits
+      vPressure = ggRoundToSD(vPressure);
+      vTemperature = ggRoundToSD(vTemperature);
+      vHumidity = ggRoundToSD(vHumidity);
+      
+      // update pressure, if changed
+      if (vPressure != mPressure) {
+        mPressure = vPressure;
+        if (mPressureChanged != nullptr) {
+          mPressureChanged(mPressure);
+        }
       }
 
       // update temperature, if changed
@@ -152,11 +171,13 @@ private:
 
   ggSampler mSampler;
 
-  tStatus mStatus;
+  tStatus mStatus;  
+  float mPressure;
   float mTemperature;
   float mHumidity;
 
   tStatusChangedFunc mStatusChangedFunc;
+  tFloatValueChangedFunc mPressureChanged;
   tFloatValueChangedFunc mTemperatureChanged;
   tFloatValueChangedFunc mHumidityChanged;
 

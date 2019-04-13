@@ -100,12 +100,16 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
       mSensorStatus.innerHTML = aSensorStatus;
     }
 
+    function UpdatePressure(aPressure) {
+      mPressure.innerHTML = aPressure + ' hPa';
+    }
+
     function UpdateTemperature(aTemperature) {
-      mTemperature.innerHTML = aTemperature + '°C';
+      mTemperature.innerHTML = aTemperature + ' °C';
     }
 
     function UpdateHumidity(aHumidity) {
-      mHumidity.innerHTML = aHumidity + '%'
+      mHumidity.innerHTML = aHumidity + ' %'
     }
 
     function UpdateControlMode(aControlMode) {
@@ -160,6 +164,11 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
     <tr>
       <td>Sensor Status</td>
       <td id='mSensorStatus'>(na)</td>
+    </tr>
+
+    <tr>
+      <td>Pressure</td>
+      <td id='mPressure'>(na)</td>
     </tr>
 
     <tr>

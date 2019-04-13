@@ -50,6 +50,7 @@ void ConnectComponents()
   // when a new client is conneted, it needs a complete update
   mWebSockets.OnClientConnect([&] (int aClientID) {
     mWebSockets.UpdateSensorStatus(mPeriphery.mSensor.GetStatus(), aClientID);
+    mWebSockets.UpdatePressure(mPeriphery.mSensor.GetPressure(), aClientID);
     mWebSockets.UpdateTemperature(mPeriphery.mSensor.GetTemperature(), aClientID);
     mWebSockets.UpdateHumidity(mPeriphery.mSensor.GetHumidity(), aClientID);
     mWebSockets.UpdateControlMode(mTemperatureController.GetMode(), aClientID);
@@ -88,6 +89,9 @@ void ConnectComponents()
     mTemperatureController.SetInputValid(mPeriphery.mSensor.StatusOK());
     mPeriphery.mStatusLED.SetError(!mPeriphery.mSensor.StatusOK());
     mWebSockets.UpdateSensorStatus(aStatus);
+  });
+  mPeriphery.mSensor.OnPressureChanged([&] (float aPressure) {
+    mWebSockets.UpdatePressure(aPressure);
   });
   mPeriphery.mSensor.OnTemperatureChanged([&] (float aTemperature) {
     mTemperatureController.SetInput(aTemperature);
