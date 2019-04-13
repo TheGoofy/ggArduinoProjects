@@ -67,11 +67,13 @@ void ConnectComponents()
     mWebSockets.UpdateOutput(aOutputValue);
   });
 
-  // when button "key" is pressed we switch off the SSR (emergency)
+  // when button "key" is pressed we switch the SSR manually
   mPeriphery.mKey.OnChanged([&] (bool aPressed) {
-    mTemperatureController.SetMode(ggController::eModeOff);
-    mWebSockets.UpdateControlMode(mTemperatureController.GetMode());
     mWebSockets.UpdateKey(aPressed);
+  });
+  mPeriphery.mKey.OnPressed([&] () {
+    mTemperatureController.SetMode(mTemperatureController.GetMode() != ggController::eModeOff ? ggController::eModeOff : ggController::eModeOn);
+    mWebSockets.UpdateControlMode(mTemperatureController.GetMode());
   });
   mPeriphery.mKey.OnPressedFor(5000, [&] () {
     mPeriphery.mStatusLED.SetWarning(true);
