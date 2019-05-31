@@ -10,9 +10,9 @@ public:
   ggStatusLED(int aPin,
               bool aInverted = false)
   : mOutput(aPin, aInverted),
-    mTickerOK({1, 29}),
-    mTickerWarning({5, 2, 5, 18}),
-    mTickerError({1, 2, 1, 2, 1, 23}),
+    mTickerOK({1, 299}, 10),           // 0.01s on, 2.99s off
+    mTickerWarning({5, 2, 5, 18}),     // 0.5s off, 0.2s on, 0.5s off, 1.8s on
+    mTickerError({1, 2, 1, 2, 1, 23}), // 0.1s on, 0.2s off, 0.1s on, 0.2s off, 0.1s on, 2.3s off
     mWarning(false),
     mError(false) {
     mTicker = &mTickerOK;
