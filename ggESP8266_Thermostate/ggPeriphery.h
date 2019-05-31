@@ -42,7 +42,7 @@ struct ggPeriphery {
 
   ggPeriphery()
   : mKey(M_PIN_KEY, true), // key, inverted (low if pressed)
-    mOutput(M_PIN_SSR, true, 0.2f), // SSR switch (optocpupler), inverted, 5Hz PWM
+    mOutput(M_PIN_SSR, true, 0.5f), // SSR switch (optocpupler), inverted, 2Hz PWM (100 half-waves per sec => 50 pwm steps)
     mStatusLED(M_PIN_LED, true), // green status led, inverted
     mSensor(M_PIN_SDA, M_PIN_SCL) { // temperature sensor
   }

@@ -136,7 +136,7 @@ private:
 
       // round to most significant digits
       vPressure = ggRoundToSD(vPressure);
-      vTemperature = ggRoundToSD(vTemperature);
+      vTemperature = ggRoundToSD(vTemperature, 4);
       vHumidity = ggRoundToSD(vHumidity);
       
       // update pressure, if changed
@@ -182,4 +182,3 @@ private:
   tFloatValueChangedFunc mHumidityChanged;
 
 };
-
