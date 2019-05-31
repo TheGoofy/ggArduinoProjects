@@ -44,6 +44,7 @@ public:
     std::for_each(mArgs.begin(), mArgs.end(), [&] (const String& aArg) {
       aStream.printf("mArgs[%d] = %s\n", vIndex++, aArg.c_str());
     });
+    aStream.flush();
   }
 
 private:
@@ -76,4 +77,3 @@ private:
   std::vector<String> mArgs;
 
 };
-

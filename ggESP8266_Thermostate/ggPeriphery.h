@@ -5,11 +5,6 @@
 #include "ggOutputPWM.h"
 #include "ggSensor.h"
 
-// #define M_PCB_VERSION_V1
-// #define M_PCB_VERSION_V2
-// #define M_PCB_VERSION_V3
-#define M_PCB_VERSION_V4
-
 #if defined(M_PCB_VERSION_V1)
   #define M_PIN_KEY 0
   #define M_PIN_SSR 1
@@ -31,6 +26,13 @@
   #define M_PIN_LED 1
   #define M_PIN_SDA 4
   #define M_PIN_SCL 5
+#elif defined (M_PCB_VERSION_V5)
+  #define M_PIN_KEY 0 // communication key (on / off / reset settings)
+  #define M_PIN_SSR 14 // SSR output
+  #define M_PIN_SSR_SW 12 // sensor SSR manual key (switch on)
+  #define M_PIN_LED 13 // status LED
+  #define M_PIN_SDA 4 // sensor I2C data
+  #define M_PIN_SCL 5 // sensor I2C clock
 #endif // M_PCB_VERSION_X
 
 struct ggPeriphery {

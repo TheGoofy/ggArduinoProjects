@@ -3,6 +3,13 @@
 #include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager
 #include <BME280I2C.h>        // https://github.com/finitespace/BME280 (by Tyler Glenn)
 
+// PCB version definition (ggPeriphery.h)
+// #define M_PCB_VERSION_V1
+// #define M_PCB_VERSION_V2
+// #define M_PCB_VERSION_V3
+// #define M_PCB_VERSION_V4 // actual fabricated PCB (May 2019)
+#define M_PCB_VERSION_V5 // doesn't use RX/TX-pins for SSR-control (serial port still usable for debugging)
+
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
 #include "ggWiFiConnection.h"

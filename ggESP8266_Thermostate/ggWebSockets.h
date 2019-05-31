@@ -130,7 +130,7 @@ private:
 
   void Eval(const String& aText) {
     ggFunctionParser vFunction(aText);
-    // vFunction.Print(Serial);
+    vFunction.Print(Serial);
     if (vFunction.GetName() == "SetControlMode") {
       if (mSetControlModeFunc != nullptr) mSetControlModeFunc(vFunction.ArgInt(0));
       return;
@@ -163,4 +163,3 @@ private:
   tSetFloatValueFunc mSetOutputFunc;
   
 };
-
