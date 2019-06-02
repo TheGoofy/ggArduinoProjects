@@ -4,6 +4,7 @@
 
 #include "ggSampler.h"
 #include "ggAlgorithm.h"
+#include "ggDebug.h"
 
 class ggSensor {
 
@@ -116,6 +117,9 @@ private:
   }
 
   void OnSample() {
+    
+    ggDebug vDebug(__FUNCTION__);
+    vDebug.PrintF("goofy was here %d\n", 42);
 
     // (re)init in case sensor has a problem
     if (mStatus != eStatusSensorOK) {

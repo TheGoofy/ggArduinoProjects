@@ -30,6 +30,7 @@ todo:
 - use <Ticker.h> for PWM output
 - which web-interface belongs to which device? "ping" flashing status LED
 - scan LAN for connected devices (app for smart-phone)
+- custom device name "bedroom, etc..."
 */
 
 const String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
