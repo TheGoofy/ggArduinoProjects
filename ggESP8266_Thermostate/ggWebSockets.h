@@ -2,6 +2,7 @@
 
 #include <WebSocketsServer.h>
 #include "ggFunctionParser.h"
+#include "ggDebug.h"
 
 class ggWebSockets {
 
@@ -110,11 +111,33 @@ private:
     aClientID == -1 ? mServer.broadcastTXT(aTXT) : mServer.sendTXT(aClientID, aTXT);
   }
 
+  static const char* ToString(WStype_t aEventType) {
+    switch (aEventType) {
+      case WStype_ERROR:               return "WStype_ERROR";
+      case WStype_DISCONNECTED:        return "WStype_DISCONNECTED";
+      case WStype_CONNECTED:           return "WStype_CONNECTED";
+      case WStype_TEXT:                return "WStype_TEXT";
+      case WStype_BIN:                 return "WStype_BIN";
+      case WStype_FRAGMENT_TEXT_START: return "WStype_FRAGMENT_TEXT_START";
+      case WStype_FRAGMENT_BIN_START:  return "WStype_FRAGMENT_BIN_START";
+      case WStype_FRAGMENT:            return "WStype_FRAGMENT";
+      case WStype_FRAGMENT_FIN:        return "WStype_FRAGMENT_FIN";
+      default:                         return "WStype_t unknown";
+    }
+  }
+
   void OnEvent(uint8_t aClientID,
                WStype_t aEventType,
                uint8_t* aPayLoad,
                size_t aPayLoadLength) {
-
+    GG_DEBUG();
+    char vPayLoad[64];
+    memset(vPayLoad, 0, sizeof vPayLoad);
+    memcpy(vPayLoad, aPayLoad, std::min<size_t>(aPayLoadLength, sizeof vPayLoad - 1));
+    vDebug.PrintF("aClientID = %d\n", aClientID);
+    vDebug.PrintF("aEventType = %s\n", ToString(aEventType));
+    vDebug.PrintF("aPayLoad = %s\n", vPayLoad);
+    vDebug.PrintF("aPayLoadLength = %d\n", aPayLoadLength);
     switch (aEventType) {
       case WStype_CONNECTED: {
         // const String vURL((char*)aPayLoad);
@@ -130,7 +153,7 @@ private:
 
   void Eval(const String& aText) {
     ggFunctionParser vFunction(aText);
-    vFunction.Print(Serial);
+    // vFunction.Print(Serial);
     if (vFunction.GetName() == "SetControlMode") {
       if (mSetControlModeFunc != nullptr) mSetControlModeFunc(vFunction.ArgInt(0));
       return;

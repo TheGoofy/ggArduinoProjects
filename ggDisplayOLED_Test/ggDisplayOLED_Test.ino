@@ -3,10 +3,10 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 
-#define OLED_RESET 4
+#define OLED_RESET 0
 Adafruit_SSD1306 display(OLED_RESET);
 
-#define GG_VOLTAGE_PIN A3
+#define GG_VOLTAGE_PIN 1
 
 
 int GetTextSizeX(int aValue, int aTextSize)

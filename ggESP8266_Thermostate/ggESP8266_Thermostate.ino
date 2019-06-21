@@ -57,6 +57,8 @@ void ConnectComponents()
 {
   // when a new client is conneted, it needs a complete update
   mWebSockets.OnClientConnect([&] (int aClientID) {
+    ggDebug vDebug("mWebSockets.OnClientConnect");
+    vDebug.PrintF("aClientID = %d\n", aClientID);
     mWebSockets.UpdateSensorStatus(mPeriphery.mSensor.GetStatus(), aClientID);
     mWebSockets.UpdatePressure(mPeriphery.mSensor.GetPressure(), aClientID);
     mWebSockets.UpdateTemperature(mPeriphery.mSensor.GetTemperature(), aClientID);
@@ -96,6 +98,8 @@ void ConnectComponents()
 
   // connect sensor events
   mPeriphery.mSensor.OnStatusChanged([&] (const char* aStatus) {
+    ggDebug vDebug("mPeriphery.mSensor.OnStatusChanged");
+    vDebug.PrintF("aStatus = %s\n", aStatus);
     mTemperatureController.SetInputValid(mPeriphery.mSensor.StatusOK());
     mPeriphery.mStatusLED.SetError(!mPeriphery.mSensor.StatusOK());
     mWebSockets.UpdateSensorStatus(aStatus);
@@ -104,6 +108,8 @@ void ConnectComponents()
     mWebSockets.UpdatePressure(aPressure);
   });
   mPeriphery.mSensor.OnTemperatureChanged([&] (float aTemperature) {
+    // ggDebug vDebug("mPeriphery.mSensor.OnTemperatureChanged");
+    // vDebug.PrintF("aTemperature = %0.3f\n", aTemperature);
     mTemperatureController.SetInput(aTemperature);
     mWebSockets.UpdateTemperature(aTemperature);
   });
@@ -113,9 +119,11 @@ void ConnectComponents()
 
   // wifi events
   mWiFiConnection.OnConnect([&] () {
+    ggDebug vDebug("mWiFiConnection.OnConnect");
     mPeriphery.mStatusLED.SetWarning(false);
   });
   mWiFiConnection.OnDisconnect([&] () {
+    ggDebug vDebug("mWiFiConnection.OnDisconnect");
     mPeriphery.mStatusLED.SetWarning(true);
   });
 
@@ -146,7 +154,7 @@ void ConnectComponents()
 void Run()
 {
   mPeriphery.Run();
-  mWebServer.Run();
+  // mWebServer.Run();
   mWebSockets.Run();
   mWiFiConnection.Run();
   yield();
@@ -171,6 +179,24 @@ void setup()
   // serial communication (for debugging)
   Serial.begin(115200);
   Serial.println("");
+  
+  Serial.printf("A - constructing string s1 with argument \"%s\"\n", __FUNCTION__);
+  Serial.flush();
+  
+  String s1(__FUNCTION__);
+
+  Serial.printf("B - string s1 value is \"%s\"\n", s1.c_str());
+  Serial.flush();
+
+  Serial.printf("C - constructing string s2 with argument \"%s\"\n", __PRETTY_FUNCTION__);
+  Serial.flush();
+  
+  String s2(__PRETTY_FUNCTION__);
+
+  Serial.printf("D - string s2 value is \"%s\"\n", s2.c_str());
+  Serial.flush();
+  
+  ggDebug vDebug(__PRETTY_FUNCTION__);
 
   // startup eeprom utility class
   ggValueEEProm::Begin();

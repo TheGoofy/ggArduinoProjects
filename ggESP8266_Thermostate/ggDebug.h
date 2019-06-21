@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 #define GG_DEBUG() \
-  ggDebug vDebug(__FUNCTION__);
+  ggDebug vDebug(__PRETTY_FUNCTION__);
 
 class ggDebug {
 
@@ -20,14 +20,15 @@ public:
     End();
   }
 
-  void PrintF(const char* aFormat ...) {
+  template <typename... TArguments>
+  void PrintF(const char* aFormat, TArguments... aArguments) {
     if (GetEnable()) {
       GetStream().print(Indent().c_str());
-      GetStream().printf(aFormat);
+      GetStream().printf(aFormat, aArguments...);
       GetStream().flush();
     }
   }
-
+ 
   static void SetEnable(bool aEnable) {
     mEnable = aEnable;
   }

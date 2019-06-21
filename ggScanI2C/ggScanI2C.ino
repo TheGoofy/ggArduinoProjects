@@ -1,11 +1,17 @@
 #include <Wire.h>
- 
+
+
+#define SDA_PIN 4
+#define SCL_PIN 5
+
 void setup()
 {
-  Wire.begin();
+  Wire.begin(SDA_PIN, SCL_PIN);
+  //Wire.begin();
   Serial.begin(115200);
   Serial.println("\nI2C Scanner");
 }
+
  
 void loop()
 {

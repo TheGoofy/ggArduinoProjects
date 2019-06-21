@@ -104,7 +104,8 @@ private:
     }
   }
 
-  void Init() {    
+  void Init() {
+    // GG_DEBUG();
     if (!mBME.begin()) {
       UpdateStatus(eStatusSensorNotFound);
     }
@@ -117,12 +118,10 @@ private:
   }
 
   void OnSample() {
-    
-    ggDebug vDebug(__FUNCTION__);
-    vDebug.PrintF("goofy was here %d\n", 42);
 
     // (re)init in case sensor has a problem
     if (mStatus != eStatusSensorOK) {
+      ggDebug vDebug("ggSensor::OnSample().Init()");
       Init();
     }
 

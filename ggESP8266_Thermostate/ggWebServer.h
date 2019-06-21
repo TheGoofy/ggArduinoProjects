@@ -3,6 +3,7 @@
 #include <FS.h>
 
 #include "ggWebServerHtmlData.h"
+#include "ggDebug.h"
 
 class ggWebServer {
 
@@ -27,6 +28,7 @@ public:
 private:
 
   static String GetContentType(const String& aFileName) {
+    GG_DEBUG();
     if (aFileName.endsWith(".htm")) return "text/html";
     if (aFileName.endsWith(".html")) return "text/html";
     if (aFileName.endsWith(".css")) return "text/css";
@@ -43,7 +45,9 @@ private:
   }
 
   bool HandleFile(const String& aFileName) {
+    GG_DEBUG();
     if (SPIFFS.exists(aFileName)) {
+      vDebug.PrintF("file \"%s\" exists = %s\n", aFileName.c_str());
       File vFile = SPIFFS.open(aFileName, "r");
       if (vFile) {
         const String vContentType = GetContentType(aFileName);
@@ -56,11 +60,14 @@ private:
   }
 
   void OnNotFound() {
+    GG_DEBUG();
+    vDebug.PrintF("mServer.uri() = %s\n", mServer.uri().c_str());
     if (HandleFile(mServer.uri())) return;
     mServer.send(404, "text/plain", "url not found");
   }
 
   void OnController() {
+    GG_DEBUG();
     mServer.send_P(200, "text/html", mWebServerHtmlRoot);
   }
 

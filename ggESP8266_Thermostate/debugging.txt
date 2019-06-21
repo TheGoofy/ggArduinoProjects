@@ -1,0 +1,70 @@
+#include <ESP8266WebServer.h> // https://github.com/esp8266/Arduino
+// #include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets
+// #include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager
+// #include <BME280I2C.h>        // https://github.com/finitespace/BME280 (by Tyler Glenn)
+
+#include "ESP8266WiFi.h"
+
+ESP8266WebServer mServer(80);
+
+extern "C" {
+  #include <user_interface.h>
+  #include <cont.h>
+  extern cont_t* g_pcont;
+}
+
+void DebugSystem()
+{
+  Serial.printf("unmodified stack   = %4d\n", cont_get_free_stack(g_pcont));
+  register uint32_t *sp asm("a1");
+  Serial.printf("current free stack = %4d\n", 4 * (sp - g_pcont->stack));
+}
+
+void setup()
+{
+  Serial.begin(115200);
+  Serial.println("");
+  
+  Serial.printf("A - constructing string s1 with argument \"%s\"\n", __FUNCTION__);
+  Serial.flush();
+  
+  String s1(__FUNCTION__);
+
+  Serial.printf("B - string s1 value is \"%s\"\n", s1.c_str());
+  Serial.flush();
+
+  Serial.printf("C - constructing string s2 with argument \"%s\"\n", __PRETTY_FUNCTION__);
+  Serial.flush();
+
+  DebugSystem();
+  
+  String s2(__PRETTY_FUNCTION__);
+
+  DebugSystem();
+  
+  Serial.printf("D - string s2 value is \"%s\"\n", s2.c_str());
+  Serial.flush();
+
+  mServer.on("/", [&] () {
+    Serial.printf("OnRoot\n");
+    DebugSystem();
+    mServer.send(200, "text/plain", "OnRoot");
+  });
+  mServer.on("/controller", [&] () {
+    Serial.printf("OnController\n");
+    DebugSystem();
+    mServer.send(200, "text/plain", "OnController");
+  });
+  mServer.onNotFound([&] () {
+    Serial.printf("OnNotFound\n");
+    DebugSystem();
+    mServer.send(200, "text/plain", "OnNotFound");
+  });
+  
+  mServer.begin();
+}
+
+void loop()
+{
+  mServer.handleClient();
+}
