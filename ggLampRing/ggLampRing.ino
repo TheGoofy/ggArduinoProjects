@@ -91,10 +91,60 @@ void ShiftLeftB()
 }
 
 
+CRGB GetTemperatureColorRed(float aTemperature)
+{
+  CRGB vTemperatureColor;
+  vTemperatureColor.r = 255;
+  vTemperatureColor.g = (aTemperature < 0.7f) ? 255 * aTemperature / 0.7f : 255;
+  vTemperatureColor.b = (aTemperature > 0.5f) ? 255 * (aTemperature - 0.5f) / 0.5f : 0;
+  return vTemperatureColor;
+}
+
+
+CRGB GetTemperatureColorGreen(float aTemperature)
+{
+  CRGB vTemperatureColor;
+  vTemperatureColor.r = (aTemperature < 0.5f) ? 255 * aTemperature / 0.5f : 255;
+  vTemperatureColor.g = 255;
+  vTemperatureColor.b = (aTemperature > 0.5f) ? 255 * (aTemperature - 0.5f) / 0.5f : 0;
+  return vTemperatureColor;
+}
+
+
+CRGB GetTemperatureColorBlue(float aTemperature)
+{
+  CRGB vTemperatureColor;
+  vTemperatureColor.r = (aTemperature < 0.5f) ? 255 * aTemperature / 0.5f : 255;
+  vTemperatureColor.g = (aTemperature > 0.5f) ? 255 * (aTemperature - 0.5f) / 0.5f : 0;
+  vTemperatureColor.b = 255;
+  return vTemperatureColor;
+}
+
+
+template <typename TTemperatureFunc>
+void SetTemperature(TTemperatureFunc aTemperatureFunc)
+{
+  for (int vIndex = 0; vIndex < M_NUM_LEDS; vIndex++) {
+    float vTemperature = (float)vIndex / (float)(M_NUM_LEDS - 1);
+    mLEDs[vIndex] = aTemperatureFunc(vTemperature);
+  }
+}
+
+
+template <typename TValueType>
+const TValueType& ggClamp(const TValueType& aValue, const TValueType& aValueMin, const TValueType& aValueMax)
+{
+  return (aValue < aValueMin) ? aValueMin : (aValue > aValueMax ? aValueMax : aValue);
+}
+
+
 ggSampler mSamplerR(17.0f);
 ggSampler mSamplerG(19.0f);
 ggSampler mSamplerB(27.0f);
-// ggSampler mSamplerPattern(0.01f);
+ggSampler mSamplerRGB(8.0f);
+ggSampler mSamplerPattern(0.1f);
+ggSampler mSamplerBrightness(20.0f);
+ggSampler mSamplerTemperature(1.0f);
 
 
 void setup()
@@ -103,7 +153,7 @@ void setup()
   FastLED.addLeds<WS2811, M_LED_DATA_PIN, RGB>(mLEDs, M_NUM_LEDS);
   // FastLED.setCorrection(CRGB(150, 255, 180)); // no cover (red and blue are dominant, need to be reduced)
   FastLED.setCorrection(CRGB(255, 190, 170)); // blue-greenish glass cover (blue and green are too dominant)
-  FastLED.setBrightness(64);
+  FastLED.setBrightness(255);
   FastLED.show();
 
   const int vDelay = 1000;
@@ -111,7 +161,7 @@ void setup()
   SetAll(CRGB(0, 0, 0));
   FastLED.show();
   delay(vDelay);
-
+/*
   SetAll(CRGB(255, 0, 0));
   FastLED.show();
   delay(vDelay);
@@ -143,11 +193,12 @@ void setup()
   SetRainbow();
   FastLED.show();
   delay(vDelay);
-/*
+
   SetArcs();
   FastLED.show();
   delay(vDelay);
 */
+
   mSamplerR.OnSample([] () {
     ShiftLeftR();
     FastLED.show();
@@ -160,21 +211,66 @@ void setup()
     ShiftLeftB();
     FastLED.show();
   });
-  /*
-  mSamplerPattern.OnSample([] () {
-    static bool vFlipFlop = true;
-    vFlipFlop ? SetRainbow() : SetArcs();
-    vFlipFlop = !vFlipFlop;
+  mSamplerRGB.OnSample([] () {
+    ShiftLeft();
     FastLED.show();
   });
-  */
+  
+  mSamplerPattern.OnSample([] () {
+    static int vPatternIndex = 0;
+    switch (vPatternIndex) {
+      case 0: SetTemperature(GetTemperatureColorRed); break;
+      case 1: SetTemperature(GetTemperatureColorGreen); break;
+      case 2: SetTemperature(GetTemperatureColorBlue); break;
+      case 3: SetRainbow(); break;
+      case 4: SetArcs(); break;
+    }
+    FastLED.show();
+    vPatternIndex = (vPatternIndex + 1) % 5;
+  });
+
+  mSamplerBrightness.OnSample([] () {
+    const float vBrightnessMin = 0.05f;
+    const float vBrightnessMax = 1.00f;
+    const float vBrightnessScale = 1.05f;
+    static float vBrightness = 0.05f;
+    static float vFactor = vBrightnessScale;
+    vBrightness *= vFactor;
+    if (vBrightness <= vBrightnessMin) {
+      vFactor = vBrightnessScale;
+      vBrightness = vBrightnessMin;
+    }
+    if (vBrightness >= vBrightnessMax) {
+      vFactor = 1.0f/vBrightnessScale;
+      vBrightness = vBrightnessMax;
+    }
+    vBrightness = ggClamp(vBrightness, vBrightnessMin, vBrightnessMax);
+    FastLED.setBrightness(255 * vBrightness);
+    FastLED.show();
+  });
+
+  mSamplerTemperature.OnSample([] () {
+    const float vTemperatureMin = 0.15f;
+    const float vTemperatureMax = 0.35f;
+    static float vTemperature = 0.0f;
+    static float vInc = 0.01f;
+    vTemperature += vInc;
+    if (vTemperature <= vTemperatureMin) vInc =  0.01f;
+    if (vTemperature >= vTemperatureMax) vInc = -0.01f;
+    vTemperature = ggClamp(vTemperature, vTemperatureMin, vTemperatureMax);
+    SetAll(GetTemperatureColorRed(vTemperature));
+    FastLED.show();
+  });
 }
 
 
 void loop()
 {
-  mSamplerR.Run();
-  mSamplerG.Run();
-  mSamplerB.Run();
+  // mSamplerR.Run();
+  // mSamplerG.Run();
+  // mSamplerB.Run();
+  // mSamplerRGB.Run();
   // mSamplerPattern.Run();
+  mSamplerBrightness.Run();
+  mSamplerTemperature.Run();
 }
