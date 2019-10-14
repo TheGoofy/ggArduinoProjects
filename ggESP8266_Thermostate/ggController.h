@@ -59,7 +59,7 @@ private:
   float mInputValue;
   float mOutputValue;
 
-  // callback when putput value changed
+  // callback when output value changed
   tOutputChangedFunc mOutputChangedFunc;
   
 };
@@ -69,4 +69,3 @@ String ToString(const ggController::tMode& aMode);
 
 template <>
 ggController::tMode FromString(const String& aString);
-
