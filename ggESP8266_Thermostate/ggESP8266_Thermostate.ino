@@ -1,6 +1,6 @@
 #include <ESP8266WebServer.h> // https://github.com/esp8266/Arduino
-#include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets
-#include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager
+#include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets (by Markus Sattler)
+#include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager (by Tzapu)
 #include <BME280I2C.h>        // https://github.com/finitespace/BME280 (by Tyler Glenn)
 
 // PCB version definition (ggPeriphery.h)
