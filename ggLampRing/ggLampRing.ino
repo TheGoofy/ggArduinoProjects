@@ -2,7 +2,7 @@
 #include "ggSampler.h"
 
 
-#define M_LED_DATA_PIN 13
+#define M_LED_DATA_PIN 16
 #define M_NUM_LEDS 24
 
 CRGB mLEDs[M_NUM_LEDS];
@@ -143,7 +143,7 @@ ggSampler mSamplerG(19.0f);
 ggSampler mSamplerB(27.0f);
 ggSampler mSamplerRGB(8.0f);
 ggSampler mSamplerPattern(0.1f);
-ggSampler mSamplerBrightness(20.0f);
+ggSampler mSamplerBrightness(10.0f);
 ggSampler mSamplerTemperature(1.0f);
 
 
@@ -185,11 +185,11 @@ void setup()
   SetAll(CRGB(255, 0, 255));
   FastLED.show();
   delay(vDelay);
-
+*/
   SetAll(CRGB(255, 255, 255));
   FastLED.show();
   delay(vDelay);
-
+/*
   SetRainbow();
   FastLED.show();
   delay(vDelay);
@@ -250,8 +250,8 @@ void setup()
   });
 
   mSamplerTemperature.OnSample([] () {
-    const float vTemperatureMin = 0.15f;
-    const float vTemperatureMax = 0.35f;
+    const float vTemperatureMin = 0.0f;
+    const float vTemperatureMax = 1.0f;
     static float vTemperature = 0.0f;
     static float vInc = 0.01f;
     vTemperature += vInc;
@@ -271,6 +271,18 @@ void loop()
   // mSamplerB.Run();
   // mSamplerRGB.Run();
   // mSamplerPattern.Run();
-  mSamplerBrightness.Run();
-  mSamplerTemperature.Run();
+  // mSamplerBrightness.Run();
+  // mSamplerTemperature.Run();
+  FastLED.setBrightness(255);
+  FastLED.show();
+  delay(2000);
+  FastLED.setBrightness(127);
+  FastLED.show();
+  delay(2000);
+  FastLED.setBrightness(63);
+  FastLED.show();
+  delay(2000);
+  FastLED.setBrightness(31);
+  FastLED.show();
+  delay(2000);
 }
