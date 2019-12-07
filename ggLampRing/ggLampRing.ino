@@ -2,7 +2,7 @@
 #include "ggSampler.h"
 
 
-#define M_LED_DATA_PIN 16
+#define M_LED_DATA_PIN 13
 #define M_NUM_LEDS 24
 
 CRGB mLEDs[M_NUM_LEDS];
