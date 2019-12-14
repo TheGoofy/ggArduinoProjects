@@ -191,18 +191,18 @@ void setup()
   Serial.printf("C - constructing string s2 with argument \"%s\"\n", __PRETTY_FUNCTION__);
   Serial.flush();
   
-  String s2(__PRETTY_FUNCTION__);
+  // String s2(__PRETTY_FUNCTION__);
 
-  Serial.printf("D - string s2 value is \"%s\"\n", s2.c_str());
-  Serial.flush();
+  // Serial.printf("D - string s2 value is \"%s\"\n", s2.c_str());
+  // Serial.flush();
   
-  ggDebug vDebug(__PRETTY_FUNCTION__);
+  // ggDebug vDebug(__PRETTY_FUNCTION__);
 
   // startup eeprom utility class
   ggValueEEProm::Begin();
 
   // connect to wifi
-  mWifiManager.setDebugOutput(false);
+  mWifiManager.setDebugOutput(true);
   mWifiManager.setAPCallback(WifiManagerConfigPortalStart);
   mWifiManager.setSaveConfigCallback(WifiManagerConfigPortalEnd);
   mWifiManager.setConfigPortalTimeout(60); // 1 minute
