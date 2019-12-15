@@ -13,6 +13,8 @@
 
 struct ggPeriphery {
 
+  ggValueEEPromT<bool> mOn;
+
   ggButton mButton;
   ggRotaryEncoder mEncoder;
   ggLEDCenter mLEDCenter;
@@ -21,15 +23,19 @@ struct ggPeriphery {
   ggPeriphery()
   : mButton(M_PIN_BUTTON, true, true), // button, inverted (input signal low if pressed)
     mEncoder(M_PIN_ENCODER_A, M_PIN_ENCODER_B), // rotary encoder
-    mLEDCenter(M_PIN_LED1_PWM),
-    mLEDRing() {
+    mLEDRing(),
+    mLEDCenter(M_PIN_LED1_PWM) {
   }
 
   void Begin() {
     mButton.Begin();
     mEncoder.Begin();
-    mLEDCenter.Begin();
     mLEDRing.Begin();
+    mLEDCenter.Begin();
+  }
+
+  void ToggleOnOff() {
+    mOn.Set(!mOn.Get());
   }
 
   void Run() {

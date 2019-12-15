@@ -8,6 +8,11 @@ class ggValueEEProm {
 
 public:
 
+  // reads values from eeprom or writes initial values.
+  // eeprom is (re-)initialized, if ...
+  // - ... number of values changes
+  // - ... sequence (layput) of values changes
+  // - ... any default value changes
   static void Begin(size_t aSize = 512);
 
 protected:
@@ -35,12 +40,12 @@ private:
   static void ReadData();
   static void WriteData();
 
-  static inline void ChecksumAdd(uint16_t& aChecksum, uint16_t aData) {
+  static inline void AddChecksum(uint16_t& aChecksum, uint16_t aData) {
     aChecksum = (aChecksum >> 1) + ((aChecksum & 1) << 15) + aData;
   }
 
-  static uint16_t ChecksumEEProm();
-  static uint16_t ChecksumValues();
+  static uint16_t CalculateChecksumEEProm();
+  static uint16_t CalculateChecksumValues();
 
   typedef std::list<ggValueEEProm*> tValuesEEProm;
 
