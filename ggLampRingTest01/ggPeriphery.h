@@ -6,8 +6,8 @@
 #include "ggLEDRing.h"
 
 #define M_PIN_BUTTON 12
-#define M_PIN_ENCODER_A 5
-#define M_PIN_ENCODER_B 4
+#define M_PIN_ENCODER_A 4
+#define M_PIN_ENCODER_B 5
 #define M_PIN_LED1_PWM 14
 #define M_PIN_LED2_DATA 13
 

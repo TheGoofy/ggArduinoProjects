@@ -4,33 +4,6 @@
 #include "ggValueEEPromT.h"
 
 
-template <class TValueType>
-class ggValueT {
-
-public:
-
-  ggValueT(const TValueType& aValue)
-  : mValue(aValue) {
-  }
-
-  const TValueType& Get() const {
-    return mValue;
-  }
-
-  void Set(const TValueType& aValue) {
-    mValue = aValue;
-  }
-
-private:
-
-  TValueType mValue;
-  
-};
-
-
-// #define ggValueT ggValueEEPromT
-
-
 class ggLEDCenter {
 
 public:
@@ -39,7 +12,7 @@ public:
   : mLogTable(1023),
     mPinPWM(aPinPWM),
     mOn(false),
-    mBrightness(0.5f) {    
+    mBrightness(0.5f) {
   }
 
   void Begin() {
@@ -64,6 +37,7 @@ public:
   }
 
   void ChangeBrightness(const float& aBrightnessDelta) {
+    if (!GetOn()) return;
     float vBrightness = mBrightness.Get() + aBrightnessDelta;
     vBrightness = ggClamp(vBrightness, 0.0f, 1.0f);
     if (mBrightness.Get() != vBrightness) {
@@ -75,9 +49,7 @@ public:
 private:
 
   void UpdateOutput() {
-    Serial.printf("ggLEDCenter::UpdateOutput() - mOn=%d mBrightness=%f\n", mOn.Get(), mBrightness.Get());
     int vOutput = mOn.Get() ? mLogTable.Get(mBrightness.Get()) : 0;
-    Serial.printf("ggLEDCenter::UpdateOutput() - vOutput=%d\n", vOutput);
     analogWrite(mPinPWM, vOutput);
   }
 
@@ -86,7 +58,7 @@ private:
   const int mPinPWM;
   
   // persistent settings
-  ggValueT<bool> mOn;
-  ggValueT<float> mBrightness;
+  ggValueEEPromT<bool> mOn;
+  ggValueEEPromT<float> mBrightness;
   
 };

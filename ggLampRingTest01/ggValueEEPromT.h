@@ -8,46 +8,59 @@ class ggValueEEPromT : private ggValueEEProm {
 public:
 
   ggValueEEPromT()
-  : ggValueEEProm(sizeof(TValueType)) {
-    ggValueEEProm::Value<TValueType>() = TValueType();
+  : ggValueEEProm(sizeof(TValueType)),
+    mValue() {
   }
 
-  ggValueEEPromT(const TValueType& aDefaultValue)
-  : ggValueEEProm(sizeof(TValueType)) {
-    ggValueEEProm::Value<TValueType>() = aDefaultValue;
+  ggValueEEPromT(const TValueType& aValue)
+  : ggValueEEProm(sizeof(TValueType)),
+    mValue(aValue) {
   }
 
-  inline TValueType& Value() {
-    return ggValueEEProm::Value<TValueType>();
+  virtual int GetSize() const {
+    return sizeof(TValueType);
   }
-
-  inline const TValueType& Value() const {
-    return ggValueEEProm::Value<TValueType>();
+  
+  virtual void* GetValuePtr() {
+    return &mValue;
   }
-
-  inline operator TValueType() {
-    return Value();
-  }
-
+  
   inline TValueType& operator = (const TValueType& aValue) {
     Set(aValue);
-    return Value();
+    return *this;
   }
 
   inline const TValueType& Get() const {
-    return ggValueEEProm::Value<TValueType>();
+    return mValue;
   }
 
   inline void Set(const TValueType& aValue) {
-    if (ggValueEEProm::Value<TValueType>() != aValue) {
-      ggValueEEProm::Value<TValueType>() = aValue;
-      ggValueEEProm::Write<TValueType>();
+    if (mValue != aValue) {
+      mValue = aValue;
+      Write(true);
     }
   }
 
-  inline void Write() {
-    ggValueEEProm::Write<TValueType>();
+private:
+
+  virtual void Read() {
+    EEPROM.get(mAddressEEProm, mValue);
+    // Serial.printf("%s - mValue = ", __PRETTY_FUNCTION__);
+    // Serial.println(mValue);
+    // Serial.flush();
+  }
+  
+  virtual void Write(bool aCommit) {
+    EEPROM.put(mAddressEEProm, mValue);
+    // Serial.printf("%s - mValue = ", __PRETTY_FUNCTION__);
+    // Serial.println(mValue);
+    // Serial.flush();
+    if (aCommit) {
+      WriteHeader();
+      EEPROM.commit();
+    }
   }
 
-};
+  TValueType mValue;
 
+};
