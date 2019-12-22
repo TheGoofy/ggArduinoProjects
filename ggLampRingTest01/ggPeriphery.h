@@ -36,19 +36,19 @@ struct ggPeriphery {
   }
 
   void SetOn() {
-    mOn.Set(true);
+    mOn = true;
     mLEDRing.SetOn(true);
     mLEDCenter.SetOn(true);
   }
 
   void SetOff() {
-    mOn.Set(false);
+    mOn = false;
     mLEDCenter.SetOn(false);
     mLEDRing.SetOn(false);
   }
 
   void ToggleOnOff() {
-    mOn.Get() ? SetOff() : SetOn();
+    mOn ? SetOff() : SetOn();
   }
 
   void Run() {

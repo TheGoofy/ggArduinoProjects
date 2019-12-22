@@ -38,10 +38,10 @@ public:
 
   void ChangeBrightness(const float& aBrightnessDelta) {
     if (!GetOn()) return;
-    float vBrightness = mBrightness.Get() + aBrightnessDelta;
+    float vBrightness = mBrightness + aBrightnessDelta;
     vBrightness = ggClamp(vBrightness, 0.0f, 1.0f);
-    if (mBrightness.Get() != vBrightness) {
-      mBrightness.Set(vBrightness);
+    if (mBrightness != vBrightness) {
+      mBrightness = vBrightness;
       UpdateOutput();
     }
   }

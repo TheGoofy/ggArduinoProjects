@@ -24,8 +24,12 @@ public:
   virtual void* GetValuePtr() {
     return &mValue;
   }
-  
-  inline TValueType& operator = (const TValueType& aValue) {
+
+  inline operator const TValueType& () const {
+    return mValue;
+  }
+
+  inline ggValueEEPromT& operator = (const TValueType& aValue) {
     Set(aValue);
     return *this;
   }
