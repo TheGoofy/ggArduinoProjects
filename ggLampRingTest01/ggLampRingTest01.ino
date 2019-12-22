@@ -37,12 +37,6 @@ void setup()
   Serial.println();
   Serial.flush();
 
-  // create the periphery (before eeprom begins)
-  Periphery();
-
-  // startup eeprom utility class
-  ggValueEEProm::Begin();
-
   // mode
   static ggMode::tEnum vMode = ggMode::eCenter;
   static bool vIgnoreNextReleasedEvent = false;
@@ -51,8 +45,6 @@ void setup()
   Periphery().mButton.OnReleased([&] () {
     if (!vIgnoreNextReleasedEvent) {
       Periphery().ToggleOnOff();
-      Periphery().mLEDRing.SetOn(Periphery().mOn.Get());
-      Periphery().mLEDCenter.SetOn(Periphery().mOn.Get());
       vMode = ggMode::eCenter;
     }
     else {
@@ -67,9 +59,9 @@ void setup()
     vMode = ggMode::Toggle(vMode);
     switch (vMode) {
       case ggMode::eCenter: Periphery().mLEDCenter.SetOn(true); break;
-      case ggMode::eRingR: Periphery().mLEDRing.Blink(CRGB::Red); break;
-      case ggMode::eRingG: Periphery().mLEDRing.Blink(CRGB::Green); break;
-      case ggMode::eRingB: Periphery().mLEDRing.Blink(CRGB::Blue); break;
+      case ggMode::eRingR: Periphery().mLEDCenter.SetOn(false); Periphery().mLEDRing.Blink(CRGB::Red); break;
+      case ggMode::eRingG: Periphery().mLEDCenter.SetOn(false); Periphery().mLEDRing.Blink(CRGB::Green); break;
+      case ggMode::eRingB: Periphery().mLEDCenter.SetOn(false); Periphery().mLEDRing.Blink(CRGB::Blue); break;
     }
   });
 
@@ -85,12 +77,10 @@ void setup()
     }
   });
 
-  //
-  Periphery().mLEDRing.OnUpdateOutputStart([&] () {
-    Periphery().mLEDCenter.SetOn(false);
-  });
+  // startup eeprom utility class
+  ggValueEEProm::Begin();
 
-  // setup connected hardware
+  // initialize connected hardware
   Periphery().Begin();
 }
 

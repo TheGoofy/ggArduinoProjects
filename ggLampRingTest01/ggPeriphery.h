@@ -32,10 +32,23 @@ struct ggPeriphery {
     mEncoder.Begin();
     mLEDRing.Begin();
     mLEDCenter.Begin();
+    if (mOn.Get()) SetOn();
+  }
+
+  void SetOn() {
+    mOn.Set(true);
+    mLEDRing.SetOn(true);
+    mLEDCenter.SetOn(true);
+  }
+
+  void SetOff() {
+    mOn.Set(false);
+    mLEDCenter.SetOn(false);
+    mLEDRing.SetOn(false);
   }
 
   void ToggleOnOff() {
-    mOn.Set(!mOn.Get());
+    mOn.Get() ? SetOff() : SetOn();
   }
 
   void Run() {

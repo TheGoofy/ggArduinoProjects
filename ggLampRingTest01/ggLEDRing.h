@@ -16,7 +16,7 @@ public:
   }
 
   void Begin() {
-    Serial.printf("%s - mOn=%d mRGB=%d/%d/%d\n", __PRETTY_FUNCTION__, mOn.Get(), mRGB.Get().r, mRGB.Get().g, mRGB.Get().b);
+    // Print(Serial);
     FastLED.addLeds<WS2811, TPin, RGB>(mLEDs, TNumLEDs);
     // FastLED.setCorrection(CRGB(150, 255, 180)); // no cover (red and blue are dominant, need to be reduced)
     // FastLED.setCorrection(CRGB(255, 190, 170)); // blue-greenish glass cover (blue and green are too dominant)
@@ -40,12 +40,12 @@ public:
   }
 
   bool GetOn() const {
-    return mOn.Get();
+    return mOn;
   }
 
   void SetOn(bool aOn) {
-    if (mOn.Get() != aOn) {
-      mOn.Set(aOn);
+    if (mOn != aOn) {
+      mOn = aOn;
       UpdateOutput();
     }
   }
@@ -70,7 +70,7 @@ public:
     mBlinkColor = aRGB;
     mTicker.attach_ms(250, [&] () {
       if (mTickCount < 6) {
-        Set(mTickCount % 2 == 0 ? mBlinkColor : CRGB::Black);
+        Set(mTickCount % 2 == 0 ? mBlinkColor : mRGB.Get());
         if (mUpdateOutputStart != nullptr) mUpdateOutputStart();
         FastLED.show();
         if (mUpdateOutputFinish != nullptr) mUpdateOutputFinish();
@@ -78,7 +78,6 @@ public:
       }
       else {
         mTicker.detach();
-        // UpdateOutput();
       }
     });
   }
@@ -97,7 +96,7 @@ private:
 
   template <typename TStream>
   void Print(TStream& aStream) {
-    aStream.printf("%s - mOn=%d mRGB=%d/%d/%d\n", __PRETTY_FUNCTION__, mOn.Get(), mRGB.Get().r, mRGB.Get().g, mRGB.Get().b);
+    aStream.printf("%s - mOn=%d mRGB=%d/%d/%d\n", __PRETTY_FUNCTION__, mOn, mRGB.Get().r, mRGB.Get().g, mRGB.Get().b);
     for (int vIndex = 0; vIndex < TNumLEDs; vIndex++) {
       const CRGB& vRGB = mLEDs[vIndex];
       aStream.printf("mLEDs[%d]=%d/%d/%d ", vIndex, vRGB.r, vRGB.g, vRGB.b);
@@ -107,9 +106,8 @@ private:
   }
 
   void UpdateOutput() {
-    // Serial.printf("%s - mOn=%d mRGB=%d/%d/%d\n", __PRETTY_FUNCTION__, mOn.Get(), mRGB.Get().r, mRGB.Get().g, mRGB.Get().b); Serial.flush();
-    Set(mOn.Get() ? mRGB.Get() : CRGB::Black);
     // Print(Serial);
+    Set(GetOn() ? mRGB.Get() : CRGB::Black);
     if (mUpdateOutputStart != nullptr) mUpdateOutputStart();
     FastLED.show();
     if (mUpdateOutputFinish != nullptr) mUpdateOutputFinish();
@@ -122,9 +120,9 @@ private:
   Ticker mTicker;
   int mTickCount;
   CRGB mBlinkColor;
+  bool mOn;
   
   // persistent settings
-  ggValueEEPromT<bool> mOn;
   ggValueEEPromT<CRGB> mRGB;
   
 };

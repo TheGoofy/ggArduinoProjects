@@ -22,12 +22,12 @@ public:
   }
 
   bool GetOn() const {
-    return mOn.Get();
+    return mOn;
   }
 
   void SetOn(bool aOn) {
-    if (mOn.Get() != aOn) {
-      mOn.Set(aOn);
+    if (mOn != aOn) {
+      mOn = aOn;
       UpdateOutput();
     }
   }
@@ -49,16 +49,16 @@ public:
 private:
 
   void UpdateOutput() {
-    int vOutput = mOn.Get() ? mLogTable.Get(mBrightness.Get()) : 0;
+    int vOutput = GetOn() ? mLogTable.Get(mBrightness.Get()) : 0;
     analogWrite(mPinPWM, vOutput);
   }
 
   // basic setup
   const ggLog mLogTable;
   const int mPinPWM;
+  bool mOn;
   
   // persistent settings
-  ggValueEEPromT<bool> mOn;
   ggValueEEPromT<float> mBrightness;
   
 };
