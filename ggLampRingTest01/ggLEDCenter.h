@@ -17,7 +17,7 @@ public:
 
   void Begin() {
     pinMode(mPinPWM, OUTPUT);
-    analogWriteFreq(10000);
+    analogWriteFreq(20000);
     UpdateOutput();
   }
 

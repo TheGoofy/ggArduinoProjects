@@ -1,5 +1,4 @@
 #include <FastLED.h>
-#include <Ticker.h>
 
 
 template <int TPin, int TNumLEDs = 24>
@@ -10,9 +9,8 @@ public:
   ggLEDRing()
   : mUpdateOutputStart(nullptr),
     mUpdateOutputFinish(nullptr),
-    mTickCount(0),
     mOn(false),
-    mRGB(CRGB(200,50,0)) {
+    mHSV(CHSV(200,255,100)) {
   }
 
   void Begin() {
@@ -21,7 +19,7 @@ public:
     // FastLED.setCorrection(CRGB(150, 255, 180)); // no cover (red and blue are dominant, need to be reduced)
     // FastLED.setCorrection(CRGB(255, 190, 170)); // blue-greenish glass cover (blue and green are too dominant)
     // FastLED.setBrightness(255);
-    Set(mRGB.Get());
+    Set(mHSV.Get());
     UpdateOutput();
   }
 
@@ -54,32 +52,25 @@ public:
     SetOn(!GetOn());
   }
 
-  void ChangeColor(int aChannel, int aDelta) {
+  void ChangeChannel(int aChannel, int aDelta) {
     if (!GetOn()) return;
-    if (mTicker.active()) mTicker.detach();
-    CRGB vRGB = mRGB.Get();
-    int vValue = vRGB[aChannel];
-    vValue = ggClamp<int>(vValue + aDelta, 0, 255);
-    vRGB[aChannel] = vValue;
-    mRGB.Set(vRGB);
+    CHSV vHSV = mHSV.Get();
+    int vValue = vHSV.raw[aChannel];
+    switch (aChannel) {
+      case 0: vValue = (vValue + aDelta) & 0xff; break;
+      case 1: vValue = ggClamp<int>(vValue - 2 * aDelta, 0, 255); break;
+      case 2: vValue = ggClamp<int>(vValue + aDelta, 0, 255); break;
+    }
+    vHSV.raw[aChannel] = vValue;
+    mHSV.Set(vHSV);
     UpdateOutput();
   }
 
-  void Blink(const CRGB& aRGB) {
-    mTickCount = 0;
-    mBlinkColor = aRGB;
-    mTicker.attach_ms(250, [&] () {
-      if (mTickCount < 6) {
-        Set(mTickCount % 2 == 0 ? mBlinkColor : mRGB.Get());
-        if (mUpdateOutputStart != nullptr) mUpdateOutputStart();
-        FastLED.show();
-        if (mUpdateOutputFinish != nullptr) mUpdateOutputFinish();
-        mTickCount++;
-      }
-      else {
-        mTicker.detach();
-      }
-    });
+  void ShowChannel(int aChannel) {
+    FillChannel(aChannel);
+    if (mUpdateOutputStart != nullptr) mUpdateOutputStart();
+    FastLED.show();
+    if (mUpdateOutputFinish != nullptr) mUpdateOutputFinish();
   }
 
   typedef std::function<void()> tEventFunc;
@@ -96,7 +87,7 @@ private:
 
   template <typename TStream>
   void Print(TStream& aStream) {
-    aStream.printf("%s - mOn=%d mRGB=%d/%d/%d\n", __PRETTY_FUNCTION__, mOn, mRGB.Get().r, mRGB.Get().g, mRGB.Get().b);
+    aStream.printf("%s - mOn=%d mHSV=%d/%d/%d\n", __PRETTY_FUNCTION__, mOn, mHSV.Get().h, mHSV.Get().s, mHSV.Get().v);
     for (int vIndex = 0; vIndex < TNumLEDs; vIndex++) {
       const CRGB& vRGB = mLEDs[vIndex];
       aStream.printf("mLEDs[%d]=%d/%d/%d ", vIndex, vRGB.r, vRGB.g, vRGB.b);
@@ -105,9 +96,26 @@ private:
     aStream.flush();
   }
 
+  void FillChannel(int aChannel) {
+    CHSV vHSV = mHSV;
+    // if (aChannel == 0) vHSV.s = 255;
+    if ((aChannel != 2) && (vHSV.v < 128)) vHSV.v = 128;
+    for (int vIndex = 0; vIndex < TNumLEDs; vIndex++) {
+      vHSV.raw[aChannel] = 256 * (vIndex + 1) / TNumLEDs - 1;
+      mLEDs[(vIndex + 3 * TNumLEDs / 4) % TNumLEDs] = vHSV;
+    }
+  }
+
   void UpdateOutput() {
-    // Print(Serial);
-    Set(GetOn() ? mRGB.Get() : CRGB::Black);
+    Print(Serial);
+    if (GetOn()) {
+      CRGB vRGB;
+      hsv2rgb_rainbow(mHSV.Get(), vRGB);
+      Set(vRGB);
+    }
+    else {
+      Set(CRGB::Black);
+    }
     if (mUpdateOutputStart != nullptr) mUpdateOutputStart();
     FastLED.show();
     if (mUpdateOutputFinish != nullptr) mUpdateOutputFinish();
@@ -117,12 +125,10 @@ private:
   CRGB mLEDs[TNumLEDs];
   tEventFunc mUpdateOutputStart;
   tEventFunc mUpdateOutputFinish;
-  Ticker mTicker;
-  int mTickCount;
-  CRGB mBlinkColor;
   bool mOn;
   
   // persistent settings
-  ggValueEEPromT<CRGB> mRGB;
+  // ggValueEEPromT<CRGB> mRGB;
+  ggValueEEPromT<CHSV> mHSV;
   
 };

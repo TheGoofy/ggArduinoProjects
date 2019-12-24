@@ -50,14 +50,14 @@ private:
   virtual void Read() {
     EEPROM.get(mAddressEEProm, mValue);
     Serial.printf("%s - mValue = ", __PRETTY_FUNCTION__);
-    Serial.println(mValue);
+    // Serial.println(mValue);
     Serial.flush();
   }
   
   virtual void Write(bool aCommit) {
     EEPROM.put(mAddressEEProm, mValue);
     Serial.printf("%s - mValue = ", __PRETTY_FUNCTION__);
-    Serial.println(mValue);
+    // Serial.println(mValue);
     Serial.flush();
     if (aCommit) {
       WriteHeader();

@@ -13,17 +13,17 @@ struct ggMode {
   
   typedef enum tEnum {
     eCenter,
-    eRingR,
-    eRingG,
-    eRingB
+    eRingChannel0,
+    eRingChannel1,
+    eRingChannel2
   };
   
   static tEnum Toggle(tEnum aMode) {
     switch (aMode) {
-      case eCenter: return eRingR;
-      case eRingR: return eRingG;
-      case eRingG: return eRingB;
-      case eRingB: return eCenter;
+      case eCenter: return eRingChannel0;
+      case eRingChannel0: return eRingChannel1;
+      case eRingChannel1: return eRingChannel2;
+      case eRingChannel2: return eCenter;
       default: return eCenter;
     }
   }
@@ -59,9 +59,9 @@ void setup()
     vMode = ggMode::Toggle(vMode);
     switch (vMode) {
       case ggMode::eCenter: Periphery().mLEDCenter.SetOn(true); break;
-      case ggMode::eRingR: Periphery().mLEDCenter.SetOn(false); Periphery().mLEDRing.Blink(CRGB::Red); break;
-      case ggMode::eRingG: Periphery().mLEDCenter.SetOn(false); Periphery().mLEDRing.Blink(CRGB::Green); break;
-      case ggMode::eRingB: Periphery().mLEDCenter.SetOn(false); Periphery().mLEDRing.Blink(CRGB::Blue); break;
+      case ggMode::eRingChannel0: Periphery().mLEDCenter.SetOn(false); Periphery().mLEDRing.ShowChannel(0); break;
+      case ggMode::eRingChannel1: Periphery().mLEDCenter.SetOn(false); Periphery().mLEDRing.ShowChannel(1); break;
+      case ggMode::eRingChannel2: Periphery().mLEDCenter.SetOn(false); Periphery().mLEDRing.ShowChannel(2); break;
     }
   });
 
@@ -71,9 +71,9 @@ void setup()
     // encoder has 4 increments per tick and 20 ticks per revolution, one revolution is 100%
     switch (vMode) {
       case ggMode::eCenter: Periphery().mLEDCenter.ChangeBrightness(0.25f * 0.05f * aValueDelta); break;
-      case ggMode::eRingR: Periphery().mLEDRing.ChangeColor(0, aValueDelta); break;
-      case ggMode::eRingG: Periphery().mLEDRing.ChangeColor(1, aValueDelta); break;
-      case ggMode::eRingB: Periphery().mLEDRing.ChangeColor(2, aValueDelta); break;
+      case ggMode::eRingChannel0: Periphery().mLEDRing.ChangeChannel(0, aValueDelta); break;
+      case ggMode::eRingChannel1: Periphery().mLEDRing.ChangeChannel(1, aValueDelta); break;
+      case ggMode::eRingChannel2: Periphery().mLEDRing.ChangeChannel(2, aValueDelta); break;
     }
   });
 
