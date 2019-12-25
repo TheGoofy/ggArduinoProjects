@@ -44,8 +44,8 @@ void setup()
   // clicking "on/off"
   Periphery().mButton.OnReleased([&] () {
     if (!vIgnoreNextReleasedEvent) {
-      Periphery().ToggleOnOff();
-      vMode = ggMode::eCenter;
+      if (vMode == ggMode::eCenter) Periphery().ToggleOnOff();
+      else vMode = ggMode::eCenter;
     }
     else {
       vIgnoreNextReleasedEvent = false;
@@ -58,10 +58,10 @@ void setup()
     if (!Periphery().mOn.Get()) return;
     vMode = ggMode::Toggle(vMode);
     switch (vMode) {
-      case ggMode::eCenter: Periphery().mLEDCenter.SetOn(true); break;
-      case ggMode::eRingChannel0: Periphery().mLEDCenter.SetOn(false); Periphery().mLEDRing.ShowChannel(0); break;
-      case ggMode::eRingChannel1: Periphery().mLEDCenter.SetOn(false); Periphery().mLEDRing.ShowChannel(1); break;
-      case ggMode::eRingChannel2: Periphery().mLEDCenter.SetOn(false); Periphery().mLEDRing.ShowChannel(2); break;
+      case ggMode::eCenter: break;
+      case ggMode::eRingChannel0: Periphery().mLEDRing.ShowChannel(0); break;
+      case ggMode::eRingChannel1: Periphery().mLEDRing.ShowChannel(1); break;
+      case ggMode::eRingChannel2: Periphery().mLEDRing.ShowChannel(2); break;
     }
   });
 
@@ -75,6 +75,14 @@ void setup()
       case ggMode::eRingChannel1: Periphery().mLEDRing.ChangeChannel(1, aValueDelta); break;
       case ggMode::eRingChannel2: Periphery().mLEDRing.ChangeChannel(2, aValueDelta); break;
     }
+  });
+
+  // switch off pwm during ws2811 serial communication (timing scrambled)
+  Periphery().mLEDRing.OnUpdateOutputStart([&] () {
+    Periphery().mLEDCenter.Stop();
+  });
+  Periphery().mLEDRing.OnUpdateOutputFinish([&] () {
+    Periphery().mLEDCenter.Resume();
   });
 
   // startup eeprom utility class

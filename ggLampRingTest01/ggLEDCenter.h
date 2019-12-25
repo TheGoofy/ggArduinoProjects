@@ -46,16 +46,25 @@ public:
     }
   }
 
+  inline void Stop() {
+    analogWrite(mPinPWM, 0);
+  }
+
+  inline void Resume() {
+    analogWrite(mPinPWM, mOutput);
+  }
+
 private:
 
   void UpdateOutput() {
-    int vOutput = GetOn() ? mLogTable.Get(mBrightness.Get()) : 0;
-    analogWrite(mPinPWM, vOutput);
+    mOutput = GetOn() ? mLogTable.Get(mBrightness.Get()) : 0;
+    analogWrite(mPinPWM, mOutput);
   }
 
   // basic setup
   const ggLog mLogTable;
   const int mPinPWM;
+  int mOutput;
   bool mOn;
   
   // persistent settings
