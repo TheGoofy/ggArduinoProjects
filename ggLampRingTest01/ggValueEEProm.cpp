@@ -25,7 +25,7 @@ ggValueEEProm::ggValueEEProm(int aSize)
 {
   ValuesSize() += aSize;
   Values().push_back(this);
-  Serial.printf("%s - mAddressEEProm=%d ValuesSize()=%d Values().size()=%d\n", __PRETTY_FUNCTION__, mAddressEEProm, ValuesSize(), Values().size()); Serial.flush();
+  // Serial.printf("%s - mAddressEEProm=%d ValuesSize()=%d Values().size()=%d\n", __PRETTY_FUNCTION__, mAddressEEProm, ValuesSize(), Values().size()); Serial.flush();
 }
 
 
