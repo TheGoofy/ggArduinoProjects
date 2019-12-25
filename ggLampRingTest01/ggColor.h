@@ -4,7 +4,7 @@
 
 
 namespace ggColor {
-  
+
 
   struct cRGB {
 
@@ -51,6 +51,7 @@ namespace ggColor {
       return mData != aOther.mData;
     }
 
+    // html colors (see https://www.w3schools.com/colors/colors_names.asp)
     inline static cRGB Black() { return cRGB(0,0,0); }
     inline static cRGB Red() { return cRGB(255,0,0); }
     inline static cRGB Green() { return cRGB(0,255,0); }
@@ -84,7 +85,7 @@ namespace ggColor {
       uint8_t mChannels[4];
       uint32_t mData;
     };
-    
+
     inline cHSV(uint8_t aH, uint8_t aS, uint8_t aV)
     : mH(aH), mS(aS), mV(aV) {
     }
@@ -96,7 +97,7 @@ namespace ggColor {
     inline bool operator == (const cHSV& aOther) const {
       return mData == aOther.mData;
     }
-    
+
     inline bool operator != (const cHSV& aOther) const {
       return mData != aOther.mData;
     }
@@ -108,5 +109,5 @@ namespace ggColor {
     return Adafruit_NeoPixel::ColorHSV(256*aHSV.mH, aHSV.mS, aHSV.mV);
   }
 
-  
+
 };

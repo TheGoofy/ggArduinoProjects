@@ -59,9 +59,9 @@ void setup()
     vMode = ggMode::Toggle(vMode);
     switch (vMode) {
       case ggMode::eCenter: break;
-      case ggMode::eRingChannel0: Periphery().mLEDRing.ShowChannel(0); break;
-      case ggMode::eRingChannel1: Periphery().mLEDRing.ShowChannel(1); break;
-      case ggMode::eRingChannel2: Periphery().mLEDRing.ShowChannel(2); break;
+      case ggMode::eRingChannel0: Periphery().mLEDRing.DisplayChannel(0); break;
+      case ggMode::eRingChannel1: Periphery().mLEDRing.DisplayChannel(1); break;
+      case ggMode::eRingChannel2: Periphery().mLEDRing.DisplayChannel(2); break;
     }
   });
 
@@ -78,10 +78,10 @@ void setup()
   });
 
   // switch off pwm during ws2811 serial communication (timing scrambled)
-  Periphery().mLEDRing.OnUpdateOutputStart([&] () {
+  Periphery().mLEDRing.OnShowStart([&] () {
     Periphery().mLEDCenter.Stop();
   });
-  Periphery().mLEDRing.OnUpdateOutputFinish([&] () {
+  Periphery().mLEDRing.OnShowFinish([&] () {
     Periphery().mLEDCenter.Resume();
   });
 

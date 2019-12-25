@@ -9,8 +9,8 @@ public:
 
   ggLEDRing()
   : mLEDs(TNumLEDs, TPin, NEO_RGB + NEO_KHZ800),
-    mUpdateOutputStart(nullptr),
-    mUpdateOutputFinish(nullptr),
+    mFuncShowStart(nullptr),
+    mFuncShowFinish(nullptr),
     mOn(false),
     mHSV(ggColor::cHSV(200,255,100)) {
   }
@@ -22,10 +22,6 @@ public:
     // FastLED.setCorrection(CRGB(255, 190, 170)); // blue-greenish glass cover (blue and green are too dominant)
     // FastLED.setBrightness(255);
     UpdateOutput();
-  }
-
-  void Set(const ggColor::cRGB& aRGB) {
-    mLEDs.fill(aRGB);
   }
 
   bool GetOn() const {
@@ -45,7 +41,7 @@ public:
 
   void ChangeChannel(int aChannel, int aDelta) {
     if (!GetOn()) return;
-    ggColor::cHSV vHSV = mHSV.Get();
+    ggColor::cHSV vHSV = mHSV;
     int vValue = vHSV.mChannels[aChannel];
     switch (aChannel) {
       case 0: vValue = (vValue + aDelta / 2) & 0xff; break;
@@ -53,25 +49,29 @@ public:
       case 2: vValue = ggClamp<int>(vValue + aDelta, 0, 255); break;
     }
     vHSV.mChannels[aChannel] = vValue;
-    mHSV.Set(vHSV);
+    mHSV = vHSV;
     UpdateOutput();
   }
 
-  void ShowChannel(int aChannel) {
-    FillChannel(aChannel);
-    if (mUpdateOutputStart != nullptr) mUpdateOutputStart();
-    mLEDs.show();
-    if (mUpdateOutputFinish != nullptr) mUpdateOutputFinish();
+  void DisplayChannel(int aChannel) {
+    ggColor::cHSV vHSV = mHSV;
+    if ((aChannel != 1) && (vHSV.mS < 128)) vHSV.mS = 128;
+    if ((aChannel != 2) && (vHSV.mV < 128)) vHSV.mV = 128;
+    for (int vIndex = 0; vIndex < TNumLEDs; vIndex++) {
+      vHSV.mChannels[aChannel] = 256 * (vIndex + 1) / TNumLEDs - 1;
+      mLEDs.setPixelColor((vIndex + 3 * TNumLEDs / 4) % TNumLEDs, ggColor::ToRGB(vHSV));
+    }
+    Show();
   }
 
-  typedef std::function<void()> tEventFunc;
+  typedef std::function<void()> tFunc;
   
-  void OnUpdateOutputStart(tEventFunc aUpdateOutputStart) {
-    mUpdateOutputStart = aUpdateOutputStart;
+  void OnShowStart(tFunc aFuncShowStart) {
+    mFuncShowStart = aFuncShowStart;
   }
 
-  void OnUpdateOutputFinish(tEventFunc aUpdateOutputFinish) {
-    mUpdateOutputFinish = aUpdateOutputFinish;
+  void OnShowFinish(tFunc aFuncShowFinish) {
+    mFuncShowFinish = aFuncShowFinish;
   }
 
 private:
@@ -87,33 +87,27 @@ private:
     aStream.flush();
   }
    
-  void FillChannel(int aChannel) {
-    ggColor::cHSV vHSV = mHSV;
-    if ((aChannel != 1) && (vHSV.mS < 128)) vHSV.mS = 128;
-    if ((aChannel != 2) && (vHSV.mV < 128)) vHSV.mV = 128;
-    for (int vIndex = 0; vIndex < TNumLEDs; vIndex++) {
-      vHSV.mChannels[aChannel] = 256 * (vIndex + 1) / TNumLEDs - 1;
-      mLEDs.setPixelColor((vIndex + 3 * TNumLEDs / 4) % TNumLEDs, ToRGB(vHSV));
-    }
+  void Show() {
+    if (mFuncShowStart != nullptr) mFuncShowStart();
+    mLEDs.show();
+    if (mFuncShowFinish != nullptr) mFuncShowFinish();
   }
 
   void UpdateOutput() {
     // Print(Serial);
     if (GetOn()) {
-      Set(ggColor::ToRGB(mHSV.Get()));
+      mLEDs.fill(ggColor::ToRGB(mHSV.Get()));
     }
     else {
-      Set(ggColor::cRGB::Black());
+      mLEDs.fill(ggColor::cRGB::Black());
     }
-    if (mUpdateOutputStart != nullptr) mUpdateOutputStart();
-    mLEDs.show();
-    if (mUpdateOutputFinish != nullptr) mUpdateOutputFinish();
+    Show();
   }
 
   // basic setup
   Adafruit_NeoPixel mLEDs;
-  tEventFunc mUpdateOutputStart;
-  tEventFunc mUpdateOutputFinish;
+  tFunc mFuncShowStart;
+  tFunc mFuncShowFinish;
   bool mOn;
   
   // persistent settings
