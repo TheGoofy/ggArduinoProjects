@@ -44,7 +44,7 @@ public:
     ggColor::cHSV vHSV = mHSV;
     int vValue = vHSV.mChannels[aChannel];
     switch (aChannel) {
-      case 0: vValue = (vValue + aDelta / 2) & 0xff; break;
+      case 0: vValue = (vValue + aDelta) & 0xff; break;
       case 1: vValue = ggClamp<int>(vValue - 2 * aDelta, 0, 255); break;
       case 2: vValue = ggClamp<int>(vValue + aDelta, 0, 255); break;
     }
