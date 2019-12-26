@@ -74,6 +74,10 @@ public:
     mFuncShowFinish = aFuncShowFinish;
   }
 
+  void DisplayNormal() {
+    UpdateOutput();
+  }
+
 private:
 
   template <typename TStream>

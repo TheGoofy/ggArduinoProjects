@@ -1,4 +1,5 @@
 #include "ggPeriphery.h"
+#include "ggTimer.h"
 
 
 ggPeriphery& Periphery()
@@ -9,15 +10,23 @@ ggPeriphery& Periphery()
 }
 
 
+ggTimer& Timer()
+{
+  static ggTimer* vTimer = nullptr;
+  if (vTimer == nullptr) vTimer = new ggTimer(10.0f); // timeout in 10 seconds
+  return *vTimer;
+}
+
+
 struct ggMode {
-  
+
   typedef enum tEnum {
     eCenter,
     eRingChannel0,
     eRingChannel1,
     eRingChannel2
   };
-  
+
   static tEnum Toggle(tEnum aMode) {
     switch (aMode) {
       case eCenter: return eRingChannel0;
@@ -27,7 +36,7 @@ struct ggMode {
       default: return eCenter;
     }
   }
-  
+
 };
 
 
@@ -40,9 +49,10 @@ void setup()
   // mode
   static ggMode::tEnum vMode = ggMode::eCenter;
   static bool vIgnoreNextReleasedEvent = false;
-  
+
   // clicking "on/off"
   Periphery().mButton.OnReleased([&] () {
+    Timer().Reset();
     if (!vIgnoreNextReleasedEvent) {
       if (vMode == ggMode::eCenter) Periphery().ToggleOnOff();
       else vMode = ggMode::eCenter;
@@ -54,6 +64,7 @@ void setup()
 
   // long press changes mode
   Periphery().mButton.OnPressedFor(2000, [&] () {
+    Timer().Reset();
     vIgnoreNextReleasedEvent = true;
     if (!Periphery().mOn.Get()) return;
     vMode = ggMode::Toggle(vMode);
@@ -67,6 +78,7 @@ void setup()
 
   // rotary encoder signal
   Periphery().mEncoder.OnValueChangedDelta([&] (long aValueDelta) {
+    Timer().Reset();
     if (!Periphery().mOn.Get()) return;
     // encoder has 4 increments per tick and 20 ticks per revolution, one revolution is 100%
     switch (vMode) {
@@ -83,6 +95,14 @@ void setup()
   });
   Periphery().mLEDRing.OnShowFinish([&] () {
     Periphery().mLEDCenter.Resume();
+  });
+
+  // switch back to normal after a while of no user inputs
+  Timer().OnTimeOut([&] () {
+    if (vMode != ggMode::eCenter) {
+      vMode = ggMode::eCenter;
+      Periphery().mLEDRing.DisplayNormal();
+    }
   });
 
   // startup eeprom utility class
