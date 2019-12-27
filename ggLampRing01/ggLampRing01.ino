@@ -54,8 +54,13 @@ void setup()
   Periphery().mButton.OnReleased([&] () {
     Timer().Reset();
     if (!vIgnoreNextReleasedEvent) {
-      if (vMode == ggMode::eCenter) Periphery().ToggleOnOff();
-      else vMode = ggMode::eCenter;
+      if (vMode == ggMode::eCenter) {
+        Periphery().ToggleOnOff();
+      }
+      else {
+        vMode = ggMode::eCenter;
+        Periphery().mLEDRing.DisplayNormal();
+      }
     }
     else {
       vIgnoreNextReleasedEvent = false;
