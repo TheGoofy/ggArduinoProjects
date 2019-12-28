@@ -39,6 +39,18 @@ public:
     SetOn(!GetOn());
   }
 
+  ggColor::cRGB GetColor() const {
+    return ggColor::ToRGB(mHSV);
+  }
+
+  void SetColor(const ggColor::cRGB& aColor) {
+    ggColor::cHSV vHSV = ggColor::ToHSV(aColor);
+    if (mHSV.Get() != vHSV) {
+      mHSV = vHSV;
+      UpdateOutput();
+    }
+  }
+
   void ChangeChannel(int aChannel, int aDelta) {
     if (!GetOn()) return;
     ggColor::cHSV vHSV = mHSV;
@@ -49,8 +61,10 @@ public:
       case 2: vValue = ggClamp<int>(vValue + aDelta, 0, 255); break;
     }
     vHSV.mChannels[aChannel] = vValue;
-    mHSV = vHSV;
-    UpdateOutput();
+    if (mHSV.Get() != vHSV) {
+      mHSV = vHSV;
+      UpdateOutput();
+    }
   }
 
   void DisplayChannel(int aChannel) {

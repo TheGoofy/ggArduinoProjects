@@ -36,14 +36,20 @@ public:
     SetOn(!GetOn());
   }
 
-  void ChangeBrightness(const float& aBrightnessDelta) {
-    if (!GetOn()) return;
-    float vBrightness = mBrightness + aBrightnessDelta;
-    vBrightness = ggClamp(vBrightness, 0.0f, 1.0f);
+  float GetBrightness() const {
+    return mBrightness;
+  }
+
+  void SetBrightness(const float aBrightness) {
+    float vBrightness = ggClamp(aBrightness, 0.0f, 1.0f);
     if (mBrightness != vBrightness) {
       mBrightness = vBrightness;
       UpdateOutput();
     }
+  }
+
+  void ChangeBrightness(const float aBrightnessDelta) {
+    SetBrightness(mBrightness + aBrightnessDelta);
   }
 
   inline void Stop() {

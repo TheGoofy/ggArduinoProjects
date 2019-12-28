@@ -1,5 +1,17 @@
+#include <ESP8266WebServer.h> // https://github.com/esp8266/Arduino
+#include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets (by Markus Sattler)
+#include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager (by Tzapu)
+
 #include "ggPeriphery.h"
 #include "ggTimer.h"
+#include "ggWiFiConnection.h"
+#include "ggWebServer.h"
+#include "ggWebSockets.h"
+#include "ggDebug.h"
+#include "ggValueEEPromString.h"
+
+
+const String mHostName = "ESP_Lamp_" + String(ESP.getChipId(), HEX);
 
 
 ggPeriphery& Periphery()
@@ -16,6 +28,41 @@ ggTimer& Timer()
   if (vTimer == nullptr) vTimer = new ggTimer(10.0f); // timeout in 10 seconds
   return *vTimer;
 }
+
+
+WiFiManager& WiFiMgr()
+{
+  static WiFiManager* vWifiManager = nullptr;
+  if (vWifiManager == nullptr) vWifiManager = new WiFiManager();
+  return *vWifiManager;
+}
+
+
+ggWiFiConnection& WiFiConnection()
+{
+  static ggWiFiConnection* vWiFiConnection = nullptr;
+  if (vWiFiConnection == nullptr) vWiFiConnection = new ggWiFiConnection();
+  return *vWiFiConnection;
+}
+
+
+ggWebServer& WebServer()
+{
+  static ggWebServer* vWebServer = nullptr;
+  if (vWebServer == nullptr) vWebServer = new ggWebServer(80); // port 80
+  return *vWebServer;
+}
+
+
+ggWebSockets& WebSockets()
+{
+  static ggWebSockets* vWebSockets = nullptr;
+  if (vWebSockets == nullptr) vWebSockets = new ggWebSockets(81); // port 81
+  return *vWebSockets;
+}
+
+
+ggValueEEPromString<> mName("goofy");
 
 
 struct ggMode {
@@ -40,12 +87,8 @@ struct ggMode {
 };
 
 
-void setup()
+void ConnectComponents()
 {
-  Serial.begin(115200);
-  Serial.println();
-  Serial.flush();
-
   // mode
   static ggMode::tEnum vMode = ggMode::eCenter;
   static bool vIgnoreNextReleasedEvent = false;
@@ -56,6 +99,7 @@ void setup()
     if (!vIgnoreNextReleasedEvent) {
       if (vMode == ggMode::eCenter) {
         Periphery().ToggleOnOff();
+        WebSockets().UpdateOn(Periphery().GetOn());
       }
       else {
         vMode = ggMode::eCenter;
@@ -71,7 +115,7 @@ void setup()
   Periphery().mButton.OnPressedFor(2000, [&] () {
     Timer().Reset();
     vIgnoreNextReleasedEvent = true;
-    if (!Periphery().mOn.Get()) return;
+    if (!Periphery().mOn) return;
     vMode = ggMode::Toggle(vMode);
     switch (vMode) {
       case ggMode::eCenter: break;
@@ -84,13 +128,19 @@ void setup()
   // rotary encoder signal
   Periphery().mEncoder.OnValueChangedDelta([&] (long aValueDelta) {
     Timer().Reset();
-    if (!Periphery().mOn.Get()) return;
+    if (!Periphery().mOn) return;
     // encoder has 4 increments per tick and 20 ticks per revolution, one revolution is 100%
-    switch (vMode) {
-      case ggMode::eCenter: Periphery().mLEDCenter.ChangeBrightness(0.25f * 0.05f * aValueDelta); break;
-      case ggMode::eRingChannel0: Periphery().mLEDRing.ChangeChannel(0, aValueDelta); break;
-      case ggMode::eRingChannel1: Periphery().mLEDRing.ChangeChannel(1, aValueDelta); break;
-      case ggMode::eRingChannel2: Periphery().mLEDRing.ChangeChannel(2, aValueDelta); break;
+    if (vMode == ggMode::eCenter) {
+      Periphery().mLEDCenter.ChangeBrightness(0.25f * 0.05f * aValueDelta);
+      WebSockets().UpdateCenterBrightness(Periphery().mLEDCenter.GetBrightness());
+    }
+    else {
+      switch (vMode) {
+        case ggMode::eRingChannel0: Periphery().mLEDRing.ChangeChannel(0, aValueDelta); break;
+        case ggMode::eRingChannel1: Periphery().mLEDRing.ChangeChannel(1, aValueDelta); break;
+        case ggMode::eRingChannel2: Periphery().mLEDRing.ChangeChannel(2, aValueDelta); break;
+      }
+      WebSockets().UpdateRingColor(Periphery().mLEDRing.GetColor());
     }
   });
 
@@ -110,15 +160,100 @@ void setup()
     }
   });
 
+  // wifi events
+  WiFiConnection().OnConnect([&] () {
+    Periphery().mStatusLED.SetWarning(false);
+  });
+  WiFiConnection().OnDisconnect([&] () {
+    Periphery().mStatusLED.SetWarning(true);
+  });
+
+  // events from websocket clients ...
+  WebSockets().OnClientConnect([&] (int aClientID) { // need to update all sockets
+    WebSockets().UpdateName(mName.Get(), aClientID);
+    WebSockets().UpdateOn(Periphery().GetOn(), aClientID);
+    WebSockets().UpdateCenterBrightness(Periphery().mLEDCenter.GetBrightness(), aClientID);
+    WebSockets().UpdateRingColor(Periphery().mLEDRing.GetColor(), aClientID);
+  });
+  WebSockets().OnSetName([&] (const String& aName) {
+    mName.Set(aName);
+    WebSockets().UpdateName(mName.Get());
+  });
+  WebSockets().OnSetOn([&] (bool aOn) {
+    Periphery().SetOn(aOn);
+    WebSockets().UpdateOn(Periphery().GetOn());
+  });
+  WebSockets().OnSetCenterBrightness([&] (float aBrightness) {
+    Periphery().mLEDCenter.SetBrightness(aBrightness);
+    WebSockets().UpdateCenterBrightness(aBrightness);
+  });
+  WebSockets().OnSetRingColor([&] (uint32_t aColor) {
+    Periphery().mLEDRing.SetColor(aColor);
+    WebSockets().UpdateRingColor(Periphery().mLEDRing.GetColor());
+  });
+}
+
+
+void WifiManagerConfigPortalStart(WiFiManager* aWiFiManager)
+{
+  Periphery().mStatusLED.Begin();
+  Periphery().mStatusLED.SetWarning(true);
+}
+
+
+void WifiManagerConfigPortalEnd()
+{
+  Periphery().mStatusLED.SetWarning(false);
+}
+
+
+void setup()
+{
+  // setup serial communication (for debugging)
+  Serial.begin(115200);
+  Serial.println();
+
+  // connect to wifi
+  Serial.printf("Host Name: %s\n", mHostName.c_str());
+  WiFiMgr().setDebugOutput(true);
+  WiFiMgr().setAPCallback(WifiManagerConfigPortalStart);
+  WiFiMgr().setSaveConfigCallback(WifiManagerConfigPortalEnd);
+  WiFiMgr().setConfigPortalTimeout(60); // seconds
+  WiFiMgr().autoConnect(mHostName.c_str());
+  Serial.print("Connected to: ");
+  Serial.println(WiFi.SSID());
+  Serial.print("IP address: ");
+  Serial.println(WiFi.localIP());
+  WiFiConnection().Begin();
+
+  // connect inputs, outputs, socket-events, ...
+  ConnectComponents();
+
   // startup eeprom utility class
   ggValueEEProm::Begin();
+  Serial.printf("Lamp Name: %s\n", mName.Get().c_str());
 
+  // configure and start web-server
+  WebServer().Begin();
+  Serial.println("Web server started");
+
+  // configure and start web-sockets
+  WebSockets().Begin();
+  Serial.println("Web sockets started");
+  
   // initialize connected hardware
   Periphery().Begin();
+
+  // transfer all buffered data
+  Serial.flush();
 }
 
 
 void loop()
 {
   Periphery().Run();
+  WebServer().Run();
+  WebSockets().Run();
+  WiFiConnection().Run();
+  yield();
 }

@@ -17,14 +17,6 @@ public:
     mValue(aValue) {
   }
 
-  virtual int GetSize() const {
-    return sizeof(TValueType);
-  }
-  
-  virtual void* GetValuePtr() {
-    return &mValue;
-  }
-
   inline operator const TValueType& () const {
     return mValue;
   }
@@ -45,7 +37,15 @@ public:
     }
   }
 
-private:
+protected:
+
+  virtual int GetSize() const {
+    return sizeof(TValueType);
+  }
+  
+  virtual void* GetValuePtr() {
+    return &mValue;
+  }
 
   virtual void Read() {
     EEPROM.get(mAddressEEProm, mValue);
