@@ -154,7 +154,7 @@ void ConnectComponents()
 void Run()
 {
   mPeriphery.Run();
-  // mWebServer.Run();
+  mWebServer.Run();
   mWebSockets.Run();
   mWiFiConnection.Run();
   yield();
