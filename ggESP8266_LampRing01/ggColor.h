@@ -81,13 +81,18 @@ namespace ggColor {
         uint8_t mH;
         uint8_t mS;
         uint8_t mV;
+        uint8_t mX;
       };
       uint8_t mChannels[4];
       uint32_t mData;
     };
 
+    inline cHSV()
+    : mData(0) {
+    }
+
     inline cHSV(uint8_t aH, uint8_t aS, uint8_t aV)
-    : mH(aH), mS(aS), mV(aV) {
+    : mH(aH), mS(aS), mV(aV), mX(0) {
     }
 
     inline cHSV(const cHSV& aOther)
@@ -106,7 +111,45 @@ namespace ggColor {
 
 
   inline cRGB ToRGB(const cHSV& aHSV) {
-    return Adafruit_NeoPixel::ColorHSV(256*aHSV.mH, aHSV.mS, aHSV.mV);
+    cRGB vRGB(aHSV.mV, aHSV.mV, aHSV.mV);
+    if (aHSV.mS != 0) {
+      uint8_t vRegion = aHSV.mH / 43;
+      uint8_t vReminder = 6 * (aHSV.mH - (43 * vRegion));
+      uint8_t vP = (aHSV.mV * (255 - ((aHSV.mS                    )     ))) >> 8;
+      uint8_t vQ = (aHSV.mV * (255 - ((aHSV.mS * (      vReminder)) >> 8))) >> 8;
+      uint8_t vT = (aHSV.mV * (255 - ((aHSV.mS * (255 - vReminder)) >> 8))) >> 8;
+      switch (vRegion) {
+        case 0:               vRGB.mG = vT; vRGB.mB = vP; break;
+        case 1: vRGB.mR = vQ;               vRGB.mB = vP; break;
+        case 2: vRGB.mR = vP;               vRGB.mB = vT; break;
+        case 3: vRGB.mR = vP; vRGB.mG = vQ;               break;
+        case 4: vRGB.mR = vT; vRGB.mG = vP;               break;
+        case 5:               vRGB.mG = vP; vRGB.mB = vQ; break;
+      }
+    }
+    // Serial.printf("ggColor::ToRGB(...) - HSV=%d/%d/%d ==> RGB=%d/%d/%d\n",
+    //               aHSV.mH, aHSV.mS, aHSV.mV, vRGB.mR, vRGB.mG, vRGB.mB);
+    return vRGB;
+  }
+
+
+  cHSV ToHSV(const cRGB& aRGB) {
+    cHSV vHSV;
+    uint8_t vMinRGB = ggMin(aRGB.mR, aRGB.mG, aRGB.mB);
+    uint8_t vMaxRGB = ggMax(aRGB.mR, aRGB.mG, aRGB.mB);
+    vHSV.mV = vMaxRGB;
+    if (vMaxRGB != 0) {
+      uint16_t vDeltaRGB = vMaxRGB - vMinRGB;
+      vHSV.mS = 255 * vDeltaRGB / vMaxRGB;
+      if (vDeltaRGB != 0) {
+        if (vMaxRGB == aRGB.mR) vHSV.mH =   0 + 43 * (aRGB.mG - aRGB.mB) / vDeltaRGB;
+        if (vMaxRGB == aRGB.mG) vHSV.mH =  85 + 43 * (aRGB.mB - aRGB.mR) / vDeltaRGB;
+        if (vMaxRGB == aRGB.mB) vHSV.mH = 171 + 43 * (aRGB.mR - aRGB.mG) / vDeltaRGB;
+      }
+    }
+    // Serial.printf("ggColor::ToHSV(...) - RGB=%d/%d/%d ==> HSV=%d/%d/%d\n",
+    //               aRGB.mR, aRGB.mG, aRGB.mB, vHSV.mH, vHSV.mS, vHSV.mV);
+    return vHSV;
   }
 
 
