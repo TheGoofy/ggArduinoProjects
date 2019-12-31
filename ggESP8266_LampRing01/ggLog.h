@@ -24,7 +24,7 @@ private:
     int vStep = 1;
     while (vIndex < aMax) {
       mTable.push_back(vIndex);
-      while (vIndex / vStep > 20) vStep++;
+      while (vIndex / vStep > 40) vStep++;
       vIndex += vStep;
     }
     mTable.push_back(aMax);

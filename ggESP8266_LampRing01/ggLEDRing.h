@@ -8,11 +8,11 @@ class ggLEDRing {
 public:
 
   ggLEDRing()
-  : mLEDs(TNumLEDs, TPin, NEO_RGB + NEO_KHZ800),
+  : mLEDs(TNumLEDs, TPin, NEO_BGR + NEO_KHZ800),
     mFuncShowStart(nullptr),
     mFuncShowFinish(nullptr),
     mOn(false),
-    mHSV(ggColor::cHSV(200,255,100)) {
+    mHSV(ggColor::cHSV(10,255,100)) {
   }
 
   void Begin() {
@@ -39,16 +39,23 @@ public:
     SetOn(!GetOn());
   }
 
-  ggColor::cRGB GetColor() const {
+  const ggColor::cHSV& GetColorHSV() const {
+    return mHSV.Get();
+  }
+
+  ggColor::cRGB GetColorRGB() const {
     return ggColor::ToRGB(mHSV);
   }
 
-  void SetColor(const ggColor::cRGB& aColor) {
-    ggColor::cHSV vHSV = ggColor::ToHSV(aColor);
-    if (mHSV.Get() != vHSV) {
-      mHSV = vHSV;
+  void SetColor(const ggColor::cHSV& aHSV) {
+    if (mHSV.Get() != aHSV) {
+      mHSV = aHSV;
       UpdateOutput();
     }
+  }
+
+  void SetColor(const ggColor::cRGB& aRGB) {
+    SetColor(ggColor::ToHSV(aRGB));
   }
 
   void ChangeChannel(int aChannel, int aDelta) {

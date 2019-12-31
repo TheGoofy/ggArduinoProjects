@@ -11,16 +11,18 @@ public:
   typedef std::function<void(int aClientNumber)> tClientConnectFunc;
   typedef std::function<void(bool aValue)> tSetBoolValueFunc;
   typedef std::function<void(uint32_t aClientNumber)> tSetUInt32ValueFunc;
+  typedef std::function<void(uint32_t, uint32_t, uint32_t)> tSet3UInt32ValueFunc;
   typedef std::function<void(float aValue)> tSetFloatValueFunc;
   typedef std::function<void(const String& aValue)> tSetStringValueFunc;
 
   ggWebSockets(int aPort)
   : mServer(aPort),
     mClientConnectFunc(nullptr),
+    mClientDisconnectFunc(nullptr),
     mSetNameFunc(nullptr),
     mSetOnFunc(nullptr),
     mSetCenterBrightnessFunc(nullptr),
-    mSetRingColorFunc(nullptr) {
+    mSetRingColorHSVFunc(nullptr) {
   }
 
   void Begin() {
@@ -49,12 +51,16 @@ public:
     UpdateClientTXT(String("UpdateCenterBrightness(") + aBrightness + ")", aClientID);
   }
 
-  void UpdateRingColor(uint32_t aColor, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateRingColor('") + RGBToHTML(aColor) + "')", aClientID);
+  void UpdateRingColorHSV(uint8_t aH, uint8_t aS, uint8_t aV, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateRingColorHSV(") + aH + "," + aS + "," + aV + ")", aClientID);
   }
 
   void OnClientConnect(tClientConnectFunc aClientConnectFunc) {
     mClientConnectFunc = aClientConnectFunc;
+  }
+
+  void OnClientDisconnect(tClientConnectFunc aClientDisconnectFunc) {
+    mClientDisconnectFunc = aClientDisconnectFunc;
   }
 
   void OnSetName(tSetStringValueFunc aSetNameFunc) {
@@ -69,27 +75,11 @@ public:
     mSetCenterBrightnessFunc = aSetBrightnessFunc;
   }
 
-  void OnSetRingColor(tSetUInt32ValueFunc aSetRingColorFunc) {
-    mSetRingColorFunc = aSetRingColorFunc;
+  void OnSetRingColorHSV(tSet3UInt32ValueFunc aSetRingColorHSVFunc) {
+    mSetRingColorHSVFunc = aSetRingColorHSVFunc;
   }
 
 private:
-
-  static ggColor::cRGB HTMLToRGB(const String& aColorHTML) {
-    // skip first char "#", convert with base 16 (hex)
-    ggColor::cRGB vRGB(strtoul(aColorHTML.c_str() + 1, nullptr, 16));
-    // Serial.printf("ggWebSockets::HTMLToRGB(...) - aColorHTML=%s ==> vRGB=%d/%d/%d\n",
-    //               aColorHTML.c_str(), vRGB.mR, vRGB.mG, vRGB.mB);
-    return vRGB;
-  }
-
-  static String RGBToHTML(const ggColor::cRGB& aRGB) {
-    char vColorHTML[8]; // 8 chars: 1 prefix, 6 digits, 1 zero terminator (#123456\0)
-    sprintf(vColorHTML, "#%06x", aRGB.mData); // 6 hex digits with leading zeroes
-    // Serial.printf("ggWebSockets::RGBToHTML(...) - aRGB=%d/%d/%d ==> vColorHTML=%s\n",
-    //               aRGB.mR, aRGB.mG, aRGB.mB, vColorHTML);
-    return vColorHTML;
-  }
 
   inline void UpdateClientTXT(String aTXT, int aClientID = -1) {
     aClientID == -1 ? mServer.broadcastTXT(aTXT) : mServer.sendTXT(aClientID, aTXT);
@@ -115,12 +105,17 @@ private:
                uint8_t* aPayLoad,
                size_t aPayLoadLength) {
     char vPayLoad[64];
-    memset(vPayLoad, 0, sizeof vPayLoad);
-    memcpy(vPayLoad, aPayLoad, std::min<size_t>(aPayLoadLength, sizeof vPayLoad - 1));
+    memset(vPayLoad, 0, sizeof(vPayLoad));
+    memcpy(vPayLoad, aPayLoad, std::min<size_t>(aPayLoadLength, sizeof(vPayLoad) - 1));
     switch (aEventType) {
       case WStype_CONNECTED: {
         // const String vURL((char*)aPayLoad);
         if (mClientConnectFunc != nullptr) mClientConnectFunc(aClientID);
+        break;
+      }
+      case WStype_DISCONNECTED: {
+        // const String vURL((char*)aPayLoad);
+        if (mClientDisconnectFunc != nullptr) mClientDisconnectFunc(aClientID);
         break;
       }
       case WStype_TEXT: {
@@ -145,8 +140,8 @@ private:
       if (mSetCenterBrightnessFunc != nullptr) mSetCenterBrightnessFunc(vFunction.ArgFloat(0));
       return;
     }
-    if (vFunction.GetName() == "SetRingColor") {
-      if (mSetRingColorFunc != nullptr) mSetRingColorFunc(HTMLToRGB(vFunction.Arg(0)));
+    if (vFunction.GetName() == "SetRingColorHSV") {
+      if (mSetRingColorHSVFunc != nullptr) mSetRingColorHSVFunc(vFunction.ArgInt(0), vFunction.ArgInt(1), vFunction.ArgInt(2));
       return;
     }
   }
@@ -154,9 +149,10 @@ private:
   WebSocketsServer mServer;
 
   tClientConnectFunc mClientConnectFunc;
+  tClientConnectFunc mClientDisconnectFunc;
   tSetStringValueFunc mSetNameFunc;
   tSetBoolValueFunc mSetOnFunc;
   tSetFloatValueFunc mSetCenterBrightnessFunc;
-  tSetUInt32ValueFunc mSetRingColorFunc;
+  tSet3UInt32ValueFunc mSetRingColorHSVFunc;
   
 };

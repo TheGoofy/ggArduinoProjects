@@ -3,6 +3,7 @@
 #include <FS.h>
 
 #include "ggWebServerHtmlData.h"
+#include "ggDebug.h"
 
 class ggWebServer {
 
@@ -43,9 +44,13 @@ private:
   }
 
   bool HandleFile(const String& aFileName) {
+    GG_DEBUG();
+    vDebug.PrintF("aFileName = %s\n", aFileName.c_str());
     if (SPIFFS.exists(aFileName)) {
+      vDebug.PrintF("file exists\n");
       File vFile = SPIFFS.open(aFileName, "r");
       if (vFile) {
+        vDebug.PrintF("file opened\n");
         const String vContentType = GetContentType(aFileName);
         size_t sent = mServer.streamFile(vFile, vContentType);
         vFile.close();
@@ -61,6 +66,9 @@ private:
   }
 
   void OnController() {
+    GG_DEBUG();
+    vDebug.PrintF("local IP = %s\n", mServer.client().localIP().toString().c_str());
+    vDebug.PrintF("remote IP = %s\n", mServer.client().remoteIP().toString().c_str());
     mServer.send_P(200, "text/html", mWebServerHtmlRoot);
   }
 
