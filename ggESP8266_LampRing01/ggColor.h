@@ -151,4 +151,21 @@ namespace ggColor {
   }
 
 
+  cRGB HTMLToRGB(const String& aColorHTML) {
+    // skip first char "#", convert with base 16 (hex)
+    ggColor::cRGB vRGB(strtoul(aColorHTML.c_str() + 1, nullptr, 16));
+    // Serial.printf("ggWebSockets::HTMLToRGB(...) - aColorHTML=%s ==> vRGB=%d/%d/%d\n",
+    //               aColorHTML.c_str(), vRGB.mR, vRGB.mG, vRGB.mB);
+    return vRGB;
+  }
+
+
+  String RGBToHTML(const ggColor::cRGB& aRGB) {
+    char vColorHTML[8]; // 8 chars: 1 prefix, 6 digits, 1 zero terminator (#123456\0)
+    sprintf(vColorHTML, "#%06x", aRGB.mData); // 6 hex digits with leading zeroes
+    // Serial.printf("ggWebSockets::RGBToHTML(...) - aRGB=%d/%d/%d ==> vColorHTML=%s\n",
+    //               aRGB.mR, aRGB.mG, aRGB.mB, vColorHTML);
+    return vColorHTML;
+  }
+
 };
