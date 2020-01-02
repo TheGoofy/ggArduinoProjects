@@ -1,6 +1,7 @@
 #include <ESP8266WebServer.h> // https://github.com/esp8266/Arduino
 #include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets (by Markus Sattler)
 #include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager (by Tzapu)
+#include <ESP8266mDNS.h>
 
 #include "ggPeriphery.h"
 #include "ggTimer.h"
@@ -254,6 +255,12 @@ void setup()
   WebSockets().Begin();
   Serial.println("Web sockets started");
   
+  // start mdns
+  MDNS.begin(mHostName.c_str());
+  MDNS.addService("http", "tcp", 80);
+  MDNS.addService("ws", "tcp", 81);
+  Serial.println("MDNS responder started");
+
   // initialize connected hardware
   Periphery().Begin();
 

@@ -104,17 +104,20 @@ private:
                WStype_t aEventType,
                uint8_t* aPayLoad,
                size_t aPayLoadLength) {
-    char vPayLoad[64];
-    memset(vPayLoad, 0, sizeof(vPayLoad));
-    memcpy(vPayLoad, aPayLoad, std::min<size_t>(aPayLoadLength, sizeof(vPayLoad) - 1));
     switch (aEventType) {
       case WStype_CONNECTED: {
-        // const String vURL((char*)aPayLoad);
+        GG_DEBUG();
+        vDebug.PrintF("aEventType = %s\n", ToString(aEventType));
+        vDebug.PrintF("remote IP = %s\n", mServer.remoteIP(aClientID).toString().c_str());
+        vDebug.PrintF("aPayLoad = %s\n", (char*)aPayLoad);
         if (mClientConnectFunc != nullptr) mClientConnectFunc(aClientID);
         break;
       }
       case WStype_DISCONNECTED: {
-        // const String vURL((char*)aPayLoad);
+        GG_DEBUG();
+        vDebug.PrintF("aEventType = %s\n", ToString(aEventType));
+        vDebug.PrintF("remote IP = %s\n", mServer.remoteIP(aClientID).toString().c_str());
+        // vDebug.PrintF("aPayLoad = %s\n", (char*)aPayLoad);
         if (mClientDisconnectFunc != nullptr) mClientDisconnectFunc(aClientID);
         break;
       }
