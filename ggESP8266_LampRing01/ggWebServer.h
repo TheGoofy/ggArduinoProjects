@@ -2,7 +2,6 @@
 
 #include <FS.h>
 
-#include "ggWebServerHtmlData.h"
 #include "ggDebug.h"
 
 class ggWebServer {
@@ -14,8 +13,8 @@ public:
   }
 
   void Begin() {
-    mServer.on("/", [&] () { OnController(); });
-    mServer.on("/controller", [&] () { OnController(); });
+    mServer.on("/", [&] () { OnIndex(); });
+    mServer.on("/index.html", [&] () { OnIndex(); });
     mServer.onNotFound([&] () { OnNotFound(); });
     mServer.begin();
     SPIFFS.begin();
@@ -65,11 +64,11 @@ private:
     mServer.send(404, "text/plain", "url not found");
   }
 
-  void OnController() {
+  void OnIndex() {
     GG_DEBUG();
     vDebug.PrintF("local IP = %s\n", mServer.client().localIP().toString().c_str());
     vDebug.PrintF("remote IP = %s\n", mServer.client().remoteIP().toString().c_str());
-    mServer.send_P(200, "text/html", mWebServerHtmlRoot);
+    HandleFile("/ggIndex.html");
   }
 
   ESP8266WebServer mServer;
