@@ -41,7 +41,7 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
     function onWebSocketOpen(aEvent) {
       mWebSocketStatus.innerHTML = 'connected';
       if (mWebSocketReConnectTimerID) {
-        window.clearInterval(mWebSocketTimerID);
+        window.clearInterval(mWebSocketReConnectTimerID);
         mWebSocketReConnectTimerID = 0;
       }
     }
