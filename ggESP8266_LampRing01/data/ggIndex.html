@@ -6,139 +6,8 @@
   <meta http-equiv='Content-Style-Type' content='text/css'>
   <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
   <title>ESP8266 Lamp</title>
-  <link rel='shortcut icon' type='image/png' href='/favicon.ico'/>
-  <style type='text/css'>
-
-.selectnone {
-  -webkit-user-select: none;
-  -khtml-user-select: none;
-  -moz-user-select: none;
-  -ms-user-select: none;
-  user-select: none;
-}
-
-body {
-  text-align: center;
-  font-family: verdana,sans-serif;
-  font-size: 0.8rem;
-  background: #444;
-}
-
-td {
-  text-align: center;
-}
-
-.r {
-  border-radius: 2.4rem;
-  line-height: 2.4rem;
-  font-size: 1.2rem;
-  vertical-align: middle;
-  text-align: center;
-}
-
-input[type=button] {
-  background-color: #000;
-  border: none;
-  cursor: pointer;
-}
-
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 100%;
-  height: 34px;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.switch_slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #000;
-  -webkit-transition: .4s;
-  transition: .4s;
-}
-
-.switch_slider:before {
-  position: absolute;
-  content: "";
-  height: 26px;
-  width: 26px;
-  left: 4px;
-  bottom: 4px;
-  background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
-}
-
-input:checked + .switch_slider {
-  background-color: #f90;
-}
-
-input:focus + .switch_slider {
-  box-shadow: 0 0 0px #f90;
-}
-
-input:checked + .switch_slider:before {
-  -webkit-transform: translate(302px, -1px);
-  -ms-transform: translate(302px, -1px);
-  transform: translate(302px, -1px);
-}
-
-.switch_slider.round {
-  border-radius: 34px;
-}
-
-.switch_slider.round:before {
-  border-radius: 50%;
-}
-
-.range_slider {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 34px;
-  border-radius: 17px;
-  background-image: linear-gradient(to right, #000 05%, #f90 95%);
-  outline: none;
-  opacity: 1;
-  -webkit-transition: .2s;
-  transition: opacity .2s;
-}
-
-.range_slider:disabled {
-  opacity: 0.3;
-}
-
-.range_slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 3px solid #fff;
-  background: transparent;
-  cursor: pointer;
-}
-
-.range_slider::-moz-range-thumb {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 3px solid #fff;
-  background: transparent;
-  cursor: pointer;
-}
-
-  </style>  
+  <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
+  <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'>
   <script language='javascript' type='text/javascript'>
 
     var mWebSocket;
@@ -184,7 +53,7 @@ input:checked + .switch_slider:before {
       eval(aEvent.data);
     }
 
-    function WebSocketSendRingColorHSV() {
+    function WebSocketSendSetRingColorHSV() {
       mWebSocket.send('SetRingColorHSV('
         + mRingColorRangeH.value + ','
         + mRingColorRangeS.value + ','
@@ -202,18 +71,18 @@ input:checked + .switch_slider:before {
         mWebSocket.send('SetCenterBrightness(' + mCenterBrightnessRange.value + ')');
       }
       mRingColorRangeH.onchange = function() {
-        WebSocketSendRingColorHSV();
+        WebSocketSendSetRingColorHSV();
       }
       mRingColorRangeS.onchange = function() {
-        WebSocketSendRingColorHSV();
+        WebSocketSendSetRingColorHSV();
       }
       mRingColorRangeV.onchange = function() {
-        WebSocketSendRingColorHSV();
+        WebSocketSendSetRingColorHSV();
       }
     }
 
     function ToHex(aValue) {
-      vHex = Number(aValue).toString(16);
+      var vHex = Number(aValue).toString(16);
       if (vHex.length < 2) vHex = '0' + vHex;
       return vHex;
     }    
@@ -260,6 +129,7 @@ input:checked + .switch_slider:before {
     function UpdateCenterBrightness(aBrightness) {
       mCenterBrightnessValue.innerHTML = Math.round(100.0 * aBrightness) + '%';
       mCenterBrightnessRange.value = aBrightness;
+      mCenterBrightnessRange.style.backgroundImage = 'linear-gradient(to right, #000 05%, #f90 95%)';
     }
 
     function UpdateRingColorHSV(aH, aS, aV) {
@@ -287,7 +157,7 @@ input:checked + .switch_slider:before {
 </head>
 
 <body onload='javascript:initAll()'>
-  <div style="text-align:left;display:inline-block;color:#aaa;min-width:340px;">
+  <div style="text-align:left;display:inline-block;min-width:340px;">
   <table border='0' cellspacing='3' cellpadding='0'width='100%' class='selectnone'>
 
     <tr><td>
@@ -308,26 +178,26 @@ input:checked + .switch_slider:before {
       <br>Center Brightness: <span id='mCenterBrightnessValue'>(na)</span>
     </td></tr>
     <tr><td>
-      <input id='mCenterBrightnessRange' type='range' min='0' max='1' step='0.01' value='0' class='range_slider'>
+      <input id='mCenterBrightnessRange' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled>
     </td></tr>
 
     <tr><td>
       <br>Ring Color: <span id='mRingColorValueHSV'>(na)</span>
     </td></tr>
     <tr><td>
-      <input id='mRingColorRangeH' type='range' min='0' max='255' step='1' value='0' class='range_slider'>
+      <input id='mRingColorRangeH' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled>
     </td></tr>
     <tr><td>
-      <input id='mRingColorRangeS' type='range' min='0' max='255' step='1' value='0' class='range_slider'>
+      <input id='mRingColorRangeS' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled>
     </td></tr>
     <tr><td>
-      <input id='mRingColorRangeV' type='range' min='0' max='255' step='1' value='0' class='range_slider'>
+      <input id='mRingColorRangeV' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled>
     </td></tr>
 
     <tr><td>
       <br><hr noshade>
       Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
-      (c) 2019, Christoph Laimer
+      (c) 2019, <a href='ggGoofy.html'>Christoph Laimer</a>
     </td></tr>
 
   </table>
