@@ -3,7 +3,7 @@
 #include <Arduino.h>
 
 #define GG_DEBUG() \
-  ggDebug vDebug(__PRETTY_FUNCTION__);
+  ggDebug vDebug(FPSTR(__PRETTY_FUNCTION__));
 
 class ggDebug {
 

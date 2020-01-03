@@ -180,23 +180,7 @@ void setup()
   Serial.begin(115200);
   Serial.println("");
   
-  Serial.printf("A - constructing string s1 with argument \"%s\"\n", __FUNCTION__);
-  Serial.flush();
-  
-  String s1(__FUNCTION__);
-
-  Serial.printf("B - string s1 value is \"%s\"\n", s1.c_str());
-  Serial.flush();
-
-  Serial.printf("C - constructing string s2 with argument \"%s\"\n", __PRETTY_FUNCTION__);
-  Serial.flush();
-  
-  // String s2(__PRETTY_FUNCTION__);
-
-  // Serial.printf("D - string s2 value is \"%s\"\n", s2.c_str());
-  // Serial.flush();
-  
-  // ggDebug vDebug(__PRETTY_FUNCTION__);
+  GG_DEBUG();
 
   // startup eeprom utility class
   ggValueEEProm::Begin();
