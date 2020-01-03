@@ -1,18 +1,18 @@
 #include "ggValueEEProm.h"
-
-
-std::vector<uint8_t> ggValueEEProm::mData;
-uint16_t ggValueEEProm::mChecksumSeed = 0;
+#include <algorithm>
 
 
 void ggValueEEProm::Begin(size_t aSize)
 {
   EEPROM.begin(aSize);
-  mChecksumSeed = Checksum(0);
+  // use checksum of default-values as seed
+  ChecksumSeed() = CalculateChecksumValues();
   if (EEPromDataValid()) {
+    // Serial.printf("%s - EEPROM Read\n", __PRETTY_FUNCTION__); Serial.flush();
     ReadData();
   }
   else {
+    // Serial.printf("%s - EEPROM Write\n", __PRETTY_FUNCTION__); Serial.flush();
     WriteHeader();
     WriteData();
     EEPROM.commit();
@@ -21,9 +21,11 @@ void ggValueEEProm::Begin(size_t aSize)
 
 
 ggValueEEProm::ggValueEEProm(int aSize)
+: mAddressEEProm(sizeof(cHeader) + ValuesSize())
 {
-  mIndex = mData.size();    
-  mData.resize(mIndex + aSize);
+  ValuesSize() += aSize;
+  Values().push_back(this);
+  // Serial.printf("%s - mAddressEEProm=%d ValuesSize()=%d Values().size()=%d\n", __PRETTY_FUNCTION__, mAddressEEProm, ValuesSize(), Values().size()); Serial.flush();
 }
 
 
@@ -31,14 +33,11 @@ bool ggValueEEProm::EEPromDataValid()
 {
   cHeader vHeader;
   EEPROM.get(0, vHeader);
-  if (vHeader.mSize == sizeof(cHeader) + mData.size()) {
-    uint16_t vChecksum = mChecksumSeed;
-    for (int vIndex = 0; vIndex < mData.size(); vIndex++) {
-      const int vAddress = sizeof(cHeader) + vIndex;
-      uint8_t vData = EEPROM.read(vAddress);
-      ChecksumAdd(vChecksum, vData);
-    }
-    return vHeader.mChecksum == vChecksum;
+  // Serial.printf("%s - vHeader.mSize=%d sizeof(cHeader)+ValuesSize()=%d\n", __PRETTY_FUNCTION__, vHeader.mSize, sizeof(cHeader) + ValuesSize()); Serial.flush();
+  if (vHeader.mSize == sizeof(cHeader) + ValuesSize()) {
+    uint16_t vChecksumEEProm = CalculateChecksumEEProm();
+    // Serial.printf("%s - vHeader.mChecksum=%d vChecksumEEProm=%d\n", __PRETTY_FUNCTION__, vHeader.mChecksum, vChecksumEEProm); Serial.flush();
+    return vHeader.mChecksum == vChecksumEEProm;
   }
   return false;
 }
@@ -46,37 +45,49 @@ bool ggValueEEProm::EEPromDataValid()
 
 void ggValueEEProm::ReadData()
 {
-  for (int vIndex = 0; vIndex < mData.size(); vIndex++) {
-    const int vAddress = sizeof(cHeader) + vIndex;
-    mData[vIndex] = EEPROM.read(vAddress);
-  }
+  std::for_each(Values().begin(), Values().end(), [] (ggValueEEProm* aValueEEProm) {
+    aValueEEProm->Read();
+  });
 }
 
 
 void ggValueEEProm::WriteHeader()
 {
   cHeader vHeader;
-  vHeader.mSize = sizeof(cHeader) + mData.size();
-  vHeader.mChecksum = Checksum(mChecksumSeed);
+  vHeader.mSize = sizeof(cHeader) + ValuesSize();
+  vHeader.mChecksum = CalculateChecksumValues();
   EEPROM.put(0, vHeader);
 }
 
 
 void ggValueEEProm::WriteData()
 {
-  for (int vIndex = 0; vIndex < mData.size(); vIndex++) {
-    const int vAddress = sizeof(cHeader) + vIndex;
-    EEPROM.write(vAddress, mData[vIndex]);
-  }
+  std::for_each(Values().begin(), Values().end(), [] (ggValueEEProm* aValueEEProm) {
+    aValueEEProm->Write(false);
+  });
 }
 
 
-uint16_t ggValueEEProm::Checksum(uint16_t aChecksumSeed)
+uint16_t ggValueEEProm::CalculateChecksumEEProm()
 {
-  uint16_t vChecksum = aChecksumSeed;
-  for (int vIndex = 0; vIndex < mData.size(); vIndex++) {
-    ChecksumAdd(vChecksum, mData[vIndex]);
+  uint16_t vChecksum = ChecksumSeed();
+  for (int vIndex = 0; vIndex < ValuesSize(); vIndex++) {
+    const int vAddressEEProm = sizeof(cHeader) + vIndex;
+    uint8_t vData = EEPROM.read(vAddressEEProm);
+    AddChecksum(vChecksum, vData);
   }
   return vChecksum;
 }
 
+
+uint16_t ggValueEEProm::CalculateChecksumValues()
+{
+  uint16_t vChecksum = ChecksumSeed();
+  std::for_each(Values().begin(), Values().end(), [&] (ggValueEEProm* aValueEEProm) {
+    uint8_t* vValuePtr = reinterpret_cast<uint8_t*>(aValueEEProm->GetValuePtr());
+    for (int vIndex = 0; vIndex < aValueEEProm->GetSize(); vIndex++) {
+      AddChecksum(vChecksum, *vValuePtr++);
+    }
+  });
+  return vChecksum;
+}

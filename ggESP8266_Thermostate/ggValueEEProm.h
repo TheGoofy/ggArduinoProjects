@@ -1,36 +1,34 @@
 #pragma once
 
+#include <Arduino.h>
 #include <EEPROM.h>
-#include <vector>
+#include <list>
 
 class ggValueEEProm {
 
 public:
 
+  // reads values from eeprom or writes initial values.
+  // eeprom is (re-)initialized, if ...
+  // - ... number of values changes
+  // - ... sequence (layput) of values changes
+  // - ... any default value changes
   static void Begin(size_t aSize = 512);
 
 protected:
 
   ggValueEEProm(int aSize);
 
-  template <typename TValueType>
-  inline TValueType& Value() {
-    return *reinterpret_cast<TValueType*>(&mData[mIndex]);
-  }
+  virtual int GetSize() const = 0;
+  virtual void* GetValuePtr() = 0;
+  virtual void Read() = 0;
+  virtual void Write(bool aCommit) = 0;
 
-  template <typename TValueType>
-  inline const TValueType& Value() const {
-    return *reinterpret_cast<const TValueType*>(&mData[mIndex]);
-  }
-
-  template <typename TValueType>
-  void Write() const {
-    WriteHeader();
-    const int vAddress = sizeof(cHeader) + mIndex;
-    EEPROM.put(vAddress, Value<TValueType>());
-    EEPROM.commit();
-  }
-
+  static void WriteHeader();
+  
+  // EEProm address of single value item
+  const int mAddressEEProm;
+  
 private:
 
   struct cHeader {
@@ -40,21 +38,30 @@ private:
 
   static bool EEPromDataValid();
   static void ReadData();
-  static void WriteHeader();
   static void WriteData();
 
-  static inline void ChecksumAdd(uint16_t& aChecksum, uint16_t aData) {
+  static inline void AddChecksum(uint16_t& aChecksum, uint16_t aData) {
     aChecksum = (aChecksum >> 1) + ((aChecksum & 1) << 15) + aData;
   }
 
-  static uint16_t Checksum(uint16_t aChecksumSeed);
+  static uint16_t CalculateChecksumEEProm();
+  static uint16_t CalculateChecksumValues();
 
-  // allocate RAM-data as byte array
-  static std::vector<uint8_t> mData;
-  static uint16_t mChecksumSeed;
+  typedef std::list<ggValueEEProm*> tValuesEEProm;
 
-  // RAM "address" of single data item
-  int mIndex;
+  static inline uint16_t& ValuesSize() {
+    static uint16_t vValuesSize = 0;
+    return vValuesSize;
+  }
+
+  static inline tValuesEEProm& Values() {
+    static tValuesEEProm vValues;
+    return vValues;
+  }
+  
+  static inline uint16_t& ChecksumSeed() {
+    static uint16_t vChecksumSeed = 0;
+    return vChecksumSeed;
+  }
   
 };
-
