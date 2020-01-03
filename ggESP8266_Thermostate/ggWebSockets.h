@@ -12,10 +12,13 @@ public:
   typedef std::function<void(int aControlMode)> tSetControlModeFunc;
   typedef std::function<void(bool aValue)> tSetBoolValueFunc;
   typedef std::function<void(float aValue)> tSetFloatValueFunc;
+  typedef std::function<void(const String& aValue)> tSetStringValueFunc;
 
   ggWebSockets(int aPort)
   : mServer(aPort),
     mClientConnectFunc(nullptr),
+    mClientDisconnectFunc(nullptr),
+    mSetNameFunc(nullptr),
     mSetControlModeFunc(nullptr),
     mSetTemperatureRefFunc(nullptr),
     mSetHysteresisFunc(nullptr),
@@ -35,6 +38,10 @@ public:
 
   void Run() {
     mServer.loop();
+  }
+
+  void UpdateName(const String& aName, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateName(\"") + aName + "\")", aClientID);
   }
 
   void UpdateSensorStatus(const char* aSensorStatus, int aClientID = -1) {
@@ -85,6 +92,14 @@ public:
     mClientConnectFunc = aClientConnectFunc;
   }
 
+  void OnClientDisconnect(tClientConnectFunc aClientDisconnectFunc) {
+    mClientDisconnectFunc = aClientDisconnectFunc;
+  }
+
+  void OnSetName(tSetStringValueFunc aSetNameFunc) {
+    mSetNameFunc = aSetNameFunc;
+  }
+
   void OnSetControlMode(tSetControlModeFunc aSetControlModeFunc) {
     mSetControlModeFunc = aSetControlModeFunc;
   }
@@ -130,18 +145,21 @@ private:
                WStype_t aEventType,
                uint8_t* aPayLoad,
                size_t aPayLoadLength) {
-    GG_DEBUG();
-    char vPayLoad[64];
-    memset(vPayLoad, 0, sizeof vPayLoad);
-    memcpy(vPayLoad, aPayLoad, std::min<size_t>(aPayLoadLength, sizeof vPayLoad - 1));
-    vDebug.PrintF("aClientID = %d\n", aClientID);
-    vDebug.PrintF("aEventType = %s\n", ToString(aEventType));
-    vDebug.PrintF("aPayLoad = %s\n", vPayLoad);
-    vDebug.PrintF("aPayLoadLength = %d\n", aPayLoadLength);
     switch (aEventType) {
       case WStype_CONNECTED: {
-        // const String vURL((char*)aPayLoad);
+        GG_DEBUG();
+        vDebug.PrintF("aEventType = %s\n", ToString(aEventType));
+        vDebug.PrintF("remote IP = %s\n", mServer.remoteIP(aClientID).toString().c_str());
+        vDebug.PrintF("aPayLoad = %s\n", (char*)aPayLoad);
         if (mClientConnectFunc != nullptr) mClientConnectFunc(aClientID);
+        break;
+      }
+      case WStype_DISCONNECTED: {
+        GG_DEBUG();
+        vDebug.PrintF("aEventType = %s\n", ToString(aEventType));
+        vDebug.PrintF("remote IP = %s\n", mServer.remoteIP(aClientID).toString().c_str());
+        // vDebug.PrintF("aPayLoad = %s\n", (char*)aPayLoad);
+        if (mClientDisconnectFunc != nullptr) mClientDisconnectFunc(aClientID);
         break;
       }
       case WStype_TEXT: {
@@ -154,6 +172,10 @@ private:
   void Eval(const String& aText) {
     ggFunctionParser vFunction(aText);
     // vFunction.Print(Serial);
+    if (vFunction.GetName() == "SetName") {
+      if (mSetNameFunc != nullptr) mSetNameFunc(vFunction.Arg(0));
+      return;
+    }
     if (vFunction.GetName() == "SetControlMode") {
       if (mSetControlModeFunc != nullptr) mSetControlModeFunc(vFunction.ArgInt(0));
       return;
@@ -179,6 +201,8 @@ private:
   WebSocketsServer mServer;
 
   tClientConnectFunc mClientConnectFunc;
+  tClientConnectFunc mClientDisconnectFunc;
+  tSetStringValueFunc mSetNameFunc;
   tSetControlModeFunc mSetControlModeFunc;
   tSetFloatValueFunc mSetTemperatureRefFunc;
   tSetFloatValueFunc mSetHysteresisFunc;

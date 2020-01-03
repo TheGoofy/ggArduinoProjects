@@ -7,6 +7,7 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
 <head>
   <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
   <meta http-equiv='Content-Style-Type' content='text/css'>
+  <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
   <title>ESP8266 Thermostate</title>
   <style type='text/css'>
   
@@ -31,7 +32,7 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
 
     function initWebSocket() {
       // init web socket client
-      mWebSocket = new WebSocket('ws://' + window.location.hostname + ':81/');
+      mWebSocket = new WebSocket('ws://' + window.location.hostname + ':81/', ['arduino']);
       mWebSocket.onopen = onWebSocketOpen;
       mWebSocket.onclose = onWebSocketClose;
       mWebSocket.onerror = onWebSocketError;
@@ -39,6 +40,7 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
     }
 
     function onWebSocketOpen(aEvent) {
+      console.log(aEvent.data);
       mWebSocketStatus.innerHTML = 'connected';
       if (mWebSocketReConnectTimerID) {
         window.clearInterval(mWebSocketReConnectTimerID);
@@ -47,6 +49,7 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
     }
 
     function onWebSocketClose(aEvent) {
+      console.log(aEvent.data);
       mWebSocketStatus.innerHTML = 'disconnected';
       if (!mWebSocketReConnectTimerID) {
         mWebSocketReConnectTimerID = window.setInterval(initWebSocket, 5000);
@@ -54,7 +57,7 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
     }
 
     function onWebSocketError(aEvent) {
-      mWebSocketStatus.innerHTML = aEvent;
+      mWebSocketStatus.innerHTML = aEvent.data;
     }
 
     function onWebSocketMessage(aEvent) {
@@ -70,6 +73,9 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
     };
   
     function initHtmlElements() {
+      mName.onchange = function() {
+        mWebSocket.send('SetName(' + mName.value + ')');
+      }
       mControlModeOff.onchange = function() {
         mWebSocket.send('SetControlMode(' + tControlMode.eOff + ')');
       }
@@ -96,6 +102,10 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
       }
     }
     
+    function UpdateName(aName) {
+      mName.value = aName;
+    }
+
     function UpdateSensorStatus(aSensorStatus) {
       mSensorStatus.innerHTML = aSensorStatus;
     }
@@ -160,7 +170,12 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
       <td>Web Socket Status</td>
       <td id='mWebSocketStatus'>(na)</td>
     </tr>
-    
+
+    <tr>
+      <td>SSR Name</td>
+      <td><input id='mName' type='text' value='(na)' style='width:100%' class='r' maxlength='30'></td>
+    </tr>
+
     <tr>
       <td>Sensor Status</td>
       <td id='mSensorStatus'>(na)</td>

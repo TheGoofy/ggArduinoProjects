@@ -15,6 +15,7 @@
 #include "ggWiFiConnection.h"
 #include "ggPeriphery.h"
 #include "ggController.h"
+#include "ggValueEEPromString.h"
 
 
 /*
@@ -52,13 +53,17 @@ ggPeriphery mPeriphery;
 // controls an output based on input and reference value
 ggController mTemperatureController;
 
+// device name
+ggValueEEPromString<> mName(mHostName);
+
 
 void ConnectComponents()
 {
   // when a new client is conneted, it needs a complete update
   mWebSockets.OnClientConnect([&] (int aClientID) {
-    ggDebug vDebug("mWebSockets.OnClientConnect");
+    ggDebug vDebug("mWebSockets.OnClientConnect(...)");
     vDebug.PrintF("aClientID = %d\n", aClientID);
+    mWebSockets.UpdateName(mName.Get(), aClientID);
     mWebSockets.UpdateSensorStatus(mPeriphery.mSensor.GetStatus(), aClientID);
     mWebSockets.UpdatePressure(mPeriphery.mSensor.GetPressure(), aClientID);
     mWebSockets.UpdateTemperature(mPeriphery.mSensor.GetTemperature(), aClientID);
@@ -70,7 +75,11 @@ void ConnectComponents()
     mWebSockets.UpdateOutput(mTemperatureController.GetOutput(), aClientID);
     mWebSockets.UpdateKey(mPeriphery.mKey.GetPressed(), aClientID);
   });
-  
+  mWebSockets.OnClientDisconnect([&] (int aClientID) {
+    ggDebug vDebug("mWebSockets.OnClientDisonnect(...)");
+    vDebug.PrintF("aClientID = %d\n", aClientID);
+  });
+
   // controller event: when output changes, the SSR needs to be switched
   mTemperatureController.OnOutputChanged([&] (float aOutputValue) {
     mPeriphery.mOutput.Set(aOutputValue);
@@ -128,6 +137,10 @@ void ConnectComponents()
   });
 
   // events from client: control mode, reference temperature, ...
+  mWebSockets.OnSetName([&] (const String& aName) {
+    mName.Set(aName);
+    mWebSockets.UpdateName(mName.Get());
+  });
   mWebSockets.OnSetControlMode([&] (int aControlMode) {
     mTemperatureController.SetMode(static_cast<ggController::tMode>(aControlMode));
     mWebSockets.UpdateControlMode(mTemperatureController.GetMode());
