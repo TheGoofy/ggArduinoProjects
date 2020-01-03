@@ -12,7 +12,7 @@
 #include "ggValueEEPromString.h"
 
 
-const String mHostName = "ESP_Lamp_" + String(ESP.getChipId(), HEX);
+const String mHostName = "ESP-Lamp-" + String(ESP.getChipId(), HEX);
 
 
 ggPeriphery& Periphery()
@@ -63,7 +63,7 @@ ggWebSockets& WebSockets()
 }
 
 
-ggValueEEPromString<> mName("goofy");
+ggValueEEPromString<> mName(mHostName);
 
 
 struct ggMode {
