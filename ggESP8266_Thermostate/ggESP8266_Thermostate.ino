@@ -2,13 +2,14 @@
 #include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets (by Markus Sattler)
 #include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager (by Tzapu)
 #include <BME280I2C.h>        // https://github.com/finitespace/BME280 (by Tyler Glenn)
+#include <ESP8266mDNS.h>
 
 // PCB version definition (ggPeriphery.h)
 // #define M_PCB_VERSION_V1
 // #define M_PCB_VERSION_V2
 // #define M_PCB_VERSION_V3
-// #define M_PCB_VERSION_V4 // actual fabricated PCB (May 2019)
-#define M_PCB_VERSION_V5 // doesn't use RX/TX-pins for SSR-control (serial port still usable for debugging)
+#define M_PCB_VERSION_V4 // actual fabricated PCB (May 2019)
+// #define M_PCB_VERSION_V5 // doesn't use RX/TX-pins for SSR-control (serial port still usable for debugging)
 
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
@@ -195,9 +196,6 @@ void setup()
   
   GG_DEBUG();
 
-  // startup eeprom utility class
-  ggValueEEProm::Begin();
-
   // connect to wifi
   mWifiManager.setDebugOutput(true);
   mWifiManager.setAPCallback(WifiManagerConfigPortalStart);
@@ -210,6 +208,13 @@ void setup()
   Serial.println(WiFi.localIP());
   mWiFiConnection.Begin();
 
+  // connect inputs, outputs, socket-events, ...
+  ConnectComponents();
+
+  // startup eeprom utility class
+  ggValueEEProm::Begin();
+  Serial.printf("Device Name: %s\n", mName.Get().c_str());
+
   // configure and start web-server
   mWebServer.Begin();
   Serial.println("Web server started");
@@ -217,14 +222,17 @@ void setup()
   // configure and start web-sockets
   mWebSockets.Begin();
   Serial.println("Web sockets started");
-  
+
+  // start mdns
+  MDNS.begin(mHostName.c_str());
+  MDNS.addService("http", "tcp", 80);
+  MDNS.addService("ws", "tcp", 81);
+  Serial.println("MDNS responder started");
+
   // make sure all status and debug messages are sent before communication gets
   // interrupted, in case hardware pins are needed for some different use.
   Serial.flush();
-  
-  // connect inputs, outputs, socket-events, ...
-  ConnectComponents();
-  
+
   // setup connected hardware
   mPeriphery.Begin();
 }

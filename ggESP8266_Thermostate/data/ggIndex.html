@@ -1,7 +1,4 @@
-#pragma once
-
-char mWebServerHtmlRoot[] PROGMEM = R"=====(
-﻿<!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01//EN' 'http://www.w3.org/TR/html4/strict.dtd'>
+﻿﻿<!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01//EN' 'http://www.w3.org/TR/html4/strict.dtd'>
 <html>
 
 <head>
@@ -9,27 +6,18 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
   <meta http-equiv='Content-Style-Type' content='text/css'>
   <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
   <title>ESP8266 Thermostate</title>
-  <style type='text/css'>
-  
-    .selectnone {
-      -webkit-user-select: none;
-      -khtml-user-select: none;
-      -moz-user-select: none;
-      -ms-user-select: none;
-      user-select: none;
-    }
-    
-  </style>  
+  <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
+  <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'>
   <script language='javascript' type='text/javascript'>
 
-    function initAll() {
-      initWebSocket();
-      initHtmlElements();
-    }
-  
     var mWebSocket;
     var mWebSocketReConnectTimerID = 0;
 
+    function initAll() {
+      initHtmlElements();
+      initWebSocket();
+    }
+  
     function initWebSocket() {
       // init web socket client
       mWebSocket = new WebSocket('ws://' + window.location.hostname + ':81/', ['arduino']);
@@ -145,18 +133,15 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
     }
 
     function UpdateOutput(aOutput) {
-      mOutput.bgColor = aOutput > 0.5 ? 'Gold' : 'LightGray';
       mOutputValue.innerHTML = Math.round(100.0 * aOutput) + '%';
       mOutputRange.value = aOutput;
     }
 
     function UpdateStatusLED(aStatusLED) {
-      mStatusLED.bgColor = aStatusLED ? 'LawnGreen' : 'LightGray';
       mStatusLED.innerHTML = aStatusLED;
     }
 
     function UpdateKey(aKey) {
-      mKey.bgColor = aKey ? 'DeepSkyBlue' : 'LightGray';
       mKey.innerHTML = aKey;
     }
 
@@ -164,83 +149,90 @@ char mWebServerHtmlRoot[] PROGMEM = R"=====(
 </head>
 
 <body onload='javascript:initAll()'>
-  <table border='0' cellspacing='2' cellpadding='5'>
+  <div style='text-align:left;display:inline-block;min-width:340px'>
+  <table border='0' width='100%' class='selectnone' style='border-spacing: 10px 3px;'>
     
     <tr>
-      <td>Web Socket Status</td>
-      <td id='mWebSocketStatus'>(na)</td>
-    </tr>
-
-    <tr>
-      <td>SSR Name</td>
-      <td><input id='mName' type='text' value='(na)' style='width:100%' class='r' maxlength='30'></td>
-    </tr>
-
-    <tr>
-      <td>Sensor Status</td>
-      <td id='mSensorStatus'>(na)</td>
-    </tr>
-
-    <tr>
-      <td>Pressure</td>
-      <td id='mPressure'>(na)</td>
-    </tr>
-
-    <tr>
-      <td>Temperature</td>
-      <td id='mTemperature'>(na)</td>
-    </tr>
-
-    <tr>
-      <td>Humidity</td>
-      <td id='mHumidity'>(na)</td>
-    </tr>
-
-    <tr>
-      <td valign='top'>Output Control</td>
-      <td>
-        <input id='mControlModeOff' type='radio' name='control'><label for='mControlModeOff'> Off<label><br>
-        <input id='mControlModeOnBelow' type='radio' name='control'><label for='mControlModeOnBelow'> On, if below ref (heater)</label><br>
-        <input id='mControlModeOnAbove' type='radio' name='control'><label for='mControlModeOnAbove'> On, if above ref (cooler)</label><br>
-        <input id='mControlModeOn' type='radio' name='control'><label for='mControlModeOn'> On</label><br>
+      <td colspan='2'>
+        <br>
+        <input id='mName' type='text' value='(na)' style='width:100%' class='r' maxlength='30'>
       </td>
     </tr>
+    
+    <tr><td colspan='2'></td></tr>
 
     <tr>
-      <td>Temperature Ref</td>
-      <td><input id='mTemperatureRef' type='number' min='-100' max='100' step='0.1' value='0'> °C</td>
+      <td style='text-align:right'>Pressure</td>
+      <td style='text-align:left' id='mPressure'>(na)</td>
     </tr>
 
     <tr>
-      <td>Hysteresis</td>
-      <td><input id='mHysteresis' type='number' min='0' max='100' step='0.1' value='0'> °C</td>
+      <td style='text-align:right'>Temperature</td>
+      <td style='text-align:left' id='mTemperature'>(na)</td>
     </tr>
 
     <tr>
-      <td>Analog Out</td>
-      <td><input id='mOutputAnalog' type='checkbox'></td>
+      <td style='text-align:right'>Humidity</td>
+      <td style='text-align:left' id='mHumidity'>(na)</td>
+    </tr>
+
+    <tr><td colspan='2'><hr noshade></td></tr>
+
+    <tr>
+      <td style='text-align:right' valign='top'>Output Control</td>
+      <td style='text-align:left'><table border='0' style='border-collapse:collapse'>
+        <tr><td><input id='mControlModeOff' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOff'> Off<label></td></tr>
+        <tr><td><input id='mControlModeOnBelow' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOnBelow'> On, if below ref (heater)</label></td></tr>
+        <tr><td><input id='mControlModeOnAbove' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOnAbove'> On, if above ref (cooler)</label></td></tr>
+        <tr><td><input id='mControlModeOn' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOn'> On</label></td></tr>
+      </table></td>
     </tr>
 
     <tr>
-      <td>Output</td>
-      <td id='mOutput'><table cellpadding='0' cellspacing='0' border='0'><tr>
-        <td><input id='mOutputRange' type='range' name='outputrange' min='0' max='1' step='0.1' value='0'></td>
+      <td style='text-align:right'>Temperature Ref</td>
+      <td style='text-align:left'><input id='mTemperatureRef' type='number' min='-100' max='100' step='0.1' value='0' style='width:80px;margin-left:4px'> °C</td>
+    </tr>
+
+    <tr>
+      <td style='text-align:right'>Hysteresis</td>
+      <td style='text-align:left'><input id='mHysteresis' type='number' min='0' max='100' step='0.1' value='0' style='width:80px;margin-left:4px'> °C</td>
+    </tr>
+
+    <tr>
+      <td style='text-align:right'>Analog Out</td>
+      <td style='text-align:left'><input id='mOutputAnalog' type='checkbox'></td>
+    </tr>
+
+    <tr>
+      <td style='text-align:right'>Output</td>
+      <td style='text-align:left' id='mOutput'><table cellpadding='0' cellspacing='0' border='0' style='border-collapse:collapse'><tr>
+        <td style='text-align:left'><input id='mOutputRange' type='range' name='outputrange' min='0' max='1' step='0.1' value='0'></td>
         <td>&nbsp;<span id='mOutputValue'>(na)</span></td>
       </tr></table></td>
     </tr>
 
     <tr>
-      <td>Status LED</td>
-      <td id='mStatusLED'>(na)</td>
+      <td style='text-align:right'>Status LED</td>
+      <td style='text-align:left' id='mStatusLED'>(na)</td>
     </tr>
 
     <tr>
-      <td>Key</td>
-      <td id='mKey'>(na)</td>
+      <td style='text-align:right'>Key</td>
+      <td style='text-align:left' id='mKey'>(na)</td>
+    </tr>
+
+    <tr><td colspan='2'><hr noshade></td></tr>
+    
+    <tr>
+      <td colspan='2'>
+        Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
+        Temperature Sensor Status: <span id='mSensorStatus'>(na)</span><br>
+        (c) 2020, <a href='ggGoofy.html'>Christoph Laimer</a>
+      </td>
     </tr>
 
   </table>
+  </div>
 </body>
 
 </html>
-)=====";
