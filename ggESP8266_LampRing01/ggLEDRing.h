@@ -80,7 +80,7 @@ public:
     if ((aChannel != 2) && (vHSV.mV < 128)) vHSV.mV = 128;
     for (int vIndex = 0; vIndex < TNumLEDs; vIndex++) {
       vHSV.mChannels[aChannel] = 256 * (vIndex + 1) / TNumLEDs - 1;
-      mLEDs.setPixelColor((vIndex + 3 * TNumLEDs / 4) % TNumLEDs, ggColor::ToRGB(vHSV));
+      mLEDs.setPixelColor((vIndex + 0 * TNumLEDs / 4) % TNumLEDs, ggColor::ToRGB(vHSV));
     }
     Show();
   }
