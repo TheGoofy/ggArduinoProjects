@@ -3,6 +3,8 @@
 #include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager (by Tzapu)
 #include <BME280I2C.h>        // https://github.com/finitespace/BME280 (by Tyler Glenn)
 #include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
 // PCB version definition (ggPeriphery.h)
 // #define M_PCB_VERSION_V1
@@ -171,6 +173,8 @@ void Run()
   mWebServer.Run();
   mWebSockets.Run();
   mWiFiConnection.Run();
+  MDNS.update();
+  ArduinoOTA.handle();
   yield();
 }
 
@@ -228,6 +232,16 @@ void setup()
   MDNS.addService("http", "tcp", 80);
   MDNS.addService("ws", "tcp", 81);
   Serial.println("MDNS responder started");
+
+  // over the air update
+  ArduinoOTA.setHostname(mHostName.c_str());
+  ArduinoOTA.onStart([](){ mPeriphery.mStatusLED.SetOTA(true); });
+  ArduinoOTA.onEnd([](){ mPeriphery.mStatusLED.SetOTA(false); });
+  // ArduinoOTA.onStart([](){ mWebSockets.UpdateProgress("OTA", 0, 1, true); });
+  // ArduinoOTA.onEnd([](){ mWebSockets.UpdateProgress("OTA", 0, 1, false); });
+  // ArduinoOTA.onProgress([](unsigned int aProgress, unsigned int aTotal){ mWebSockets.UpdateProgress("OTA", aProgress, aTotal, true); });
+  ArduinoOTA.begin();
+  Serial.println("OTA service started");
 
   // make sure all status and debug messages are sent before communication gets
   // interrupted, in case hardware pins are needed for some different use.

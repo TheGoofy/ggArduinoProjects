@@ -88,6 +88,10 @@ public:
     UpdateClientTXT(String("UpdateOutput(") + aOutput + ")", aClientID);
   }
 
+  void UpdateProgress(const String& aName, uint32_t aValue, uint32_t aValueMax, bool aShow, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateProgress(\"") + aName + "\", " + aValue + ", " + aValueMax + ", " + aShow + ")", aClientID);
+  }
+
   void OnClientConnect(tClientConnectFunc aClientConnectFunc) {
     mClientConnectFunc = aClientConnectFunc;
   }

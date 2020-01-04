@@ -11,12 +11,21 @@ public:
               bool aInverted = false)
   : mOutput(aPin, aInverted),
     mTickerOK({1, 299}, 10),           // 0.01s on, 2.99s off
+    mTickerOTA({3, 7}, 10),           // 0.03s on, 0.07s off
     mTickerWarning({5, 2, 5, 18}),     // 0.5s off, 0.2s on, 0.5s off, 1.8s on
     mTickerError({1, 2, 1, 2, 1, 23}), // 0.1s on, 0.2s off, 0.1s on, 0.2s off, 0.1s on, 2.3s off
+    mOTA(false),
     mWarning(false),
     mError(false) {
     mTicker = &mTickerOK;
     mTicker->Start();
+  }
+
+  void SetOTA(bool aOTA) {
+    if (mOTA != aOTA) {
+      mOTA = aOTA;
+      UpdateTicker();
+    }
   }
 
   void SetWarning(bool aWarning) {
@@ -36,6 +45,7 @@ public:
   void Begin() {
     mOutput.Begin();
     mTickerOK.OnTick([&] (int aIntervalIndex) { OnTick(aIntervalIndex); });
+    mTickerOTA.OnTick([&] (int aIntervalIndex) { OnTick(aIntervalIndex); });
     mTickerWarning.OnTick([&] (int aIntervalIndex) { OnTick(aIntervalIndex); });
     mTickerError.OnTick([&] (int aIntervalIndex) { OnTick(aIntervalIndex); });
     UpdateTicker();
@@ -45,7 +55,10 @@ private:
 
   void UpdateTicker() {
     mTicker->Stop();
-    if (mError) {
+    if (mOTA) {
+      mTicker = &mTickerOTA;
+    }
+    else if (mError) {
       mTicker = &mTickerError;
     }
     else if (mWarning) {
@@ -69,11 +82,13 @@ private:
   ggOutput mOutput;
 
   ggTicker mTickerOK;
+  ggTicker mTickerOTA;
   ggTicker mTickerWarning;
   ggTicker mTickerError;
 
   ggTicker* mTicker;
 
+  bool mOTA;
   bool mWarning;
   bool mError;
   

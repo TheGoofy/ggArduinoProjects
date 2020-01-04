@@ -15,6 +15,7 @@ public:
   void Begin() {
     mServer.on("/", [&] () { OnController(); });
     mServer.on("/controller", [&] () { OnController(); });
+    mServer.on("/dir", [&] () { OnDir(); });
     mServer.onNotFound([&] () { OnNotFound(); });
     mServer.begin();
     SPIFFS.begin();
@@ -70,6 +71,16 @@ private:
     vDebug.PrintF("local IP = %s\n", mServer.client().localIP().toString().c_str());
     vDebug.PrintF("remote IP = %s\n", mServer.client().remoteIP().toString().c_str());
     HandleFile("/ggIndex.html");
+  }
+
+  void OnDir() {
+    String vDirHTML = "<!DOCTYPE html><html><head><link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/></head><body><div align='left'>\n";
+    Dir vDir = SPIFFS.openDir("");
+    while (vDir.next()) {
+      vDirHTML += "<a href='" + vDir.fileName() + "'>" + vDir.fileName()+ "</a> - " + vDir.fileSize() + " bytes<br>\n";
+    }
+    vDirHTML += "<hr noshade>(c) 2020, Christoph Laimer</div></body></html>";
+    mServer.send(200, "text/html", vDirHTML);
   }
 
   ESP8266WebServer mServer;

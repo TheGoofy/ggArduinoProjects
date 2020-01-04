@@ -2,12 +2,12 @@
 <html>
 
 <head>
-  <meta http-equiv='Content-Type' content='text/html; charset=utf-8'>
-  <meta http-equiv='Content-Style-Type' content='text/css'>
+  <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+  <meta http-equiv='Content-Style-Type' content='text/css'/>
   <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
   <title>ESP8266 Thermostate</title>
   <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
-  <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'>
+  <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
   <script language='javascript' type='text/javascript'>
 
@@ -54,6 +54,7 @@
 
     function onWebSocketMessage(aEvent) {
       // server sends actual function names, which can directly be executed by the client
+      console.log(aEvent.data);
       eval(aEvent.data);
     }
 
@@ -151,6 +152,13 @@
 
     function UpdateKey(aKey) {
       mKey.innerHTML = aKey;
+    }
+    
+    function UpdateProgress(aName, aValue, aValueMax, aShow) {
+      mProgressName.innerHTML = aName;
+      mProgressBar.value = aValue;
+      mProgressBar.max = aValueMax;
+      mProgressFrame.hidden = !aShow;
     }
 
     google.charts.load('current', {'packages':['gauge']});
@@ -322,6 +330,17 @@
       </td>
     </tr>
 
+    <tr id='mProgressFrame' hidden='true'><td colspan='2'>
+      <table border='0' width='100%' style='border-collapse:collapse'>
+        <tr><td colspan='3'><hr noshade></td></tr>
+        <tr>
+          <td id='mProgressName'>Progress</td>
+          <td>&nbsp;</td>
+          <td style='width:100%'><progress id='mProgressBar' style='width:100%' value='0' max='1'></td>
+        </tr>
+      </table>
+    </td></tr>
+    
   </table>
   </div>
 </body>
