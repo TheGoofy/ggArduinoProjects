@@ -85,6 +85,13 @@ public:
     Show();
   }
 
+  void DisplayProgress(float aProgress, const ggColor::cRGB& aColor, const ggColor::cRGB& aBackground) {
+    int vProgress = TNumLEDs * aProgress + 0.5f;
+    mLEDs.fill(aColor, 0, vProgress);
+    mLEDs.fill(aBackground, vProgress, TNumLEDs - vProgress);
+    Show();
+  }
+
   typedef std::function<void()> tFunc;
   
   void OnShowStart(tFunc aFuncShowStart) {

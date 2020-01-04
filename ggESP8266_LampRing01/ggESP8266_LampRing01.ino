@@ -2,6 +2,8 @@
 #include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets (by Markus Sattler)
 #include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager (by Tzapu)
 #include <ESP8266mDNS.h>
+#include <WiFiUdp.h>
+#include <ArduinoOTA.h>
 
 #include "ggPeriphery.h"
 #include "ggTimer.h"
@@ -205,6 +207,26 @@ void ConnectComponents()
     Periphery().mLEDRing.SetColor(ggColor::cHSV(aH, aS, aV));
     WebSockets().UpdateRingColorHSV(aH, aS, aV);
   });
+
+  // OTA status display
+  static ggColor::cRGB vColorProgress(200,0,150);
+  static ggColor::cRGB vColorProgressBackground(0,0,0);
+  static ggColor::cRGB vColorSuccess(0,200,0);
+  static ggColor::cRGB vColorError(255,0,0);
+  ArduinoOTA.onStart([&] () {
+    Periphery().mLEDCenter.SetOn(false);
+    Periphery().mLEDRing.DisplayProgress(0.0f, vColorProgress, vColorProgressBackground);
+  });
+  ArduinoOTA.onEnd([&] () {
+    Periphery().mLEDRing.DisplayProgress(1.0f, vColorSuccess, vColorProgressBackground);
+  });
+  ArduinoOTA.onProgress([&] (unsigned int aProgress, unsigned int aTotal) {
+    float vProgress = static_cast<float>(aProgress) / static_cast<float>(aTotal);
+    Periphery().mLEDRing.DisplayProgress(vProgress, vColorProgress, vColorProgressBackground);
+  });
+  ArduinoOTA.onError([&] (ota_error_t aError) {
+    Periphery().mLEDRing.DisplayProgress(1.0f, vColorError, vColorError);
+  });
 }
 
 
@@ -261,6 +283,11 @@ void setup()
   MDNS.addService("ws", "tcp", 81);
   Serial.println("MDNS responder started");
 
+  // over the air update
+  ArduinoOTA.setHostname(mHostName.c_str());
+  ArduinoOTA.begin();
+  Serial.println("OTA service started");
+
   // initialize connected hardware
   Periphery().Begin();
 
@@ -275,5 +302,7 @@ void loop()
   WebServer().Run();
   WebSockets().Run();
   WiFiConnection().Run();
+  ArduinoOTA.handle();
+  MDNS.update();
   yield();
 }
