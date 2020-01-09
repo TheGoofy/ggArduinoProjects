@@ -29,9 +29,12 @@ public:
     digitalWrite(GetPin(), aValue ^ mInverted);
   }
 
+  bool GetInverted() const {
+    return mInverted;
+  }
+
 private:
 
   const bool mInverted;
   
 };
-

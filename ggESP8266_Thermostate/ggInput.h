@@ -22,10 +22,13 @@ public:
     return digitalRead(GetPin()) ^ mInverted;
   }
 
+  bool GetInverted() const {
+    return mInverted;
+  }
+
 private:
 
   const bool mInverted;
   const bool mEnablePullUp;
   
 };
-
