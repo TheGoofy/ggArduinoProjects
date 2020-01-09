@@ -21,11 +21,11 @@
   #define M_PIN_LED 1
   #define M_PIN_DHT 2
 #elif defined (M_PCB_VERSION_V4)
-  #define M_PIN_KEY 0
-  #define M_PIN_SSR 3
-  #define M_PIN_LED 1
-  #define M_PIN_SDA 4
-  #define M_PIN_SCL 5
+  #define M_PIN_KEY 0 // communication key (on / off / reset settings)
+  #define M_PIN_SSR 3 // SSR output
+  #define M_PIN_LED 1 // status LED
+  #define M_PIN_SDA 4 // sensor I2C data
+  #define M_PIN_SCL 5 // sensor I2C clock
 #elif defined (M_PCB_VERSION_V5)
   #define M_PIN_KEY 0 // communication key (on / off / reset settings)
   #define M_PIN_SSR 14 // SSR output
@@ -44,7 +44,7 @@ struct ggPeriphery {
 
   ggPeriphery()
   : mKey(M_PIN_KEY, true), // key, inverted (low if pressed)
-    mOutput(M_PIN_SSR, true, 0.5f), // SSR switch (optocpupler), inverted, 2Hz PWM (100 half-waves per sec => 50 pwm steps)
+    mOutput(M_PIN_SSR, true, 1.0f), // SSR switch (optocpupler), inverted, 1Hz PWM (200 half-waves per sec => 200 pwm steps)
     mStatusLED(M_PIN_LED, true), // green status led, inverted
     mSensor(M_PIN_SDA, M_PIN_SCL) { // temperature sensor
   }

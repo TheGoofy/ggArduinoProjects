@@ -10,8 +10,8 @@
 // #define M_PCB_VERSION_V1
 // #define M_PCB_VERSION_V2
 // #define M_PCB_VERSION_V3
-#define M_PCB_VERSION_V4 // actual fabricated PCB (May 2019)
-// #define M_PCB_VERSION_V5 // doesn't use RX/TX-pins for SSR-control (serial port still usable for debugging)
+// #define M_PCB_VERSION_V4 // actual fabricated PCB (May 2019)
+#define M_PCB_VERSION_V5 // doesn't use RX/TX-pins for SSR-control (serial port still usable for debugging)
 
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
@@ -237,9 +237,6 @@ void setup()
   ArduinoOTA.setHostname(mHostName.c_str());
   ArduinoOTA.onStart([](){ mPeriphery.mStatusLED.SetOTA(true); });
   ArduinoOTA.onEnd([](){ mPeriphery.mStatusLED.SetOTA(false); });
-  // ArduinoOTA.onStart([](){ mWebSockets.UpdateProgress("OTA", 0, 1, true); });
-  // ArduinoOTA.onEnd([](){ mWebSockets.UpdateProgress("OTA", 0, 1, false); });
-  // ArduinoOTA.onProgress([](unsigned int aProgress, unsigned int aTotal){ mWebSockets.UpdateProgress("OTA", aProgress, aTotal, true); });
   ArduinoOTA.begin();
   Serial.println("OTA service started");
 

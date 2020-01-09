@@ -121,7 +121,6 @@ private:
 
     // (re)init in case sensor has a problem
     if (mStatus != eStatusSensorOK) {
-      ggDebug vDebug("ggSensor::OnSample().Init()");
       Init();
     }
 
