@@ -144,3 +144,43 @@ input:checked + .switch_slider:before {
   background: transparent;
   cursor: pointer;
 }
+
+.collapsible {
+  background-color: #777;
+  color: white;
+  cursor: pointer;
+  padding: 5px;
+  width: 100%;
+  border: none;
+  text-align: left;
+  outline: none;
+}
+
+.collapsible:after {
+  content: '+';
+  color: white;
+  float: right;
+  margin-left: 5px;
+}
+
+.active:after {
+  content: '-';
+}
+
+.active, .collapsible:hover {
+  background-color: #555;
+}
+
+.content {
+  padding: 0px 5px;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  max-height: 0px;
+  max-width: 310px;
+  resize: vertical;
+  overflow-x: visible;
+  overflow-y: auto;
+  transition: max-height 0.2s ease-out;
+  color: #666;
+  background-color: #fff;
+}
