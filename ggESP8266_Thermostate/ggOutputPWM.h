@@ -6,6 +6,8 @@ class ggOutputPWM  {
 
 public:
 
+  // maximum allowed cycle-time is approximately 30 minutes
+  // (overvlow after 2^32 microseconds divided by 2)
   ggOutputPWM(int aPin,
               bool aInverted = false,
               float aCycleTimeSeconds = 1.0f)
@@ -36,21 +38,24 @@ public:
   void Run() {
     unsigned long vMicros = micros();
     if (vMicros >= mMicrosNext) {
-      if (mOutput.Get()) {
-        if (mCycleTimeLow > 0) {
-          mOutput.Set(false);
-          mMicrosNext += mCycleTimeLow;
-          return;
+      unsigned long vMicrosDelta = vMicros - mMicrosNext;
+      if (vMicrosDelta <= 0x8000) { // handle 32 bit overflow of mMicrosNext
+        if (mOutput.Get()) {
+          if (mCycleTimeLow > 0) {
+            mOutput.Set(false);
+            mMicrosNext += mCycleTimeLow;
+            return;
+          }
         }
-      }
-      else {
-        if (mCycleTimeHigh > 0) {
-          mOutput.Set(true);
-          mMicrosNext += mCycleTimeHigh;
-          return;
+        else {
+          if (mCycleTimeHigh > 0) {
+            mOutput.Set(true);
+            mMicrosNext += mCycleTimeHigh;
+            return;
+          }
         }
+        mMicrosNext += mCycleTime;
       }
-      mMicrosNext += mCycleTime;
     }
   }
 
