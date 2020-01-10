@@ -106,8 +106,8 @@
     }
 
     function UpdatePressure(aPressure) {
-      DrawPressureGauge(aPressure);
       mPressure.innerHTML = aPressure;
+      DrawPressureGauge(Math.round(aPressure));
     }
 
     function UpdateTemperature(aTemperature) {

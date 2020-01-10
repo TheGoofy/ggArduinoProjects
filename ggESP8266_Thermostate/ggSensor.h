@@ -137,9 +137,9 @@ private:
       }
 
       // round to most significant digits
-      vPressure = ggRoundToSD(vPressure);
+      vPressure = ggRoundToSD(vPressure, 4);
       vTemperature = ggRoundToSD(vTemperature, 4);
-      vHumidity = ggRoundToSD(vHumidity);
+      vHumidity = ggRoundToSD(vHumidity, 3);
       
       // update pressure, if changed
       if (vPressure != mPressure) {
