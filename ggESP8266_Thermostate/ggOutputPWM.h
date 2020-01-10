@@ -2,7 +2,7 @@
 
 #include "ggOutput.h"
 
-class ggOutputPWM  {
+class ggOutputPWM : public ggOutput {
 
 public:
 
@@ -11,12 +11,16 @@ public:
   ggOutputPWM(int aPin,
               bool aInverted = false,
               float aCycleTimeSeconds = 1.0f)
-  : mOutput(aPin, aInverted),
+  : ggOutput(aPin, aInverted),
     mCycleTime(1000000.0f * aCycleTimeSeconds + 0.5f),
     mCycleTimeHigh(0),
     mCycleTimeLow(0),
     mMicrosNext(0) {
     Set(0.0f);
+  }
+
+  void Set(bool aValue) {
+    ggOutput::Set(aValue);
   }
 
   void Set(float aValue) {
@@ -31,7 +35,7 @@ public:
 
   void Begin(float aValue = 0.0f) {
     Set(aValue);
-    mOutput.Begin(false);
+    ggOutput::Begin(false);
     mMicrosNext = micros();
   }
 
@@ -40,16 +44,16 @@ public:
     if (vMicros >= mMicrosNext) {
       unsigned long vMicrosDelta = vMicros - mMicrosNext;
       if (vMicrosDelta <= 0x8000) { // handle 32 bit overflow of mMicrosNext
-        if (mOutput.Get()) {
+        if (ggOutput::Get()) {
           if (mCycleTimeLow > 0) {
-            mOutput.Set(false);
+            ggOutput::Set(false);
             mMicrosNext += mCycleTimeLow;
             return;
           }
         }
         else {
           if (mCycleTimeHigh > 0) {
-            mOutput.Set(true);
+            ggOutput::Set(true);
             mMicrosNext += mCycleTimeHigh;
             return;
           }
@@ -60,8 +64,6 @@ public:
   }
 
 private:
-
-  ggOutput mOutput;
 
   unsigned long mCycleTime;
   unsigned long mCycleTimeHigh;

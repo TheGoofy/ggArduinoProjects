@@ -139,6 +139,15 @@ void ConnectComponents()
     mPeriphery.mStatusLED.SetWarning(true);
   });
 
+  // OTA events
+  ArduinoOTA.onStart([] () {
+    mPeriphery.mStatusLED.SetOTA(true); // indicate "upload"
+    mPeriphery.mOutput.Set(false); // switch off output (in case OTA fails)
+  });
+  ArduinoOTA.onEnd([] () {
+    mPeriphery.mStatusLED.SetOTA(false);
+  });
+
   // events from client: control mode, reference temperature, ...
   mWebSockets.OnSetName([&] (const String& aName) {
     mName.Set(aName);
@@ -212,9 +221,6 @@ void setup()
   Serial.println(WiFi.localIP());
   mWiFiConnection.Begin();
 
-  // connect inputs, outputs, socket-events, ...
-  ConnectComponents();
-
   // startup eeprom utility class
   ggValueEEProm::Begin();
   Serial.printf("Device Name: %s\n", mName.Get().c_str());
@@ -235,14 +241,15 @@ void setup()
 
   // over the air update
   ArduinoOTA.setHostname(mHostName.c_str());
-  ArduinoOTA.onStart([](){ mPeriphery.mStatusLED.SetOTA(true); });
-  ArduinoOTA.onEnd([](){ mPeriphery.mStatusLED.SetOTA(false); });
   ArduinoOTA.begin();
   Serial.println("OTA service started");
 
   // make sure all status and debug messages are sent before communication gets
   // interrupted, in case hardware pins are needed for some different use.
   Serial.flush();
+
+  // connect inputs, outputs, socket-events, ...
+  ConnectComponents();
 
   // setup connected hardware
   mPeriphery.Begin();
