@@ -26,16 +26,13 @@ todo:
 - "wifimanager" should not block controller operation:
   - option A) wifiManager.setAPCallback(configModeCallback);
   - option B) own wifimanager ...
-- indicate AP-mode (wifimanager) with long-blinking status LED
 - in AP-mode also run http-server with controller settings
-- OTA update mode:
-  - option A) after startup (reset) for a limited amout of time (safer)
-  - option B) activate via web-interface (easyer remote update)
-- use <Ticker.h> for PWM output
 - which web-interface belongs to which device? "ping" flashing status LED
 - scan LAN for connected devices (app for smart-phone)
-- custom device name "bedroom, etc..."
+- data-logging on ESP (multi-resolution)
+- PID-controller
 */
+
 
 const String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
 
@@ -45,10 +42,12 @@ WiFiManager mWifiManager;
 ggWiFiConnection mWiFiConnection;
   
 // create web server on port 80
-ggWebServer mWebServer(80);
+const int mWebServerPort = 80;
+ggWebServer mWebServer(mWebServerPort);
 
 // create web sockets server on port 81
-ggWebSockets mWebSockets(81);
+const int mWebSocketsPort = 81;
+ggWebSockets mWebSockets(mWebSocketsPort);
 
 // input and ouput configuration
 ggPeriphery mPeriphery;
@@ -72,8 +71,9 @@ void ConnectComponents()
     mWebSockets.UpdateTemperature(mPeriphery.mSensor.GetTemperature(), aClientID);
     mWebSockets.UpdateHumidity(mPeriphery.mSensor.GetHumidity(), aClientID);
     mWebSockets.UpdateControlMode(mTemperatureController.GetMode(), aClientID);
-    mWebSockets.UpdateTemperatureRef(mTemperatureController.GetReference(), aClientID);
+    mWebSockets.UpdateTemperatureSetPoint(mTemperatureController.GetSetPoint(), aClientID);
     mWebSockets.UpdateHysteresis(mTemperatureController.GetHysteresis(), aClientID);
+    mWebSockets.UpdateControlPID(mTemperatureController.GetP(), mTemperatureController.GetI(), mTemperatureController.GetD(), aClientID);
     mWebSockets.UpdateOutputAnalog(mTemperatureController.GetOutputAnalog(), aClientID);
     mWebSockets.UpdateOutput(mTemperatureController.GetOutput(), aClientID);
     mWebSockets.UpdateKey(mPeriphery.mKey.GetPressed(), aClientID);
@@ -157,13 +157,19 @@ void ConnectComponents()
     mTemperatureController.SetMode(static_cast<ggController::tMode>(aControlMode));
     mWebSockets.UpdateControlMode(mTemperatureController.GetMode());
   });
-  mWebSockets.OnSetTemperatureRef([&] (float aTemperatureRef) {
-    mTemperatureController.SetReference(aTemperatureRef);
-    mWebSockets.UpdateTemperatureRef(mTemperatureController.GetReference());
+  mWebSockets.OnSetTemperatureSetPoint([&] (float aTemperatureSetPoint) {
+    mTemperatureController.SetSetPoint(aTemperatureSetPoint);
+    mWebSockets.UpdateTemperatureSetPoint(mTemperatureController.GetSetPoint());
   });
   mWebSockets.OnSetHysteresis([&] (float aHysteresis) {
     mTemperatureController.SetHysteresis(aHysteresis);
     mWebSockets.UpdateHysteresis(mTemperatureController.GetHysteresis());
+  });
+  mWebSockets.OnSetControlPID([&] (float aP, float aI, float aD) {
+    ggDebug vDebug("mWebSockets.OnSetControlPID");
+    vDebug.PrintF("PID=%f/%f/%f\n", aP, aI, aD);
+    mTemperatureController.SetPID(aP, aI, aD);
+    mWebSockets.UpdateControlPID(aP, aI, aD);
   });
   mWebSockets.OnSetOutputAnalog([&] (bool aOutputAnalog) {
     mTemperatureController.SetOutputAnalog(aOutputAnalog);
@@ -179,6 +185,7 @@ void ConnectComponents()
 void Run()
 {
   mPeriphery.Run();
+  mTemperatureController.Run();
   mWebServer.Run();
   mWebSockets.Run();
   mWiFiConnection.Run();
@@ -225,6 +232,9 @@ void setup()
   ggValueEEProm::Begin();
   Serial.printf("Device Name: %s\n", mName.Get().c_str());
 
+  // connect inputs, outputs, socket-events, ...
+  ConnectComponents();
+
   // configure and start web-server
   mWebServer.Begin();
   Serial.println("Web server started");
@@ -235,8 +245,8 @@ void setup()
 
   // start mdns
   MDNS.begin(mHostName.c_str());
-  MDNS.addService("http", "tcp", 80);
-  MDNS.addService("ws", "tcp", 81);
+  MDNS.addService("http", "tcp", mWebServerPort);
+  MDNS.addService("ws", "tcp", mWebSocketsPort);
   Serial.println("MDNS responder started");
 
   // over the air update
@@ -247,9 +257,6 @@ void setup()
   // make sure all status and debug messages are sent before communication gets
   // interrupted, in case hardware pins are needed for some different use.
   Serial.flush();
-
-  // connect inputs, outputs, socket-events, ...
-  ConnectComponents();
 
   // setup connected hardware
   mPeriphery.Begin();

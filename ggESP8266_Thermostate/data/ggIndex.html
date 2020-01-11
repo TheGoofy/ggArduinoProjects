@@ -61,10 +61,15 @@
 
     var tControlMode = {
       eOff : 0,
-      eOnBelow : 1,
-      eOnAbove : 2,
-      eOn : 3
+      eOn : 1,
+      eOnBelow : 2,
+      eOnAbove : 3,
+      ePID : 4
     };
+
+    function WebSocketSendSetControlPID() {
+      mWebSocket.send('SetControlPID(' + mControlP.value + ',' + mControlI.value + ',' + mControlD.value + ')');
+    }
 
     function InitHtmlElements() {
       mName.onchange = function() {
@@ -73,20 +78,32 @@
       mControlModeOff.onchange = function() {
         mWebSocket.send('SetControlMode(' + tControlMode.eOff + ')');
       }
+      mControlModeOn.onchange = function() {
+        mWebSocket.send('SetControlMode(' + tControlMode.eOn + ')');
+      }
       mControlModeOnBelow.onchange = function() {
         mWebSocket.send('SetControlMode(' + tControlMode.eOnBelow + ')');
       }
       mControlModeOnAbove.onchange = function() {
         mWebSocket.send('SetControlMode(' + tControlMode.eOnAbove + ')');
       }
-      mControlModeOn.onchange = function() {
-        mWebSocket.send('SetControlMode(' + tControlMode.eOn + ')');
+      mControlModePID.onchange = function() {
+        mWebSocket.send('SetControlMode(' + tControlMode.ePID + ')');
       }
-      mTemperatureRef.onchange = function() {
-        mWebSocket.send('SetTemperatureRef(' + mTemperatureRef.value + ')');
+      mTemperatureSetPoint.onchange = function() {
+        mWebSocket.send('SetTemperatureSetPoint(' + mTemperatureSetPoint.value + ')');
       }
       mHysteresis.onchange = function() {
         mWebSocket.send('SetHysteresis(' + mHysteresis.value + ')');
+      }
+      mControlP.onchange = function() {
+        WebSocketSendSetControlPID();
+      }
+      mControlI.onchange = function() {
+        WebSocketSendSetControlPID();
+      }
+      mControlD.onchange = function() {
+        WebSocketSendSetControlPID();
       }
       mOutputAnalog.onchange = function() {
         mWebSocket.send('SetOutputAnalog(' + mOutputAnalog.checked + ')');
@@ -124,15 +141,16 @@
     function UpdateControlMode(aControlMode) {
       switch (aControlMode) {
         case tControlMode.eOff: mControlModeOff.checked = true; break;
+        case tControlMode.eOn: mControlModeOn.checked = true; break;
         case tControlMode.eOnBelow: mControlModeOnBelow.checked = true; break;
         case tControlMode.eOnAbove: mControlModeOnAbove.checked = true; break;
-        case tControlMode.eOn: mControlModeOn.checked = true; break;
-        default: alert("unknown control mode"); break;
+        case tControlMode.ePID: mControlModePID.checked = true; break;
+        default: console.log("unknown control mode"); break;
       }
     }
 
-    function UpdateTemperatureRef(aTemperatureRef) {
-      mTemperatureRef.value = aTemperatureRef;
+    function UpdateTemperatureSetPoint(aTemperatureSetPoint) {
+      mTemperatureSetPoint.value = aTemperatureSetPoint;
     }
 
     function UpdateHysteresis(aHysteresis) {
@@ -143,6 +161,12 @@
       mOutputAnalog.checked = aOutputAnalog;
     }
 
+    function UpdateControlPID(aP, aI, aD) {
+      mControlP.value = aP;
+      mControlI.value = aI;
+      mControlD.value = aD;
+    }
+    
     function UpdateOutput(aOutput) {
       mOutputValue.innerHTML = Math.round(100.0 * aOutput);
       mOutputRange.value = aOutput;
@@ -181,7 +205,7 @@
         ['hPa', 950]
       ]);
       mPressureGaugeOptions = {
-        width:115, height:115,
+        width:119, height:119,
         min:800, max:1100,
         majorTicks:['800','850','900','950','1000','1050','1100'],
         minorTicks:5
@@ -196,7 +220,7 @@
         ['°C', 20]
       ]);
       mTemperatureGaugeOptions = {
-        width:115, height:115,
+        width:119, height:119,
         min:-20, max:40,
         greenColor:'#8cf', greenFrom:-20, greenTo:0,
         yellowColor:'#fc8', yellowFrom:20, yellowTo:30,
@@ -214,7 +238,7 @@
         ['%', 50]
       ]);
       mHumidityGaugeOptions = {
-        width:115, height:115,
+        width:119, height:119,
         min:0, max:100,
         redColor:'#e96', redFrom:0, redTo:30,
         yellowColor:'#8cf', yellowFrom:70, yellowTo:100,
@@ -274,18 +298,18 @@
 
 <body onload='javascript:initAll()'>
   <div style='text-align:left;display:inline-block;min-width:340px'>
-  <table border='0' width='100%' style='border-spacing: 10px 3px;'>
+  <table border='0' width='100%'>
 
     <tr>
-      <td colspan='2'>
+      <td colspan='3'>
         <br>
-        <input id='mName' type='text' value='(na)' style='width:100%' class='r' maxlength='30'>
+        <input id='mName' type='text' value='(na)' style='width:97.5%' class='r' maxlength='30'>
       </td>
     </tr>
 
-    <tr><td colspan='2'></td></tr>
+    <tr><td colspan='3'></td></tr>
 
-    <tr><td colspan='2'>
+    <tr><td colspan='3'>
       <table border='0' width='100%' style='border-collapse:collapse'>
         <tr>
           <td align='center'>Pressure</td>
@@ -293,9 +317,9 @@
           <td align='center'>Humidity</td>
         </tr>
         <tr>
-          <td><div id='mPressureGaugeDiv' style='width:100px;height:115px;margin-left:-6px'></div></td>
-          <td><div id='mTemperatureGaugeDiv' style='width:100px;height:115px;margin-left:-6px'></div></td>
-          <td><div id='mHumidityGaugeDiv' style='width:100px;height:115px;margin-left:-6px'></div></td>
+          <td><div id='mPressureGaugeDiv' style='width:100px;height:119px;margin-left:-5px'></div></td>
+          <td><div id='mTemperatureGaugeDiv' style='width:100px;height:119px;margin-left:-5px'></div></td>
+          <td><div id='mHumidityGaugeDiv' style='width:100px;height:119px;margin-left:-5px'></div></td>
         </tr>
         <tr>
           <td align='center'><span id='mPressure'>(na)</span> hPa</td>
@@ -305,55 +329,77 @@
       </table>
     </td></tr>
 
-    <tr><td colspan='2'><hr noshade></td></tr>
+    <tr><td colspan='3'><hr noshade></td></tr>
 
     <tr>
-      <td style='text-align:right' valign='top'>Output Control</td>
+      <td style='text-align:right' valign='top'>Control Mode</td>
+      <td>&nbsp;</td>
       <td style='text-align:left'><table border='0' style='border-collapse:collapse'>
         <tr><td><input id='mControlModeOff' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOff'> Off<label></td></tr>
-        <tr><td><input id='mControlModeOnBelow' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOnBelow'> On, if below ref (heater)</label></td></tr>
-        <tr><td><input id='mControlModeOnAbove' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOnAbove'> On, if above ref (cooler)</label></td></tr>
         <tr><td><input id='mControlModeOn' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOn'> On</label></td></tr>
+        <tr><td><input id='mControlModeOnBelow' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOnBelow'> On, if below SP (heater)</label></td></tr>
+        <tr><td><input id='mControlModeOnAbove' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOnAbove'> On, if above SP (cooler)</label></td></tr>
+        <tr><td><input id='mControlModePID' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModePID'> PID</label></td></tr>
       </table></td>
     </tr>
 
     <tr>
-      <td style='text-align:right'>Temperature Ref</td>
-      <td style='text-align:left'><input id='mTemperatureRef' type='number' min='-100' max='100' step='0.1' value='0' style='width:80px;margin-left:4px'> °C</td>
+      <td style='text-align:right'>Set Point</td>
+      <td>&nbsp;</td>
+      <td style='text-align:left'><input id='mTemperatureSetPoint' type='number' min='-100' max='100' step='0.1' value='0' style='width:60px;margin-left:4px'> °C</td>
     </tr>
 
     <tr>
       <td style='text-align:right'>Hysteresis</td>
-      <td style='text-align:left'><input id='mHysteresis' type='number' min='0' max='100' step='0.1' value='0' style='width:80px;margin-left:4px'> °C</td>
+      <td>&nbsp;</td>
+      <td style='text-align:left'><input id='mHysteresis' type='number' min='0' max='100' step='0.1' value='0' style='width:60px;margin-left:4px'> °C</td>
+    </tr>
+
+    <tr>
+      <td style='text-align:right'>PID</td>
+      <td>&nbsp;</td>
+      <td style='text-align:left'>
+        <input id='mControlP' type='number' min='-1000' max='1000' step='0.001' value='0' style='width:60px;margin-left:4px'>
+        <input id='mControlI' type='number' min='-1000' max='1000' step='0.001' value='0' style='width:60px;margin-left:0px'>
+        <input id='mControlD' type='number' min='-1000' max='1000' step='0.001' value='0' style='width:60px;margin-left:0px'>
+      </td>
     </tr>
 
     <tr>
       <td style='text-align:right'>Analog Out</td>
+      <td>&nbsp;</td>
       <td style='text-align:left'><input id='mOutputAnalog' type='checkbox'></td>
     </tr>
 
     <tr>
       <td style='text-align:right'>Output</td>
-      <td style='text-align:left' id='mOutput'><table cellpadding='0' cellspacing='0' border='0' style='border-collapse:collapse'><tr>
-        <td style='text-align:left'><input id='mOutputRange' type='range' name='outputrange' min='0' max='1' step='0.01' value='0'></td>
-        <td>&nbsp;<span id='mOutputValue'>(na)</span> %</td>
-      </tr></table></td>
+      <td>&nbsp;</td>
+      <td style='text-align:left' id='mOutput'>
+        <table cellpadding='0' cellspacing='0' border='0' style='border-collapse:collapse;width:100%'>
+          <tr>
+            <td style='text-align:left'><input id='mOutputRange' type='range' name='outputrange' min='0' max='1' step='0.01' value='0' style='width:100%'></td>
+            <td>&nbsp;<span id='mOutputValue'>(na)</span> %</td>
+          </tr>
+        </table>
+      </td>
     </tr>
 
     <tr>
       <td style='text-align:right'>Status LED</td>
+      <td>&nbsp;</td>
       <td style='text-align:left' id='mStatusLED'>(na)</td>
     </tr>
 
     <tr>
       <td style='text-align:right'>Key</td>
+      <td>&nbsp;</td>
       <td style='text-align:left' id='mKey'>(na)</td>
     </tr>
 
-    <tr><td colspan='2'><hr noshade></td></tr>
+    <tr><td colspan='3'><hr noshade></td></tr>
 
     <tr>
-      <td colspan='2'>
+      <td colspan='3'>
         <button id='mLogButton' class='collapsible'>Data History</button>
         <div id='mLogContent' class='content'>
           <p id='mLog'>
@@ -366,14 +412,14 @@
     </tr>
 
     <tr>
-      <td colspan='2'>
+      <td colspan='3'>
         Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
         Temperature Sensor Status: <span id='mSensorStatus'>(na)</span><br>
         (c) 2020, <a href='ggGoofy.html'>Christoph Laimer</a>
       </td>
     </tr>
 
-    <tr id='mProgressFrame' hidden='true'><td colspan='2'>
+    <tr id='mProgressFrame' hidden='true'><td colspan='3'>
       <table border='0' width='100%' style='border-collapse:collapse'>
         <tr><td colspan='3'><hr noshade></td></tr>
         <tr>

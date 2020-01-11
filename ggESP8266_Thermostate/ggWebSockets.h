@@ -12,6 +12,7 @@ public:
   typedef std::function<void(int aControlMode)> tSetControlModeFunc;
   typedef std::function<void(bool aValue)> tSetBoolValueFunc;
   typedef std::function<void(float aValue)> tSetFloatValueFunc;
+  typedef std::function<void(float, float, float)> tSetFloatValue3Func;
   typedef std::function<void(const String& aValue)> tSetStringValueFunc;
 
   ggWebSockets(int aPort)
@@ -20,8 +21,9 @@ public:
     mClientDisconnectFunc(nullptr),
     mSetNameFunc(nullptr),
     mSetControlModeFunc(nullptr),
-    mSetTemperatureRefFunc(nullptr),
+    mSetTemperatureSetPointFunc(nullptr),
     mSetHysteresisFunc(nullptr),
+    mSetControlPIDFunc(nullptr),
     mSetOutputAnalogFunc(nullptr),
     mSetOutputFunc(nullptr) {
   }
@@ -64,12 +66,16 @@ public:
     UpdateClientTXT(String("UpdateControlMode(") + aControlMode + ")", aClientID);
   }
 
-  void UpdateTemperatureRef(float aTemperatureRef, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateTemperatureRef(") + aTemperatureRef + ")", aClientID);
+  void UpdateTemperatureSetPoint(float aTemperatureSetPoint, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateTemperatureSetPoint(") + aTemperatureSetPoint + ")", aClientID);
   }
 
   void UpdateHysteresis(float aHysteresis, int aClientID = -1) {
     UpdateClientTXT(String("UpdateHysteresis(") + aHysteresis + ")", aClientID);
+  }
+
+  void UpdateControlPID(float aP, float aI, float aD, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateControlPID(") + aP + "," + aI + "," + aD + ")", aClientID);
   }
 
   void UpdateOutputAnalog(bool aOutputAnalog, int aClientID = -1) {
@@ -108,12 +114,16 @@ public:
     mSetControlModeFunc = aSetControlModeFunc;
   }
 
-  void OnSetTemperatureRef(tSetFloatValueFunc aSetTemperatureRefFunc) {
-    mSetTemperatureRefFunc = aSetTemperatureRefFunc;
+  void OnSetTemperatureSetPoint(tSetFloatValueFunc aSetTemperatureSetPointFunc) {
+    mSetTemperatureSetPointFunc = aSetTemperatureSetPointFunc;
   }
 
   void OnSetHysteresis(tSetFloatValueFunc aSetHysteresisFunc) {
     mSetHysteresisFunc = aSetHysteresisFunc;
+  }
+
+  void OnSetControlPID(tSetFloatValue3Func aSetControlPIDFunc) {
+    mSetControlPIDFunc = aSetControlPIDFunc;
   }
 
   void OnSetOutputAnalog(tSetBoolValueFunc aSetOutputAnalogFunc) {
@@ -184,12 +194,16 @@ private:
       if (mSetControlModeFunc != nullptr) mSetControlModeFunc(vFunction.ArgInt(0));
       return;
     }
-    if (vFunction.GetName() == "SetTemperatureRef") {
-      if (mSetTemperatureRefFunc != nullptr) mSetTemperatureRefFunc(vFunction.ArgFloat(0));
+    if (vFunction.GetName() == "SetTemperatureSetPoint") {
+      if (mSetTemperatureSetPointFunc != nullptr) mSetTemperatureSetPointFunc(vFunction.ArgFloat(0));
       return;
     }
     if (vFunction.GetName() == "SetHysteresis") {
       if (mSetHysteresisFunc != nullptr) mSetHysteresisFunc(vFunction.ArgFloat(0));
+      return;
+    }
+    if (vFunction.GetName() == "SetControlPID") {
+      if (mSetControlPIDFunc != nullptr) mSetControlPIDFunc(vFunction.ArgFloat(0), vFunction.ArgFloat(1), vFunction.ArgFloat(2));
       return;
     }
     if (vFunction.GetName() == "SetOutputAnalog") {
@@ -208,8 +222,9 @@ private:
   tClientConnectFunc mClientDisconnectFunc;
   tSetStringValueFunc mSetNameFunc;
   tSetControlModeFunc mSetControlModeFunc;
-  tSetFloatValueFunc mSetTemperatureRefFunc;
+  tSetFloatValueFunc mSetTemperatureSetPointFunc;
   tSetFloatValueFunc mSetHysteresisFunc;
+  tSetFloatValue3Func mSetControlPIDFunc;
   tSetBoolValueFunc mSetOutputAnalogFunc;
   tSetFloatValueFunc mSetOutputFunc;
   
