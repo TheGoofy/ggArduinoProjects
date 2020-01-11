@@ -172,11 +172,10 @@ input:checked + .switch_slider:before {
 }
 
 .content {
-  padding: 0px 5px;
   font-size: 0.8rem;
   white-space: nowrap;
   max-height: 0px;
-  max-width: 325px;
+  max-width: 335px;
   resize: vertical;
   overflow-x: visible;
   overflow-y: auto;

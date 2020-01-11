@@ -172,10 +172,6 @@
       mOutputRange.value = aOutput;
     }
 
-    function UpdateStatusLED(aStatusLED) {
-      mStatusLED.innerHTML = aStatusLED;
-    }
-
     function UpdateKey(aKey) {
       mKey.innerHTML = aKey;
     }
@@ -385,12 +381,6 @@
     </tr>
 
     <tr>
-      <td style='text-align:right'>Status LED</td>
-      <td>&nbsp;</td>
-      <td style='text-align:left' id='mStatusLED'>(na)</td>
-    </tr>
-
-    <tr>
       <td style='text-align:right'>Key</td>
       <td>&nbsp;</td>
       <td style='text-align:left' id='mKey'>(na)</td>
@@ -400,13 +390,13 @@
 
     <tr>
       <td colspan='3'>
-        <button id='mLogButton' class='collapsible'>Data History</button>
+        <button id='mLogButton' class='collapsible'>Temperature & Data Logging (on client)</button>
         <div id='mLogContent' class='content'>
-          <p id='mLog'>
-            Date;Time;Pressure;Temperature;Humidity;Output<br>
+          <p id='mLog' style='margin:3px'>
+            Date;Time;Press;Temp;Humid;Output<br>
           </p>
-          <hr noshade>
-          <input id='mLogEnable' type='checkbox'><label for='mLogEnable'>Log Values</label>
+          <hr noshade size='0' style='margin-top:0px;margin-bottom:2px'>
+          <input id='mLogEnable' type='checkbox' style='margin-bottom:5px'><label for='mLogEnable'>Enable</label>
         </div>
       </td>
     </tr>
@@ -415,7 +405,17 @@
       <td colspan='3'>
         Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
         Temperature Sensor Status: <span id='mSensorStatus'>(na)</span><br>
-        (c) 2020, <a href='ggGoofy.html'>Christoph Laimer</a>
+      </td>
+    </tr>
+
+    <tr>
+      <td colspan='3'>
+        <hr noshade>
+        <a href='/'>[home]</a>
+        <a href='/spiffs'>[spiffs]</a>
+        <a href='/debug'>[debug]</a>
+        <a href='/goofy'>[goofy]</a><br>
+        (c) 2020, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
       </td>
     </tr>
 

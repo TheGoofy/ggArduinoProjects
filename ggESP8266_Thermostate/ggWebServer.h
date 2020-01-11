@@ -2,6 +2,7 @@
 
 #include <FS.h>
 
+#include "ggWebServerHtmlData.h"
 #include "ggDebug.h"
 
 class ggWebServer {
@@ -13,9 +14,11 @@ public:
   }
 
   void Begin() {
-    mServer.on("/", [&] () { OnController(); });
-    mServer.on("/controller", [&] () { OnController(); });
-    mServer.on("/dir", [&] () { OnDir(); });
+    mServer.on("/", [&] () { OnHome(); });
+    mServer.on("/home", [&] () { OnHome(); });
+    mServer.on("/spiffs", [&] () { OnSPIFFS(); });
+    mServer.on("/debug", [&] () { OnDebug(); });
+    mServer.on("/goofy", [&] () { HandleFile("/ggGoofy.html"); });
     mServer.onNotFound([&] () { OnNotFound(); });
     mServer.begin();
     SPIFFS.begin();
@@ -66,21 +69,53 @@ private:
     mServer.send(404, "text/plain", "url not found");
   }
 
-  void OnController() {
+  void OnHome() {
     GG_DEBUG();
     vDebug.PrintF("local IP = %s\n", mServer.client().localIP().toString().c_str());
     vDebug.PrintF("remote IP = %s\n", mServer.client().remoteIP().toString().c_str());
     HandleFile("/ggIndex.html");
   }
 
-  void OnDir() {
-    String vDirHTML = "<!DOCTYPE html><html><head><link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/></head><body><div align='left'>\n";
+  void OnSPIFFS() {
+    size_t vNumberOfFiles = 0;
+    size_t vTotalFileSize = 0;
+    String vDirHTML = "<big><b>SPIFFS</b></big><br>\n<hr noshade>\n";
     Dir vDir = SPIFFS.openDir("");
     while (vDir.next()) {
+      vNumberOfFiles++;
+      vTotalFileSize += vDir.fileSize();
       vDirHTML += "<a href='" + vDir.fileName() + "'>" + vDir.fileName()+ "</a> - " + vDir.fileSize() + " bytes<br>\n";
     }
-    vDirHTML += "<hr noshade>(c) 2020, Christoph Laimer</div></body></html>";
-    mServer.send(200, "text/html", vDirHTML);
+    vDirHTML += String("Total ") + vNumberOfFiles + " files - " + vTotalFileSize + " bytes<br>\n";
+    vDirHTML += "<hr noshade>\n";
+    FSInfo vFSInfo;
+    SPIFFS.info(vFSInfo);
+    vDirHTML += String("FSInfo.totalBytes = ") + vFSInfo.totalBytes + " bytes<br>\n";
+    vDirHTML += String("FSInfo.usedBytes = ") + vFSInfo.usedBytes + " bytes<br>\n";
+    vDirHTML += String("FSInfo.blockSize = ") + vFSInfo.blockSize + " bytes<br>\n";
+    vDirHTML += String("FSInfo.pageSize = ") + vFSInfo.pageSize + " bytes<br>\n";
+    vDirHTML += String("FSInfo.maxOpenFiles = ") + vFSInfo.maxOpenFiles + "<br>\n";
+    vDirHTML += String("FSInfo.maxPathLength = ") + vFSInfo.maxPathLength + "<br>\n";
+    float vPercentUsed = (float)vFSInfo.usedBytes / (float)vFSInfo.totalBytes;
+    vDirHTML += String("<progress style='width:100%' value='") + vPercentUsed + "' max='1'></progress><br>\n";
+    SendContent(vDirHTML);
+  }
+
+  void OnDebug() {
+    SendContent("<big><b>Debug</b></big><br>\n<hr noshade>\n");
+  }
+
+  void SendContent(const String& aHtmlContent) {
+    unsigned long vContentLength = 0;
+    vContentLength += strlen_P(mWebServerHtmlFront);
+    vContentLength += aHtmlContent.length();
+    vContentLength += strlen_P(mWebServerHtmlBack);
+    mServer.setContentLength(vContentLength);
+    mServer.send(200, "text/html", "");
+    mServer.sendContent_P(mWebServerHtmlFront);
+    mServer.sendContent(aHtmlContent);
+    mServer.sendContent_P(mWebServerHtmlBack);
+    mServer.client().stop();
   }
 
   ESP8266WebServer mServer;

@@ -1,3 +1,6 @@
+#pragma once
+
+char mWebServerHtmlFront[] PROGMEM = R"=====(
 <!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01//EN' 'http://www.w3.org/TR/html4/strict.dtd'>
 <html>
 
@@ -12,11 +15,9 @@
 
   <body>
     <div style='text-align:left;display:inline-block;min-width:340px'>
-      <big><b>Hi there ...</b></big><br>
-      <hr noshade>
-      <figure>
-        <img src='ggGoofy.png'>
-      </figure>
+)=====";
+
+char mWebServerHtmlBack[] PROGMEM = R"=====(
       <hr noshade>
       <a href='/'>[home]</a>
       <a href='/spiffs'>[spiffs]</a>
@@ -27,3 +28,4 @@
   </body>
 
 </html>
+)=====";

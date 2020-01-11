@@ -86,10 +86,6 @@ public:
     UpdateClientTXT(String("UpdateKey(") + aKey + ")", aClientID);
   }
 
-  void UpdateStatusLED(bool aStatusLED, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateStatusLED(") + aStatusLED + ")", aClientID);
-  }
-
   void UpdateOutput(float aOutput, int aClientID = -1) {
     UpdateClientTXT(String("UpdateOutput(") + aOutput + ")", aClientID);
   }
