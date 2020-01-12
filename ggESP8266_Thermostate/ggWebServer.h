@@ -124,15 +124,15 @@ private:
 
   void OnDebug() {
     String vContent = "<big><b>Debug</b></big><br>\n<hr noshade>\n";
+    vContent += "<a href='reset'>[reset]</a>\n";
+    vContent += "<a href='reboot'>[reboot]</a>\n";
     if (mDebugStreamFunc != nullptr) {
+      vContent += "<hr noshade>\n";
       vContent += "<pre style='background:black;padding:3px'>\n";
       ggStringStream vStream(vContent);
       mDebugStreamFunc(vStream);
       vContent += "</pre>\n";
-      vContent += "<hr noshade>\n";
     }
-    vContent += "<a href='reset'>[reset]</a>\n";
-    vContent += "<a href='reboot'>[reboot]</a>\n";
     SendContent(vContent);
   }
 
