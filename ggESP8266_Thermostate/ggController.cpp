@@ -11,7 +11,7 @@ ggController::ggController()
   mInputValid(true),
   mInputValue(0.0f),
   mOutputValue(0.0f),
-  mSamplerPID(1.0f), // 1 Hz
+  mSamplerPID(0.2f), // 0.2Hz (5s sampling time)
   mControlP(1.0f),
   mControlI(0.0f),
   mControlD(0.0f),
