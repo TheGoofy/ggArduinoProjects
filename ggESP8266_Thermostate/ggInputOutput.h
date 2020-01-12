@@ -12,9 +12,12 @@ public:
     return mPin;
   }
 
+  void Print(Stream& aStream) const {
+    aStream.printf("ggInputOutput::mPin = %d\n", mPin);
+  }
+  
 private:
 
   const int mPin;
   
 };
-

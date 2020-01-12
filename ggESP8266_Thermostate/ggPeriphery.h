@@ -62,4 +62,8 @@ struct ggPeriphery {
     mSensor.Run();
   }
 
+  void Print(Stream& aStream) const {
+    mOutput.Print(aStream);
+  }
+
 };

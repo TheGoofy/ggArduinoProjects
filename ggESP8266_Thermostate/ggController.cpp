@@ -187,13 +187,13 @@ void ggController::Run()
 
 void ggController::Print(Stream& aStream) const
 {
-  aStream.printf("mMode = %s\n", ToString(mMode.Get()).c_str());
-  aStream.printf("mInputValue = %f\n", mInputValue);
-  aStream.printf("mSetPointValue = %f\n", mSetPointValue.Get());
-  aStream.printf("mHysteresisValue = %f\n", mHysteresisValue.Get());
-  aStream.printf("mPID = %f/%f/%f\n", mControlP.Get(), mControlI.Get(), mControlD.Get());
-  aStream.printf("mOutputAnalog = %d\n", mOutputAnalog.Get());
-  aStream.printf("mOutputValue = %f\n", mOutputValue);
+  aStream.printf("ggController::mMode = %s\n", ToString(mMode.Get()).c_str());
+  aStream.printf("ggController::mInputValue = %f\n", mInputValue);
+  aStream.printf("ggController::mSetPointValue = %f\n", mSetPointValue.Get());
+  aStream.printf("ggController::mHysteresisValue = %f\n", mHysteresisValue.Get());
+  aStream.printf("ggController::mPID = %f / %f / %f\n", mControlP.Get(), mControlI.Get(), mControlD.Get());
+  aStream.printf("ggController::mOutputAnalog = %d\n", mOutputAnalog.Get());
+  aStream.printf("ggController::mOutputValue = %f\n", mOutputValue);
 }
 
 

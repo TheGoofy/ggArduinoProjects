@@ -33,6 +33,12 @@ public:
     return mInverted;
   }
 
+  void Print(Stream& aStream) const {
+    ggInputOutput::Print(aStream);
+    aStream.printf("ggOutput::mInverted = %d\n", mInverted);
+    aStream.printf("ggOutput::Get() = %d\n", Get());
+  }
+
 private:
 
   const bool mInverted;

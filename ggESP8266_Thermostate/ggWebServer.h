@@ -3,6 +3,7 @@
 #include <FS.h>
 
 #include "ggWebServerHtmlData.h"
+#include "ggStringStream.h"
 #include "ggDebug.h"
 
 class ggWebServer {
@@ -10,7 +11,10 @@ class ggWebServer {
 public:
 
   ggWebServer(int aPort)
-  : mServer(aPort) {
+  : mServer(aPort),
+    mDebugStreamFunc(nullptr),
+    mResetFunc(nullptr),
+    mRebootFunc(nullptr) {
   }
 
   void Begin() {
@@ -19,6 +23,8 @@ public:
     mServer.on("/spiffs", [&] () { OnSPIFFS(); });
     mServer.on("/debug", [&] () { OnDebug(); });
     mServer.on("/goofy", [&] () { HandleFile("/ggGoofy.html"); });
+    mServer.on("/reset", [&] () { OnReset(); });
+    mServer.on("/reboot", [&] () { OnReboot(); });
     mServer.onNotFound([&] () { OnNotFound(); });
     mServer.begin();
     SPIFFS.begin();
@@ -26,6 +32,21 @@ public:
 
   void Run() {
     mServer.handleClient();
+  }
+
+  typedef std::function<void()> tFunc;
+  typedef std::function<void(Stream&)> tStreamFunc;
+
+  void OnDebugStream(tStreamFunc aStreamFunc) {
+    mDebugStreamFunc = aStreamFunc;
+  }
+  
+  void OnReset(tFunc aResetFunc) {
+    mResetFunc = aResetFunc;
+  }
+
+  void OnReboot(tFunc aRebootFunc) {
+    mRebootFunc = aRebootFunc;
   }
 
 private:
@@ -102,7 +123,30 @@ private:
   }
 
   void OnDebug() {
-    SendContent("<big><b>Debug</b></big><br>\n<hr noshade>\n");
+    String vContent = "<big><b>Debug</b></big><br>\n<hr noshade>\n";
+    if (mDebugStreamFunc != nullptr) {
+      vContent += "<pre style='background:black;padding:3px'>\n";
+      ggStringStream vStream(vContent);
+      mDebugStreamFunc(vStream);
+      vContent += "</pre>\n";
+      vContent += "<hr noshade>\n";
+    }
+    vContent += "<a href='reset'>[reset]</a>\n";
+    vContent += "<a href='reboot'>[reboot]</a>\n";
+    SendContent(vContent);
+  }
+
+  void OnReset() {
+    if (mResetFunc != nullptr) mResetFunc();
+    mServer.sendHeader("Location", String("/"), true);
+    mServer.send(302, "text/plain", "");
+  }
+
+  void OnReboot() {
+    mServer.sendHeader("Location", String("/"), true);
+    mServer.send(302, "text/plain", "reboot...");
+    delay(1000);
+    if (mRebootFunc != nullptr) mRebootFunc();
   }
 
   void SendContent(const String& aHtmlContent) {
@@ -120,4 +164,7 @@ private:
 
   ESP8266WebServer mServer;
 
+  tStreamFunc mDebugStreamFunc;
+  tFunc mResetFunc;
+  tFunc mRebootFunc;
 };

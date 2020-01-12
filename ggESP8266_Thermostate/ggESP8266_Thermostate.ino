@@ -27,10 +27,13 @@ todo:
   - option A) wifiManager.setAPCallback(configModeCallback);
   - option B) own wifimanager ...
 - in AP-mode also run http-server with controller settings
-- which web-interface belongs to which device? "ping" flashing status LED
 - scan LAN for connected devices (app for smart-phone)
-- data-logging on ESP (multi-resolution)
-- PID-controller
+- which web-interface belongs to which device? "ping" flashing status LED
+- data-logging on ESP (multi-time-resolution)
+- own PID-controller
+- PID auto-tuning algorithm
+- adjustable PWM cycle time
+- serial stream to rx/tx AND html client console
 */
 
 
@@ -178,6 +181,18 @@ void ConnectComponents()
   mWebSockets.OnSetOutput([&] (float aOutputValue) {
     mPeriphery.mOutput.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
+  });
+
+  mWebServer.OnDebugStream([] (Stream& aStream) {
+    mPeriphery.Print(aStream);
+    mTemperatureController.Print(aStream);
+  });
+  mWebServer.OnReset([] () {
+    mTemperatureController.ResetSettings();
+    mWifiManager.resetSettings();
+  });
+  mWebServer.OnReboot([] () {
+    ESP.restart();
   });
 }
 
