@@ -2,10 +2,10 @@
 
 #include <functional>
 #include <Stream.h>
-#include <AutoPID.h>
 
 #include "ggValueEEPromT.h"
 #include "ggStringConvertNumbers.h"
+#include "ggSampler.h"
 
 class ggController {
 
@@ -47,11 +47,15 @@ public:
   typedef std::function<void(float aOutputValue)> tOutputChangedFunc;
   void OnOutputChanged(tOutputChangedFunc aOutputChangedFunc);
 
+  void Begin();
   void Run();
 
   void Print(Stream& aStream) const;
 
 private:
+
+  // reset internal controller state (in particular integreal)
+  void ResetControlStatePID();
 
   void ControlOutput();
   void ControlOutput(bool aInverted, float& aOutput) const;
@@ -73,13 +77,15 @@ private:
   float mOutputValue;
 
   // PID controller
-  AutoPID* mAutoPID;
-  double mInputValuePID;
-  double mSetPointValuePID;
-  double mOutputValuePID;
+  ggSampler mSamplerPID;
   ggValueEEPromT<float> mControlP;
   ggValueEEPromT<float> mControlI;
   ggValueEEPromT<float> mControlD;
+  float mOutputMin;
+  float mOutputMax;
+  mutable unsigned long mMicrosLast;
+  mutable float mErrorLast;
+  mutable float mErrorI;
 
   // callback when output value changed
   tOutputChangedFunc mOutputChangedFunc;

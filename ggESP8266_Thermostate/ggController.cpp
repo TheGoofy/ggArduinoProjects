@@ -11,25 +11,22 @@ ggController::ggController()
   mInputValid(true),
   mInputValue(0.0f),
   mOutputValue(0.0f),
-  mAutoPID(nullptr),
-  mInputValuePID(0.0),
-  mSetPointValuePID(0.0),
-  mOutputValuePID(0.0),
+  mSamplerPID(1.0f), // 1 Hz
   mControlP(1.0f),
   mControlI(0.0f),
   mControlD(0.0f),
+  mOutputMin(0.0f),
+  mOutputMax(1.0f),
+  mMicrosLast(0),
+  mErrorLast(0.0f),
+  mErrorI(0.0f),
   mOutputChangedFunc(nullptr)
 {
-  mAutoPID = new AutoPID(&mInputValuePID,
-                         &mSetPointValuePID,
-                         &mOutputValuePID, -0.5, 0.5, // out, out-min, out-max
-                         1.0, 0.0, 0.0); // KP, KI, KD
 }
 
 
 ggController::~ggController()
 {
-  delete mAutoPID;
 }
 
 
@@ -40,6 +37,7 @@ void ggController::ResetSettings()
   SetHysteresis(1.0f);
   SetPID(1.0f, 0.0f, 0.0f);
   SetOutputAnalog(false);
+  ResetControlStatePID();
   ControlOutput();
 }
 
@@ -54,6 +52,7 @@ void ggController::SetMode(tMode aMode)
 {
   if (mMode.Get() != aMode) {
     mMode.Set(aMode);
+    ResetControlStatePID();
     ControlOutput();
   }
 }
@@ -69,8 +68,7 @@ void ggController::SetSetPoint(float aSetPoint)
 {
   if (mSetPointValue.Get() != aSetPoint) {
     mSetPointValue.Set(aSetPoint);
-    mSetPointValuePID = aSetPoint;
-    mAutoPID->reset();
+    ResetControlStatePID();
     ControlOutput();
   }
 }
@@ -86,8 +84,7 @@ void ggController::SetHysteresis(float aHysteresis)
 {
   if (mHysteresisValue.Get() != aHysteresis) {
     mHysteresisValue.Set(aHysteresis);
-    mAutoPID->setBangBang(aHysteresis / 2.0f);
-    mAutoPID->reset();
+    ResetControlStatePID();
     ControlOutput();
   }
 }
@@ -133,8 +130,6 @@ void ggController::SetInput(float aInput)
 {
   if (mInputValue != aInput) {
     mInputValue = aInput;
-    mInputValuePID = aInput;
-    ControlOutput();
   }
 }
 
@@ -168,8 +163,7 @@ void ggController::SetPID(float aP, float aI, float aD)
   mControlP.Set(aP);
   mControlI.Set(aI);
   mControlD.Set(aD);
-  mAutoPID->setGains(aP, aI, aD);
-  mAutoPID->reset();
+  ResetControlStatePID();
 }
 
 
@@ -179,9 +173,18 @@ void ggController::OnOutputChanged(tOutputChangedFunc aOutputChangedFunc)
 }
 
 
+void ggController::Begin()
+{
+  ResetControlStatePID();
+  mSamplerPID.OnSample([&] () {
+    ControlOutput();
+  });
+}
+
+
 void ggController::Run()
 {
-  ControlOutput();
+  mSamplerPID.Run();
 }
 
 
@@ -194,6 +197,19 @@ void ggController::Print(Stream& aStream) const
   aStream.printf("ggController::mPID = %f / %f / %f\n", mControlP.Get(), mControlI.Get(), mControlD.Get());
   aStream.printf("ggController::mOutputAnalog = %d\n", mOutputAnalog.Get());
   aStream.printf("ggController::mOutputValue = %f\n", mOutputValue);
+  aStream.printf("ggController::mOutputMin = %f\n", mOutputMin);
+  aStream.printf("ggController::mOutputMax = %f\n", mOutputMax);
+  aStream.printf("ggController::mMicrosLast = %ul\n", mMicrosLast);
+  aStream.printf("ggController::mErrorLast = %f\n", mErrorLast);
+  aStream.printf("ggController::mErrorI = %f\n", mErrorI);
+}
+
+
+void ggController::ResetControlStatePID()
+{
+  mMicrosLast = micros();
+  mErrorLast = 0.0f;
+  mErrorI = 0.0f;
 }
 
 
@@ -268,8 +284,44 @@ void ggController::ControlOutputDigital(bool aInverted, float& aOutput) const
 
 void ggController::ControlOutputPID(float& aOutput) const
 {
-  mAutoPID->run();
-  aOutput = mOutputValuePID + 0.5;
+  // calculate time since last sample
+  unsigned long vMicros = micros();
+  float vTimeDelta = (vMicros - mMicrosLast) / 1000000.0f;
+
+  // calculate current error
+  float vError = mSetPointValue.Get() - mInputValue;
+
+  // "zero" output is in the middle of the output range
+  float vOutput = (mOutputMin + mOutputMax) / 2.0f;
+
+  // P-control (proportional error)
+  vOutput += mControlP.Get() * vError;
+
+  // D-control (differential error)
+  float vErrorD = (vError - mErrorLast) / vTimeDelta;
+  vOutput += mControlD.Get() * vErrorD;
+
+  // I-control (integral error)
+  if (mControlI.Get() != 0.0f) {
+    if (vError * vErrorD >= 0.0f) {
+      // only sum up integral error, input moves away from set-point
+      mErrorI += (vError + mErrorLast) / 2.0f * vTimeDelta; // mid-point riemann sum
+    }
+    vOutput = ggClamp(vOutput, mOutputMin, mOutputMax);
+    float vErrorIMin = (mOutputMin - vOutput) / mControlI.Get();
+    float vErrorIMax = (mOutputMax - vOutput) / mControlI.Get();;
+    // if (mErrorI < 0.0f && mErrorI < vErrorIMin) mErrorI = vErrorIMin;
+    // if (mErrorI > 0.0f && mErrorI > vErrorIMax) mErrorI = vErrorIMax;
+    mErrorI = ggClamp(mErrorI, vErrorIMin, vErrorIMax); // avoid "windup" when out of control
+    vOutput += mControlI.Get() * mErrorI;
+  }
+
+  // clamp output into range
+  aOutput = ggClamp(vOutput, mOutputMin, mOutputMax);
+
+  // update "last" values for next sampling
+  mMicrosLast = vMicros;
+  mErrorLast = vError;
 }
 
 

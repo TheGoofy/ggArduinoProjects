@@ -275,6 +275,7 @@ void setup()
 
   // setup connected hardware
   mPeriphery.Begin();
+  mTemperatureController.Begin();
 }
 
 

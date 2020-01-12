@@ -109,7 +109,6 @@
         mWebSocket.send('SetOutputAnalog(' + mOutputAnalog.checked + ')');
       }
       mOutputRange.onchange = function() {
-        // LogValues();
         mWebSocket.send('SetOutput(' + mOutputRange.value + ')');
       }
     }
