@@ -43,7 +43,7 @@ public:
     unsigned long vMicros = micros();
     if (vMicros >= mMicrosNext) {
       unsigned long vMicrosDelta = vMicros - mMicrosNext;
-      if (vMicrosDelta <= 0x8000) { // handle 32 bit overflow of mMicrosNext
+      if (vMicrosDelta <= 0x80000000) { // handle 32 bit overflow of mMicrosNext
         if (ggOutput::Get()) {
           if (mCycleTimeLow > 0) {
             ggOutput::Set(false);
@@ -61,6 +61,15 @@ public:
         mMicrosNext += mCycleTime;
       }
     }
+  }
+
+  void Print(Stream& aStream) const {
+    ggOutput::Print(aStream);
+    aStream.printf("ggOutputPWM::mCycleTime = %ul\n", mCycleTime);
+    aStream.printf("ggOutputPWM::mCycleTimeHigh = %ul\n", mCycleTimeHigh);
+    aStream.printf("ggOutputPWM::mCycleTimeLow = %ul\n", mCycleTimeLow);
+    aStream.printf("ggOutputPWM::mMicrosNext = %ul\n", mMicrosNext);
+    aStream.printf("ggOutputPWM::Run() ... micros() = %ul\n", micros());
   }
 
 private:
