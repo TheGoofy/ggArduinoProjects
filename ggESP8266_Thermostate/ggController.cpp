@@ -22,7 +22,7 @@ ggController::ggController()
 {
   mAutoPID = new AutoPID(&mInputValuePID,
                          &mSetPointValuePID,
-                         &mOutputValuePID, 0.0, 1.0, // out, out-min, out-max
+                         &mOutputValuePID, -0.5, 0.5, // out, out-min, out-max
                          1.0, 0.0, 0.0); // KP, KI, KD
 }
 
@@ -269,7 +269,7 @@ void ggController::ControlOutputDigital(bool aInverted, float& aOutput) const
 void ggController::ControlOutputPID(float& aOutput) const
 {
   mAutoPID->run();
-  aOutput = mOutputValuePID;
+  aOutput = mOutputValuePID + 0.5;
 }
 
 
