@@ -1,0 +1,259 @@
+﻿<!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01//EN' 'http://www.w3.org/TR/html4/strict.dtd'>
+<html>
+
+  <head>
+    <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+    <meta http-equiv='Content-Style-Type' content='text/css'/>
+    <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
+    <title>ESP8266 Thermostate Logger</title>
+    <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
+    <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script language='javascript' type='text/javascript'>
+
+      var mWebSocket;
+      var mWebSocketReConnectTimerID = 0;
+
+      function initAll() {
+        InitHtmlElements();
+        CreatePressureChart();
+        CreateTemperatureChart();
+        CreateHumidityChart();
+        CreateOutputChart();
+        /*
+        UpdateOutput(0.5);
+        UpdateTemperature(20);
+        UpdateHumidity(-20);
+        UpdatePressure(200);
+        UpdateOutput(0.3);
+        UpdatePressure(200);
+        UpdateTemperature(22);
+        UpdateOutput(0.6);
+        UpdateTemperature(21);
+        UpdateHumidity(-30);
+        UpdatePressure(300);
+        UpdateHumidity(10);
+        */
+        InitWebSocket();
+      }
+
+      function InitWebSocket() {
+        // init web socket client
+        mWebSocket = new WebSocket('ws://' + window.location.hostname + ':81/', ['arduino']);
+        mWebSocket.onopen = onWebSocketOpen;
+        mWebSocket.onclose = onWebSocketClose;
+        mWebSocket.onerror = onWebSocketError;
+        mWebSocket.onmessage = onWebSocketMessage;
+      }
+
+      function onWebSocketOpen(aEvent) {
+        console.log(aEvent.data);
+        mWebSocketStatus.innerHTML = 'connected';
+        if (mWebSocketReConnectTimerID) {
+          window.clearInterval(mWebSocketReConnectTimerID);
+          mWebSocketReConnectTimerID = 0;
+        }
+      }
+
+      function onWebSocketClose(aEvent) {
+        console.log(aEvent.data);
+        mWebSocketStatus.innerHTML = 'disconnected';
+        if (!mWebSocketReConnectTimerID) {
+          mWebSocketReConnectTimerID = window.setInterval(initWebSocket, 5000);
+        }
+      }
+
+      function onWebSocketError(aEvent) {
+        mWebSocketStatus.innerHTML = aEvent.data;
+      }
+
+      function onWebSocketMessage(aEvent) {
+        // server sends actual function names, which can directly be executed by the client
+        console.log(aEvent.data);
+        eval(aEvent.data);
+      }
+
+      function InitHtmlElements() {
+      }
+      
+      var mAllDataValid = false;
+      var mPressure = Number.NaN;
+      var mTemperature = Number.NaN;
+      var mHumidity = Number.NaN;
+      var mOutput = Number.NaN;
+
+      function UpdatePressure(aPressure) {
+        mPressure = aPressure;
+        DrawPressureChart();
+      }
+
+      function UpdateTemperature(aTemperature) {
+        mTemperature = aTemperature;
+        DrawTemperatureChart();
+        LogTable();
+      }
+
+      function UpdateHumidity(aHumidity) {
+        mHumidity = aHumidity;
+        DrawHumidityChart();
+      }
+
+      function UpdateOutput(aOutput) {
+        mOutput = aOutput;
+        DrawOutputChart();
+      }
+      
+      function LogTable() {
+        if (mLogTable.checked) {
+          if (!mAllDataValid) {
+            mAllDataValid = !isNaN(mPressure) && !isNaN(mTemperature) && !isNaN(mHumidity) && !isNaN(mOutput);
+          }
+          if (mAllDataValid) {
+            var vDate = new Date();
+            mLog.innerHTML +=
+                vDate.toLocaleDateString() + ';'
+              + vDate.toLocaleTimeString() + ';'
+              + mPressure + ';'
+              + mTemperature + ';'
+              + mHumidity + ';'
+              + mOutput + '<br>';
+            mLogContent.scrollTop = mLogContent.scrollHeight;
+          }
+        }
+      }
+
+      google.charts.load('current', {'packages':['line']});
+      
+      var mPressureChart = null;
+      var mPressureChartData = null;
+      var mPressureChartOptions = null;
+      var mTemperatureChart = null;
+      var mTemperatureChartData = null;
+      var mTemperatureChartOptions = null;
+      var mHumidityChart = null;
+      var mHumidityChartData = null;
+      var mHumidityChartOptions = null;
+      var mOutputChart = null;
+      var mOutputChartData = null;
+      var mOutputChartOptions = null;
+      
+      function CreatePressureChart() {
+        mPressureChartData = new google.visualization.DataTable();
+        mPressureChartData.addColumn('date', '');
+        mPressureChartData.addColumn('number', 'hPa');
+        mPressureChartOptions = {
+          legend: { position: 'none' },
+          series: { 0: { color: '#fa0' } },
+        };
+        mPressureChart = new google.charts.Line(document.getElementById('mPressureChartDiv'));
+      }
+
+      function CreateTemperatureChart() {
+        mTemperatureChartData = new google.visualization.DataTable();
+        mTemperatureChartData.addColumn('date', '');
+        mTemperatureChartData.addColumn('number', '°C');
+        mTemperatureChartOptions = {
+          legend: { position: 'none' },
+          series: { 0: { color: '#08f' } },
+        };
+        mTemperatureChart = new google.charts.Line(document.getElementById('mTemperatureChartDiv'));
+      }
+      
+      function CreateHumidityChart() {
+        mHumidityChartData = new google.visualization.DataTable();
+        mHumidityChartData.addColumn('date', '');
+        mHumidityChartData.addColumn('number', '%');
+        mHumidityChartOptions = {
+          legend: { position: 'none' },
+          series: { 0: { color: '#5b0' } },
+        };
+        mHumidityChart = new google.charts.Line(document.getElementById('mHumidityChartDiv'));
+      }
+
+      function CreateOutputChart() {
+        mOutputChartData = new google.visualization.DataTable();
+        mOutputChartData.addColumn('date', '');
+        mOutputChartData.addColumn('number', '%');
+        mOutputChartOptions = {
+          legend: { position: 'none' },
+          series: { 0: { color: '#f04' } },
+        };
+        mOutputChart = new google.charts.Line(document.getElementById('mOutputChartDiv'));
+      }
+
+      function DrawPressureChart() {
+        if (!isNaN(mPressure)) {
+          mPressureChartData.addRows([[new Date(), mPressure]]);
+          mPressureChart.draw(mPressureChartData, google.charts.Line.convertOptions(mPressureChartOptions));
+        }
+      }
+      
+      function DrawTemperatureChart() {
+        if (!isNaN(mTemperature)) {
+          mTemperatureChartData.addRows([[new Date(), mTemperature]]);
+          mTemperatureChart.draw(mTemperatureChartData, google.charts.Line.convertOptions(mTemperatureChartOptions));
+        }
+      }
+      
+      function DrawHumidityChart() {
+        if (!isNaN(mHumidity)) {
+          mHumidityChartData.addRows([[new Date(), mHumidity]]);
+          mHumidityChart.draw(mHumidityChartData, google.charts.Line.convertOptions(mHumidityChartOptions));
+        }
+      }
+      
+      function DrawOutputChart() {
+        if (!isNaN(mOutput)) {
+          mOutputChartData.addRows([[new Date(), mOutput]]);
+          mOutputChart.draw(mOutputChartData, google.charts.Line.convertOptions(mOutputChartOptions));
+        }
+      }
+      
+    </script>
+  </head>
+
+  <body onload='javascript:initAll()'>
+    <div style='text-align:left;display:inline-block;min-width:340px'>
+      <big><b>Data Logging Client</b></big><br>
+      <hr noshade>
+      
+      <div style='padding:3px;background:white'>
+        <center>Pressure [hPa]</center>
+        <div id='mPressureChartDiv' style='width:100%;height:150px'></div>
+        <hr noshade>
+        <center>Temperature [°C]</center>
+        <div id='mTemperatureChartDiv' style='width:100%;height:150px'></div>
+        <hr noshade>
+        <center>Humidity [%]</center>
+        <div id='mHumidityChartDiv' style='width:100%;height:150px'></div>
+        <hr noshade>
+        <center>Output [%]</center>
+        <div id='mOutputChartDiv' style='width:100%;height:150px'></div>
+      </div>
+      
+      <br>
+
+      <div style='width:100%;font-size:0.8rem;color:#666;background-color:#fff;border-bottom:1px dotted gray;padding-top:2px'>
+        <input id='mLogTable' type='checkbox' style='margin-bottom:5px'>
+        <label for='mLogTable'>Update Table</label>
+        <hr noshade size='0' style='margin-top:0px;margin-bottom:2px'>
+        <pre style='padding:3px;margin:0px'>Date;Time;Press;Temp;Humid;Output</pre>
+      </div>
+      <div id='mLogContent' class='content' style='max-height:400px;max-width:360px'>
+        <pre id='mLog' style='padding:3px;margin:0px'></pre>
+      </div>
+
+      <br>
+      Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
+      
+      <hr noshade>
+      <a href='/'>[home]</a>
+      <a href='/logger'>[logger]</a>
+      <a href='/spiffs'>[spiffs]</a>
+      <a href='/debug'>[debug]</a>
+      <a href='/goofy'>[goofy]</a><br>
+      (c) 2020, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
+    </div>
+  </body>
+
+</html>

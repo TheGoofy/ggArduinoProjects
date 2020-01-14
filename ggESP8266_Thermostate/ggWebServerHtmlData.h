@@ -20,6 +20,7 @@ char mWebServerHtmlFront[] PROGMEM = R"=====(
 char mWebServerHtmlBack[] PROGMEM = R"=====(
       <hr noshade>
       <a href='/'>[home]</a>
+      <a href='/logger'>[logger]</a>
       <a href='/spiffs'>[spiffs]</a>
       <a href='/debug'>[debug]</a>
       <a href='/goofy'>[goofy]</a><br>

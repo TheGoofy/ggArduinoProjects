@@ -20,6 +20,7 @@ public:
   void Begin() {
     mServer.on("/", [&] () { OnHome(); });
     mServer.on("/home", [&] () { OnHome(); });
+    mServer.on("/logger", [&] () { HandleFile("/ggLogger.html"); });
     mServer.on("/spiffs", [&] () { OnSPIFFS(); });
     mServer.on("/debug", [&] () { OnDebug(); });
     mServer.on("/goofy", [&] () { HandleFile("/ggGoofy.html"); });
