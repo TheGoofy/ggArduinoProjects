@@ -12,9 +12,9 @@ ggController::ggController()
   mInputValue(0.0f),
   mOutputValue(0.0f),
   mSamplerPID(0.2f), // 0.2Hz (5s sampling time)
-  mControlP(1.0f),
-  mControlI(0.0f),
-  mControlD(0.0f),
+  mControlP(0.4f),
+  mControlI(0.004f),
+  mControlD(12.0f),
   mOutputMin(0.0f),
   mOutputMax(1.0f),
   mMicrosLast(0),
@@ -35,7 +35,7 @@ void ggController::ResetSettings()
   SetMode(eModeOff);
   SetSetPoint(20.0f);
   SetHysteresis(1.0f);
-  SetPID(1.0f, 0.0f, 0.0f);
+  SetPID(0.4f, 0.004f, 12.0f);
   SetOutputAnalog(false);
   ResetControlStatePID();
   ControlOutput();
