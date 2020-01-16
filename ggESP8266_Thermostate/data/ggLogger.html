@@ -12,9 +12,10 @@
     <script language='javascript' type='text/javascript'>
 
       var mWebSocket;
+      var mWebSocketServer = window.location.hostname;
       var mWebSocketReConnectTimerID = 0;
 
-      function initAll() {
+      function InitAll() {
         InitHtmlElements();
         CreatePressureChart();
         CreateTemperatureChart();
@@ -24,9 +25,10 @@
       }
 
       function InitWebSocket() {
-        // init web socket client
-        mWebSocket = new WebSocket('ws://' + window.location.hostname + ':81/', ['arduino']);
-        // mWebSocket = new WebSocket('ws://192.168.0.54:81/', ['arduino']); // for local debugging
+        if (mWebSocketServer == '') {
+          mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.54");
+        }
+        mWebSocket = new WebSocket('ws://' + mWebSocketServer +':81/', ['arduino']);
         mWebSocket.onopen = onWebSocketOpen;
         mWebSocket.onclose = onWebSocketClose;
         mWebSocket.onerror = onWebSocketError;
@@ -34,7 +36,6 @@
       }
 
       function onWebSocketOpen(aEvent) {
-        console.log(aEvent.data);
         mWebSocketStatus.innerHTML = 'connected';
         if (mWebSocketReConnectTimerID) {
           window.clearInterval(mWebSocketReConnectTimerID);
@@ -43,21 +44,25 @@
       }
 
       function onWebSocketClose(aEvent) {
-        console.log(aEvent.data);
         mWebSocketStatus.innerHTML = 'disconnected';
         if (!mWebSocketReConnectTimerID) {
-          mWebSocketReConnectTimerID = window.setInterval(initWebSocket, 5000);
+          mWebSocketReConnectTimerID = window.setInterval(InitWebSocket, 5000);
         }
       }
 
       function onWebSocketError(aEvent) {
+        console.log(aEvent);
         mWebSocketStatus.innerHTML = aEvent.data;
       }
 
       function onWebSocketMessage(aEvent) {
-        // server sends actual function names, which can directly be executed by the client
-        console.log(aEvent.data);
-        eval(aEvent.data);
+        try {
+          // server sends actual function names, which can directly be executed by the client
+          eval(aEvent.data);
+        }
+        catch (vError) {
+          console.log('unable to evaluate: ' + aEvent.data);
+        }
       }
 
       function InitHtmlElements() {
@@ -199,7 +204,7 @@
     </script>
   </head>
 
-  <body onload='javascript:initAll()'>
+  <body onload='javascript:InitAll()'>
     <div style='text-align:left;display:inline-block;min-width:340px'>
       <big><b>Data Logging Client</b></big><br>
       <hr noshade>

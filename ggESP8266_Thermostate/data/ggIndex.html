@@ -11,21 +11,23 @@
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
   <script language='javascript' type='text/javascript'>
 
-    var mWebSocket;
+    var mWebSocket = null;
+    var mWebSocketServer = window.location.hostname;
     var mWebSocketReConnectTimerID = 0;
 
-    function initAll() {
+    function InitAll() {
       InitHtmlElements();
       CreatePressureGauge();
       CreateTemperatureGauge();
       CreateHumidityGauge();
-      InitCollapsibles();
       InitWebSocket();
     }
 
     function InitWebSocket() {
-      // init web socket client
-      mWebSocket = new WebSocket('ws://' + window.location.hostname + ':81/', ['arduino']);
+      if (mWebSocketServer == '') {
+        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.54");
+      }
+      mWebSocket = new WebSocket('ws://' + mWebSocketServer +':81/', ['arduino']);
       mWebSocket.onopen = onWebSocketOpen;
       mWebSocket.onclose = onWebSocketClose;
       mWebSocket.onerror = onWebSocketError;
@@ -33,7 +35,6 @@
     }
 
     function onWebSocketOpen(aEvent) {
-      console.log(aEvent.data);
       mWebSocketStatus.innerHTML = 'connected';
       if (mWebSocketReConnectTimerID) {
         window.clearInterval(mWebSocketReConnectTimerID);
@@ -42,10 +43,9 @@
     }
 
     function onWebSocketClose(aEvent) {
-      console.log(aEvent.data);
       mWebSocketStatus.innerHTML = 'disconnected';
       if (!mWebSocketReConnectTimerID) {
-        mWebSocketReConnectTimerID = window.setInterval(initWebSocket, 5000);
+        mWebSocketReConnectTimerID = window.setInterval(InitWebSocket, 5000);
       }
     }
 
@@ -54,9 +54,13 @@
     }
 
     function onWebSocketMessage(aEvent) {
-      // server sends actual function names, which can directly be executed by the client
-      console.log(aEvent.data);
-      eval(aEvent.data);
+      try {
+        // server sends actual function names, which can directly be executed by the client
+        eval(aEvent.data);
+      }
+      catch (vError) {
+        console.log('unable to evaluate: ' + aEvent.data);
+      }
     }
 
     var tControlMode = {
@@ -129,7 +133,6 @@
     function UpdateTemperature(aTemperature) {
       mTemperature.innerHTML = aTemperature;
       DrawTemperatureGauge(Math.round(10.0 * aTemperature) / 10.0);
-      LogValues();
     }
 
     function UpdateHumidity(aHumidity) {
@@ -259,39 +262,10 @@
       mHumidityGauge.draw(mHumidityGaugeData, mHumidityGaugeOptions);
     }
 
-    function InitCollapsibles() {
-      var vCollapsibles = document.getElementsByClassName("collapsible");
-      for (var vIndex = 0; vIndex < vCollapsibles.length; vIndex++) {
-        vCollapsibles[vIndex].addEventListener("click", function() {
-          this.classList.toggle("active");
-          var content = this.nextElementSibling;
-          if (content.style.maxHeight) {
-            content.style.maxHeight = null;
-          } else {
-            content.style.maxHeight = '400px';
-          }
-        });
-      }
-    }
-
-    function LogValues() {
-      if (mLogEnable.checked) {
-        var vDate = new Date();
-        mLog.innerHTML +=
-            vDate.toLocaleDateString() + ';'
-          + vDate.toLocaleTimeString() + ';'
-          + mPressure.innerHTML + ';'
-          + mTemperature.innerHTML + ';'
-          + mHumidity.innerHTML + ';'
-          + mOutputRange.value + '<br>';
-        mLogContent.scrollTop = mLogContent.scrollHeight;
-      }
-    }
-
   </script>
 </head>
 
-<body onload='javascript:initAll()'>
+<body onload='javascript:InitAll()'>
   <div style='text-align:left;display:inline-block;min-width:340px'>
   <table border='0' width='100%'>
 
@@ -386,19 +360,6 @@
     </tr>
 
     <tr><td colspan='3'><hr noshade></td></tr>
-
-    <tr>
-      <td colspan='3'>
-        <button id='mLogButton' class='collapsible'>Temperature & Data Logging (on client)</button>
-        <div id='mLogContent' class='content'>
-          <p id='mLog' style='margin:3px'>
-            Date;Time;Press;Temp;Humid;Output<br>
-          </p>
-          <hr noshade size='0' style='margin-top:0px;margin-bottom:2px'>
-          <input id='mLogEnable' type='checkbox' style='margin-bottom:5px'><label for='mLogEnable'>Enable</label>
-        </div>
-      </td>
-    </tr>
 
     <tr>
       <td colspan='3'>
