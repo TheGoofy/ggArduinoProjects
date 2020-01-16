@@ -191,7 +191,7 @@
       
       function DrawOutputChart() {
         if (!isNaN(mOutput)) {
-          mOutputChartData.addRows([[new Date(), mOutput]]);
+          mOutputChartData.addRows([[new Date(), 100.0 * mOutput]]);
           mOutputChart.draw(mOutputChartData, google.charts.Line.convertOptions(mOutputChartOptions));
         }
       }
