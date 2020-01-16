@@ -2,10 +2,10 @@
 <html>
 
   <head>
+    <title>ESP8266 Thermostate Logger</title>
     <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
     <meta http-equiv='Content-Style-Type' content='text/css'/>
     <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
-    <title>ESP8266 Thermostate Logger</title>
     <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
     <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
@@ -20,26 +20,13 @@
         CreateTemperatureChart();
         CreateHumidityChart();
         CreateOutputChart();
-        /*
-        UpdateOutput(0.5);
-        UpdateTemperature(20);
-        UpdateHumidity(-20);
-        UpdatePressure(200);
-        UpdateOutput(0.3);
-        UpdatePressure(200);
-        UpdateTemperature(22);
-        UpdateOutput(0.6);
-        UpdateTemperature(21);
-        UpdateHumidity(-30);
-        UpdatePressure(300);
-        UpdateHumidity(10);
-        */
         InitWebSocket();
       }
 
       function InitWebSocket() {
         // init web socket client
         mWebSocket = new WebSocket('ws://' + window.location.hostname + ':81/', ['arduino']);
+        // mWebSocket = new WebSocket('ws://192.168.0.54:81/', ['arduino']); // for local debugging
         mWebSocket.onopen = onWebSocketOpen;
         mWebSocket.onclose = onWebSocketClose;
         mWebSocket.onerror = onWebSocketError;

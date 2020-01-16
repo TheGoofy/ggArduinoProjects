@@ -5,10 +5,10 @@ char mWebServerHtmlFront[] PROGMEM = R"=====(
 <html>
 
   <head>
+    <title>ESP8266 Thermostate</title>
     <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
     <meta http-equiv='Content-Style-Type' content='text/css'/>
     <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
-    <title>ESP8266 Thermostate</title>
     <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
     <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
   </head>
