@@ -34,6 +34,8 @@ todo:
 - PID auto-tuning algorithm
 - adjustable PWM cycle time
 - serial stream to rx/tx AND html client console
+- SW/HW version
+- filter sensor values (iir + median)
 */
 
 
