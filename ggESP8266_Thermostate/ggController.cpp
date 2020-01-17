@@ -12,9 +12,9 @@ ggController::ggController()
   mInputValue(0.0f),
   mOutputValue(0.0f),
   mSamplerPID(0.2f), // 0.2Hz (5s sampling time)
-  mControlP(0.4f),
+  mControlP(0.35f),
   mControlI(0.004f),
-  mControlD(12.0f),
+  mControlD(13.0f),
   mOutputMin(0.0f),
   mOutputMax(1.0f),
   mMicrosLast(0),
@@ -68,7 +68,6 @@ void ggController::SetSetPoint(float aSetPoint)
 {
   if (mSetPointValue.Get() != aSetPoint) {
     mSetPointValue.Set(aSetPoint);
-    ResetControlStatePID();
     ControlOutput();
   }
 }
@@ -84,7 +83,6 @@ void ggController::SetHysteresis(float aHysteresis)
 {
   if (mHysteresisValue.Get() != aHysteresis) {
     mHysteresisValue.Set(aHysteresis);
-    ResetControlStatePID();
     ControlOutput();
   }
 }
@@ -163,7 +161,6 @@ void ggController::SetPID(float aP, float aI, float aD)
   mControlP.Set(aP);
   mControlI.Set(aI);
   mControlD.Set(aD);
-  ResetControlStatePID();
 }
 
 
@@ -307,12 +304,11 @@ void ggController::ControlOutputPID(float& aOutput) const
       // only sum up integral error, input moves away from set-point
       mErrorI += (vError + mErrorLast) / 2.0f * vTimeDelta; // mid-point riemann sum
     }
+    // avoid windup of integral error, when output gets at its limits
     vOutput = ggClamp(vOutput, mOutputMin, mOutputMax);
     float vErrorIMin = (mOutputMin - vOutput) / mControlI.Get();
-    float vErrorIMax = (mOutputMax - vOutput) / mControlI.Get();;
-    // if (mErrorI < 0.0f && mErrorI < vErrorIMin) mErrorI = vErrorIMin;
-    // if (mErrorI > 0.0f && mErrorI > vErrorIMax) mErrorI = vErrorIMax;
-    mErrorI = ggClamp(mErrorI, vErrorIMin, vErrorIMax); // avoid "windup" when out of control
+    float vErrorIMax = (mOutputMax - vOutput) / mControlI.Get();
+    mErrorI = ggClamp(mErrorI, vErrorIMin, vErrorIMax);
     vOutput += mControlI.Get() * mErrorI;
   }
 
