@@ -11,22 +11,30 @@
     <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
     <script language='javascript' type='text/javascript'>
 
-      var mWebSocket;
+      var mWebSocket = null;
       var mWebSocketServer = window.location.hostname;
       var mWebSocketReConnectTimerID = 0;
 
+      var mAllDataValid = false;
+      var mPressure = Number.NaN;
+      var mTemperature = Number.NaN;
+      var mHumidity = Number.NaN;
+      var mOutput = Number.NaN;
+
+      var mPressureChart = null;
+      var mTemperatureChart = null;
+      var mHumidityChart = null;
+      var mOutputChart = null;
+      
       function InitAll() {
         InitHtmlElements();
-        CreatePressureChart();
-        CreateTemperatureChart();
-        CreateHumidityChart();
-        CreateOutputChart();
+        CreateCharts();
         InitWebSocket();
       }
 
       function InitWebSocket() {
         if (mWebSocketServer == '') {
-          mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.54");
+          mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.88");
         }
         mWebSocket = new WebSocket('ws://' + mWebSocketServer +':81/', ['arduino']);
         mWebSocket.onopen = onWebSocketOpen;
@@ -68,31 +76,25 @@
       function InitHtmlElements() {
       }
       
-      var mAllDataValid = false;
-      var mPressure = Number.NaN;
-      var mTemperature = Number.NaN;
-      var mHumidity = Number.NaN;
-      var mOutput = Number.NaN;
-
       function UpdatePressure(aPressure) {
         mPressure = aPressure;
-        DrawPressureChart();
+        mPressureChart.Add(aPressure);
       }
 
       function UpdateTemperature(aTemperature) {
         mTemperature = aTemperature;
-        DrawTemperatureChart();
+        mTemperatureChart.Add(aTemperature);
         LogTable();
       }
 
       function UpdateHumidity(aHumidity) {
         mHumidity = aHumidity;
-        DrawHumidityChart();
+        mHumidityChart.Add(aHumidity);
       }
 
       function UpdateOutput(aOutput) {
         mOutput = aOutput;
-        DrawOutputChart();
+        mOutputChart.Add(100.0 * aOutput);
       }
       
       function LogTable() {
@@ -115,90 +117,36 @@
       }
 
       google.charts.load('current', {'packages':['line']});
-      
-      var mPressureChart = null;
-      var mPressureChartData = null;
-      var mPressureChartOptions = null;
-      var mTemperatureChart = null;
-      var mTemperatureChartData = null;
-      var mTemperatureChartOptions = null;
-      var mHumidityChart = null;
-      var mHumidityChartData = null;
-      var mHumidityChartOptions = null;
-      var mOutputChart = null;
-      var mOutputChartData = null;
-      var mOutputChartOptions = null;
-      
-      function CreatePressureChart() {
-        mPressureChartData = new google.visualization.DataTable();
-        mPressureChartData.addColumn('date', '');
-        mPressureChartData.addColumn('number', 'hPa');
-        mPressureChartOptions = {
-          legend: { position: 'none' },
-          series: { 0: { color: '#fa0' } },
-        };
-        mPressureChart = new google.charts.Line(document.getElementById('mPressureChartDiv'));
-      }
 
-      function CreateTemperatureChart() {
-        mTemperatureChartData = new google.visualization.DataTable();
-        mTemperatureChartData.addColumn('date', '');
-        mTemperatureChartData.addColumn('number', '°C');
-        mTemperatureChartOptions = {
-          legend: { position: 'none' },
-          series: { 0: { color: '#08f' } },
-        };
-        mTemperatureChart = new google.charts.Line(document.getElementById('mTemperatureChartDiv'));
-      }
-      
-      function CreateHumidityChart() {
-        mHumidityChartData = new google.visualization.DataTable();
-        mHumidityChartData.addColumn('date', '');
-        mHumidityChartData.addColumn('number', '%');
-        mHumidityChartOptions = {
-          legend: { position: 'none' },
-          series: { 0: { color: '#5b0' } },
-        };
-        mHumidityChart = new google.charts.Line(document.getElementById('mHumidityChartDiv'));
-      }
+      class ggTimeChart {
 
-      function CreateOutputChart() {
-        mOutputChartData = new google.visualization.DataTable();
-        mOutputChartData.addColumn('date', '');
-        mOutputChartData.addColumn('number', '%');
-        mOutputChartOptions = {
-          legend: { position: 'none' },
-          series: { 0: { color: '#f04' } },
-        };
-        mOutputChart = new google.charts.Line(document.getElementById('mOutputChartDiv'));
-      }
+        constructor(aContainer, aUnit, aColor) {
+          this.mData = new google.visualization.DataTable();
+          this.mData.addColumn('date', '');
+          this.mData.addColumn('number', aUnit);
+          this.mOptions = {
+            legend: { position: 'none' },
+            series: { 0: { color: aColor } },
+          };
+          this.mChart = new google.charts.Line(aContainer);
+        }
 
-      function DrawPressureChart() {
-        if (!isNaN(mPressure)) {
-          mPressureChartData.addRows([[new Date(), mPressure]]);
-          mPressureChart.draw(mPressureChartData, google.charts.Line.convertOptions(mPressureChartOptions));
+        Add(aValue) {
+          this.mData.addRows([[new Date(), aValue]]);
+          this.Draw();
         }
+
+        Draw() {
+          this.mChart.draw(this.mData, google.charts.Line.convertOptions(this.mOptions));
+        }
+      
       }
       
-      function DrawTemperatureChart() {
-        if (!isNaN(mTemperature)) {
-          mTemperatureChartData.addRows([[new Date(), mTemperature]]);
-          mTemperatureChart.draw(mTemperatureChartData, google.charts.Line.convertOptions(mTemperatureChartOptions));
-        }
-      }
-      
-      function DrawHumidityChart() {
-        if (!isNaN(mHumidity)) {
-          mHumidityChartData.addRows([[new Date(), mHumidity]]);
-          mHumidityChart.draw(mHumidityChartData, google.charts.Line.convertOptions(mHumidityChartOptions));
-        }
-      }
-      
-      function DrawOutputChart() {
-        if (!isNaN(mOutput)) {
-          mOutputChartData.addRows([[new Date(), 100.0 * mOutput]]);
-          mOutputChart.draw(mOutputChartData, google.charts.Line.convertOptions(mOutputChartOptions));
-        }
+      function CreateCharts() {
+        mPressureChart = new ggTimeChart(document.getElementById('mPressureChartDiv'), '°C', '#fa0');
+        mTemperatureChart = new ggTimeChart(document.getElementById('mTemperatureChartDiv'), '°C', '#08f');
+        mHumidityChart = new ggTimeChart(document.getElementById('mHumidityChartDiv'), '%', '#5b0');
+        mOutputChart = new ggTimeChart(document.getElementById('mOutputChartDiv'), '%', '#f04');
       }
       
     </script>
