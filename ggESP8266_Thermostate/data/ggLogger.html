@@ -129,11 +129,35 @@
             series: { 0: { color: aColor } },
           };
           this.mChart = new google.charts.Line(aContainer);
+          this.mSamplesPerRow = 1;
+          this.mSamples = 0;
+          this.mTime = 0;
+          this.mValue = 0;
+          this.mRowsMax = 512;
         }
 
         Add(aValue) {
-          this.mData.addRows([[new Date(), aValue]]);
-          this.Draw();
+          this.mTime += Date.now() / this.mSamplesPerRow;
+          this.mValue += aValue / this.mSamplesPerRow;
+          this.mSamples++;
+          if (this.mSamples == this.mSamplesPerRow) {
+            this.mData.addRow([new Date(this.mTime), this.mValue]);
+            this.mSamples = 0;
+            this.mTime = 0;
+            this.mValue = 0;
+            if (this.mData.getNumberOfRows() >= this.mRowsMax) {
+              var vRowIndex;
+              for (vRowIndex = 0; vRowIndex < this.mRowsMax/2; vRowIndex++) {
+                var vTime = (this.mData.getValue(2*vRowIndex, 0).getTime() + this.mData.getValue(2*vRowIndex+1, 0).getTime()) / 2.0;
+                var vValue = (this.mData.getValue(2*vRowIndex, 1) + this.mData.getValue(2*vRowIndex+1, 1)) / 2.0;
+                this.mData.setValue(vRowIndex, 0, new Date(vTime));
+                this.mData.setValue(vRowIndex, 1, vValue);
+              }
+              this.mData.removeRows(this.mRowsMax/2, this.mRowsMax/2);
+              this.mSamplesPerRow *= 2;
+            }
+            this.Draw();
+          }
         }
 
         Draw() {
@@ -143,7 +167,7 @@
       }
       
       function CreateCharts() {
-        mPressureChart = new ggTimeChart(document.getElementById('mPressureChartDiv'), '°C', '#fa0');
+        mPressureChart = new ggTimeChart(document.getElementById('mPressureChartDiv'), 'hPa', '#fa0');
         mTemperatureChart = new ggTimeChart(document.getElementById('mTemperatureChartDiv'), '°C', '#08f');
         mHumidityChart = new ggTimeChart(document.getElementById('mHumidityChartDiv'), '%', '#5b0');
         mOutputChart = new ggTimeChart(document.getElementById('mOutputChartDiv'), '%', '#f04');
