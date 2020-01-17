@@ -22,9 +22,9 @@ public:
     mPinSCL(aPinSCL),
     mBME(),
     mSampler(0.5f),
-    mPressure(0.0f),
-    mTemperature(0.0f),
-    mHumidity(0.0f),
+    mPressure(NAN),
+    mTemperature(NAN),
+    mHumidity(NAN),
     mStatus(eStatusSensorOK),
     mPressureChanged(aPressureChanged),
     mTemperatureChanged(aTemperatureChanged),
@@ -136,11 +136,18 @@ private:
         UpdateStatus(eStatusSensorReadFailed);
       }
 
+      // smooth values with iif filter
+      if (!isnan(mPressure)) vPressure = 0.8f*mPressure + 0.2f*vPressure;
+      if (!isnan(mTemperature)) vTemperature = 0.5f*mTemperature + 0.5f*vTemperature;
+      if (!isnan(mHumidity)) vHumidity = 0.4f*mHumidity + 0.4f*vHumidity;
+
+      /*
       // round to most significant digits
       vPressure = ggRoundToSD(vPressure, 4);
       vTemperature = ggRoundToSD(vTemperature, 4);
       vHumidity = ggRoundToSD(vHumidity, 3);
-      
+      */
+
       // update pressure, if changed
       if (vPressure != mPressure) {
         mPressure = vPressure;

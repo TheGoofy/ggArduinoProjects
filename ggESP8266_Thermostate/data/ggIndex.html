@@ -129,18 +129,18 @@
     }
 
     function UpdatePressure(aPressure) {
-      mPressure.innerHTML = aPressure;
+      mPressure.innerHTML = Math.round(10.0 * aPressure) / 10.0;
       DrawPressureGauge(Math.round(aPressure));
     }
 
     function UpdateTemperature(aTemperature) {
-      mTemperature.innerHTML = aTemperature;
+      mTemperature.innerHTML = Math.round(100.0 * aTemperature) / 100.0;
       DrawTemperatureGauge(Math.round(10.0 * aTemperature) / 10.0);
     }
 
     function UpdateHumidity(aHumidity) {
-      DrawHumidityGauge(aHumidity);
-      mHumidity.innerHTML = aHumidity;
+      mHumidity.innerHTML = Math.round(100.0 * aHumidity) / 100.0;
+      DrawHumidityGauge(Math.round(10.0 * aHumidity) / 10.0);
     }
 
     function UpdateControlMode(aControlMode) {

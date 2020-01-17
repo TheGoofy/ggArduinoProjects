@@ -51,15 +51,15 @@ public:
   }
 
   void UpdatePressure(float aPressure, int aClientID = -1) {
-    UpdateClientTXT(String("UpdatePressure(") + aPressure + ")", aClientID);
+    UpdateClientTXT(String("UpdatePressure(") + String(aPressure, 2) + ")", aClientID);
   }
 
   void UpdateTemperature(float aTemperature, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateTemperature(") + aTemperature + ")", aClientID);
+    UpdateClientTXT(String("UpdateTemperature(") + String(aTemperature, 3) + ")", aClientID);
   }
 
   void UpdateHumidity(float aHumidity, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateHumidity(") + aHumidity + ")", aClientID);
+    UpdateClientTXT(String("UpdateHumidity(") + String(aHumidity, 3) + ")", aClientID);
   }
 
   void UpdateControlMode(int aControlMode, int aClientID = -1) {
