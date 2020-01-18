@@ -270,7 +270,7 @@
 
 <body onload='javascript:InitAll()'>
   <div style='text-align:left;display:inline-block;min-width:340px'>
-  <table border='0' width='100%'>
+  <table width='100%'>
 
     <tr>
       <td colspan='3'>
@@ -282,21 +282,23 @@
     <tr><td colspan='3'></td></tr>
 
     <tr><td colspan='3'>
-      <table border='0' width='100%' style='border-collapse:collapse'>
+      <style> #mGauges td { text-align: center; } </style>
+      <table id='mGauges' width='100%' style='border-collapse:collapse'>
         <tr>
-          <td align='center'>Pressure</td>
-          <td align='center'>Temperature</td>
-          <td align='center'>Humidity</td>
+          <td>Pressure</td>
+          <td>Temperature</td>
+          <td>Humidity</td>
         </tr>
         <tr>
-          <td><div id='mPressureGaugeDiv' style='width:100px;height:119px;margin-left:-5px'></div></td>
-          <td><div id='mTemperatureGaugeDiv' style='width:100px;height:119px;margin-left:-5px'></div></td>
-          <td><div id='mHumidityGaugeDiv' style='width:100px;height:119px;margin-left:-5px'></div></td>
+          <style> .cGaugeDiv { width: 100px; height: 119px; margin-left: -5px; } </style>
+          <td><div class='cGaugeDiv' id='mPressureGaugeDiv'></div></td>
+          <td><div class='cGaugeDiv' id='mTemperatureGaugeDiv'></div></td>
+          <td><div class='cGaugeDiv' id='mHumidityGaugeDiv'></div></td>
         </tr>
         <tr>
-          <td align='center'><span id='mPressure'>(na)</span> hPa</td>
-          <td align='center'><span id='mTemperature'>(na)</span> °C</td>
-          <td align='center'><span id='mHumidity'>(na)</span> %</td>
+          <td><span id='mPressure'>(na)</span> hPa</td>
+          <td><span id='mTemperature'>(na)</span> °C</td>
+          <td><span id='mHumidity'>(na)</span> %</td>
         </tr>
       </table>
     </td></tr>
@@ -306,7 +308,7 @@
     <tr>
       <td style='text-align:right' valign='top'>Control Mode</td>
       <td>&nbsp;</td>
-      <td style='text-align:left'><table border='0' style='border-collapse:collapse'>
+      <td style='text-align:left'><table style='border-collapse:collapse'>
         <tr><td><input id='mControlModeOff' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOff'> Off<label></td></tr>
         <tr><td><input id='mControlModeOn' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOn'> On</label></td></tr>
         <tr><td><input id='mControlModeOnBelow' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOnBelow'> On, if below SP (heater)</label></td></tr>
@@ -347,7 +349,7 @@
       <td style='text-align:right'>Output</td>
       <td>&nbsp;</td>
       <td style='text-align:left' id='mOutput'>
-        <table cellpadding='0' cellspacing='0' border='0' style='border-collapse:collapse;width:100%'>
+        <table cellpadding='0' cellspacing='0' style='border-collapse:collapse;width:100%'>
           <tr>
             <td style='text-align:left'><input id='mOutputRange' type='range' name='outputrange' min='0' max='1' step='0.01' value='0' style='width:100%'></td>
             <td style='width:60px'>&nbsp;<span id='mOutputValue'>(na)</span> %</td>
@@ -383,8 +385,8 @@
       </td>
     </tr>
 
-    <tr id='mProgressFrame' hidden='true'><td colspan='3'>
-      <table border='0' width='100%' style='border-collapse:collapse'>
+    <tr id='mProgressFrame' hidden><td colspan='3'>
+      <table style='border-collapse:collapse;width:100%;'>
         <tr><td colspan='3'><hr noshade></td></tr>
         <tr>
           <td id='mProgressName'>Progress</td>

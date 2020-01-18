@@ -34,7 +34,7 @@
 
       function InitWebSocket() {
         if (mWebSocketServer == '') {
-          mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.88");
+          mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.1.102");
         }
         mWebSocket = new WebSocket('ws://' + mWebSocketServer +':81/', ['arduino']);
         mWebSocket.onopen = onWebSocketOpen;
@@ -97,6 +97,10 @@
         mOutputChart.Add(100.0 * aOutput);
       }
       
+      function UpdateSensorStatus(aSensorStatus) {
+        mSensorStatus.innerHTML = aSensorStatus;
+      }
+
       function LogTable() {
         if (mLogTable.checked) {
           if (!mAllDataValid) {
@@ -178,20 +182,21 @@
 
   <body onload='javascript:InitAll()'>
     <div style='text-align:left;display:inline-block;min-width:340px'>
-      <big><b>Data Logging Client</b></big><br>
+      <b style="font-size: larger;">Data Logging Client</b><br>
       <hr noshade>
       
-      <div style='padding:3px;background:white'>
-        <center>Pressure [hPa]</center>
+      <style> .cChartTitle { text-align: center; } </style>
+      <div id='mCharts' style='padding:3px;background:white'>
+        <div class='cChartTitle'>Pressure [hPa]</div>
         <div id='mPressureChartDiv' style='width:100%;height:150px'></div>
         <hr noshade>
-        <center>Temperature [°C]</center>
+        <div class='cChartTitle'>Temperature [°C]</div>
         <div id='mTemperatureChartDiv' style='width:100%;height:150px'></div>
         <hr noshade>
-        <center>Humidity [%]</center>
+        <div class='cChartTitle'>Humidity [%]</div>
         <div id='mHumidityChartDiv' style='width:100%;height:150px'></div>
         <hr noshade>
-        <center>Output [%]</center>
+        <div class='cChartTitle'>Output [%]</div>
         <div id='mOutputChartDiv' style='width:100%;height:150px'></div>
       </div>
       
@@ -209,7 +214,7 @@
 
       <br>
       Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
-      
+      Temperature Sensor Status: <span id='mSensorStatus'>(na)</span><br>      
       <hr noshade>
       <a href='/'>[home]</a>
       <a href='/logger'>[logger]</a>

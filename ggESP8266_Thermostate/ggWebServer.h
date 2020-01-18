@@ -102,7 +102,7 @@ private:
     size_t vNumberOfFiles = 0;
     size_t vTotalFileSize = 0;
     String vDirHTML = "<script>document.title = 'ESP8266 Thermostate SPIFFS';</script>\n";
-    vDirHTML += "<big><b>SPIFFS</b></big><br>\n<hr noshade>\n";
+    vDirHTML += "<b style='font-size:larger'>SPIFFS</b><br>\n<hr noshade>\n";
     Dir vDir = SPIFFS.openDir("");
     while (vDir.next()) {
       vNumberOfFiles++;
@@ -126,7 +126,7 @@ private:
 
   void OnDebug() {
     String vContent = "<script>document.title = 'ESP8266 Thermostate Debug';</script>\n";
-    vContent += "<big><b>Debug</b></big><br>\n<hr noshade>\n";
+    vContent += "<b style='font-size:larger'>Debug</b><br>\n<hr noshade>\n";
     vContent += "<a href='reset'>[reset]</a>\n";
     vContent += "<a href='reboot'>[reboot]</a>\n";
     if (mDebugStreamFunc != nullptr) {
