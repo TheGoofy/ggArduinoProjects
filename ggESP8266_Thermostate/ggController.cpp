@@ -1,6 +1,7 @@
 #include "ggController.h"
 
 #include "ggAlgorithm.h"
+#include "ggDebug.h"
 
 
 ggController::ggController()
@@ -185,20 +186,21 @@ void ggController::Run()
 }
 
 
-void ggController::Print(Stream& aStream) const
+void ggController::PrintDebug(const String& aName) const
 {
-  aStream.printf("ggController::mMode = %s\n", ToString(mMode.Get()).c_str());
-  aStream.printf("ggController::mInputValue = %f\n", mInputValue);
-  aStream.printf("ggController::mSetPointValue = %f\n", mSetPointValue.Get());
-  aStream.printf("ggController::mHysteresisValue = %f\n", mHysteresisValue.Get());
-  aStream.printf("ggController::mPID = %f / %f / %f\n", mControlP.Get(), mControlI.Get(), mControlD.Get());
-  aStream.printf("ggController::mOutputAnalog = %d\n", mOutputAnalog.Get());
-  aStream.printf("ggController::mOutputValue = %f\n", mOutputValue);
-  aStream.printf("ggController::mOutputMin = %f\n", mOutputMin);
-  aStream.printf("ggController::mOutputMax = %f\n", mOutputMax);
-  aStream.printf("ggController::mMicrosLast = %ul\n", mMicrosLast);
-  aStream.printf("ggController::mErrorLast = %f\n", mErrorLast);
-  aStream.printf("ggController::mErrorI = %f\n", mErrorI);
+  ggDebug vDebug("ggController", aName);
+  vDebug.PrintF("mMode = %s\n", ToString(mMode.Get()).c_str());
+  vDebug.PrintF("mInputValue = %f\n", mInputValue);
+  vDebug.PrintF("mSetPointValue = %f\n", mSetPointValue.Get());
+  vDebug.PrintF("mHysteresisValue = %f\n", mHysteresisValue.Get());
+  vDebug.PrintF("mPID = %f / %f / %f\n", mControlP.Get(), mControlI.Get(), mControlD.Get());
+  vDebug.PrintF("mOutputAnalog = %d\n", mOutputAnalog.Get());
+  vDebug.PrintF("mOutputValue = %f\n", mOutputValue);
+  vDebug.PrintF("mOutputMin = %f\n", mOutputMin);
+  vDebug.PrintF("mOutputMax = %f\n", mOutputMax);
+  vDebug.PrintF("mMicrosLast = %ul\n", mMicrosLast);
+  vDebug.PrintF("mErrorLast = %f\n", mErrorLast);
+  vDebug.PrintF("mErrorI = %f\n", mErrorI);
 }
 
 

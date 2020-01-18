@@ -131,10 +131,10 @@ private:
     vContent += "<a href='reboot'>[reboot]</a>\n";
     if (mDebugStreamFunc != nullptr) {
       vContent += "<hr noshade>\n";
-      vContent += "<pre style='background:black;padding:3px'>\n";
+      vContent += "<textarea readonly style='width:100%;min-height:450px;'>\n";
       ggStringStream vStream(vContent);
       mDebugStreamFunc(vStream);
-      vContent += "</pre>\n";
+      vContent += "</textarea>\n";
     }
     SendContent(vContent);
   }

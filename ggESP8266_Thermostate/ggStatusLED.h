@@ -51,6 +51,14 @@ public:
     UpdateTicker();
   }
 
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggStatusLED", aName);
+    mOutput.PrintDebug("mOutput");
+    vDebug.PrintF("mOTA = %d\n", mOTA);
+    vDebug.PrintF("mWarning = %d\n", mWarning);
+    vDebug.PrintF("mError = %d\n", mError);
+  }
+
 private:
 
   void UpdateTicker() {

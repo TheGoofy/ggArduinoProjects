@@ -2,6 +2,8 @@
 
 #include <functional>
 
+#include "ggDebug.h"
+
 class ggSampler {
   
 public:
@@ -54,6 +56,13 @@ public:
 
   float GetLastSampleDeltaSeconds() const {
     return 0.000001f * mMicroSecondsDelta;
+  }
+
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggSampler", aName);
+    vDebug.PrintF("mMicroSecondsSampleTime = %ul\n", mMicroSecondsSampleTime);
+    vDebug.PrintF("mMicroSecondsLastSample = %ul\n", mMicroSecondsLastSample);
+    vDebug.PrintF("mMicroSecondsDelta = %ul\n", mMicroSecondsDelta);
   }
   
 private:

@@ -38,32 +38,36 @@
 struct ggPeriphery {
 
   ggButton mKey;
-  ggOutputPWM mOutput;
+  ggOutputPWM mOutputPWM;
   ggStatusLED mStatusLED;
   ggSensor mSensor;
 
   ggPeriphery()
   : mKey(M_PIN_KEY, true), // key, inverted (low if pressed)
-    mOutput(M_PIN_SSR, true, 1.0f), // SSR switch (optocpupler), inverted, 1Hz PWM (200 half-waves per sec => 200 pwm steps)
+    mOutputPWM(M_PIN_SSR, true, 1.0f), // SSR switch (optocpupler), inverted, 1Hz PWM (200 half-waves per sec => 200 pwm steps)
     mStatusLED(M_PIN_LED, true), // green status led, inverted
     mSensor(M_PIN_SDA, M_PIN_SCL) { // temperature sensor
   }
 
   void Begin() {
     mKey.Begin();
-    mOutput.Begin(0.0f); // set initial state to "off"
+    mOutputPWM.Begin(0.0f); // set initial state to "off"
     mStatusLED.Begin();
     mSensor.Begin();
   }
 
   void Run() {
     mKey.Run();
-    mOutput.Run();
+    mOutputPWM.Run();
     mSensor.Run();
   }
 
-  void Print(Stream& aStream) const {
-    mOutput.Print(aStream);
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggPeriphery", aName);
+    mKey.PrintDebug("mKey");
+    mOutputPWM.PrintDebug("mOutputPWM");
+    mStatusLED.PrintDebug("mStatusLED");
+    mSensor.PrintDebug("mSensor");
   }
 
 };

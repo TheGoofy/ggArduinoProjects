@@ -10,7 +10,7 @@
 // #define M_PCB_VERSION_V1
 // #define M_PCB_VERSION_V2
 // #define M_PCB_VERSION_V3
-// #define M_PCB_VERSION_V4 // actual fabricated PCB (May 2019)
+// #define M_PCB_VERSION_V4 // actual fabricated PCB (May 2019, installed in Vella)
 #define M_PCB_VERSION_V5 // doesn't use RX/TX-pins for SSR-control (serial port still usable for debugging)
 
 #include "ggWebServer.h"
@@ -19,6 +19,7 @@
 #include "ggPeriphery.h"
 #include "ggController.h"
 #include "ggValueEEPromString.h"
+#include "ggStreams.h"
 
 
 /*
@@ -90,7 +91,7 @@ void ConnectComponents()
 
   // controller event: when output changes, the SSR needs to be switched
   mTemperatureController.OnOutputChanged([&] (float aOutputValue) {
-    mPeriphery.mOutput.Set(aOutputValue);
+    mPeriphery.mOutputPWM.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
   });
 
@@ -147,7 +148,7 @@ void ConnectComponents()
   // OTA events
   ArduinoOTA.onStart([] () {
     mPeriphery.mStatusLED.SetOTA(true); // indicate "upload"
-    mPeriphery.mOutput.Set(false); // switch off output (in case OTA fails)
+    mPeriphery.mOutputPWM.Set(false); // switch off output (in case OTA fails)
   });
   ArduinoOTA.onEnd([] () {
     mPeriphery.mStatusLED.SetOTA(false);
@@ -181,13 +182,19 @@ void ConnectComponents()
     mWebSockets.UpdateOutputAnalog(mTemperatureController.GetOutputAnalog());
   });
   mWebSockets.OnSetOutput([&] (float aOutputValue) {
-    mPeriphery.mOutput.Set(aOutputValue);
+    mPeriphery.mOutputPWM.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
   });
 
   mWebServer.OnDebugStream([] (Stream& aStream) {
-    mPeriphery.Print(aStream);
-    mTemperatureController.Print(aStream);
+    ggStreams vStreams;
+    vStreams.push_back(&aStream);
+    vStreams.push_back(&Serial);
+    ggDebug::SetStream(vStreams);
+    ggDebug vDebug("mWebServer.OnDebugStream(...)");
+    mPeriphery.PrintDebug("mPeriphery");
+    mTemperatureController.PrintDebug("mTemperatureController");
+    ggDebug::SetStream(Serial);
   });
   mWebServer.OnReset([] () {
     mTemperatureController.ResetSettings();
@@ -272,7 +279,7 @@ void setup()
   Serial.println("OTA service started");
 
   // make sure all status and debug messages are sent before communication gets
-  // interrupted, in case hardware pins are needed for some different use.
+  // interrupted, just in case hardware pins are needed for some different use.
   Serial.flush();
 
   // setup connected hardware

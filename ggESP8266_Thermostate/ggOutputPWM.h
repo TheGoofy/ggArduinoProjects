@@ -63,13 +63,14 @@ public:
     }
   }
 
-  void Print(Stream& aStream) const {
-    ggOutput::Print(aStream);
-    aStream.printf("ggOutputPWM::mCycleTime = %ul\n", mCycleTime);
-    aStream.printf("ggOutputPWM::mCycleTimeHigh = %ul\n", mCycleTimeHigh);
-    aStream.printf("ggOutputPWM::mCycleTimeLow = %ul\n", mCycleTimeLow);
-    aStream.printf("ggOutputPWM::mMicrosNext = %ul\n", mMicrosNext);
-    aStream.printf("ggOutputPWM::Run() ... micros() = %ul\n", micros());
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggOutputPWM", aName);
+    ggOutput::PrintDebug();
+    vDebug.PrintF("mCycleTime = %ul\n", mCycleTime);
+    vDebug.PrintF("mCycleTimeHigh = %ul\n", mCycleTimeHigh);
+    vDebug.PrintF("mCycleTimeLow = %ul\n", mCycleTimeLow);
+    vDebug.PrintF("mMicrosNext = %ul\n", mMicrosNext);
+    vDebug.PrintF("Run() ... micros() = %ul\n", micros());
   }
 
 private:

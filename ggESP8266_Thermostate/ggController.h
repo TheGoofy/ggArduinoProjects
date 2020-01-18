@@ -50,7 +50,7 @@ public:
   void Begin();
   void Run();
 
-  void Print(Stream& aStream) const;
+  void PrintDebug(const String& aName = "") const;
 
 private:
 

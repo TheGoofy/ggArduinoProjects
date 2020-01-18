@@ -15,6 +15,12 @@ public:
     mDepth++;
   }
 
+  ggDebug(const String& aName, const String& aAttributes)
+  : mName(aName) {
+    aAttributes != "" ? Begin(aAttributes) : Begin();
+    mDepth++;
+  }
+
   virtual ~ggDebug() {
     mDepth--;
     End();
@@ -51,6 +57,13 @@ private:
   void Begin() {
     if (GetEnable()) {
       GetStream().printf("%s<%s>\n", Indent().c_str(), mName.c_str());
+      GetStream().flush();
+    }
+  }
+
+  void Begin(const String& aAttributes) {
+    if (GetEnable()) {
+      GetStream().printf("%s<%s %s>\n", Indent().c_str(), mName.c_str(), aAttributes.c_str());
       GetStream().flush();
     }
   }

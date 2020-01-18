@@ -33,10 +33,11 @@ public:
     return mInverted;
   }
 
-  void Print(Stream& aStream) const {
-    ggInputOutput::Print(aStream);
-    aStream.printf("ggOutput::mInverted = %d\n", mInverted);
-    aStream.printf("ggOutput::Get() = %d\n", Get());
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggOutput", aName);
+    ggInputOutput::PrintDebug();
+    vDebug.PrintF("mInverted = %d\n", mInverted);
+    vDebug.PrintF("Get() = %d\n", Get());
   }
 
 private:

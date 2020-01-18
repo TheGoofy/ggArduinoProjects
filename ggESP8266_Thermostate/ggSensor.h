@@ -86,6 +86,17 @@ public:
     mSampler.Run();
   }
 
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggSensor", aName);
+    mSampler.PrintDebug("mSampler");
+    vDebug.PrintF("mPinSDA = %d\n", mPinSDA);
+    vDebug.PrintF("mPinSCL = %d\n", mPinSCL);
+    vDebug.PrintF("mStatus = %s\n", GetStatus());
+    vDebug.PrintF("mPressure = %f\n", mPressure);
+    vDebug.PrintF("mTemperature = %f\n", mTemperature);
+    vDebug.PrintF("mHumidity = %f\n", mHumidity);
+  }
+
 private:
 
   enum tStatus {

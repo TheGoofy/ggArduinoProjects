@@ -26,6 +26,14 @@ public:
     return mInverted;
   }
 
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggInput", aName);
+    ggInputOutput::PrintDebug();
+    vDebug.PrintF("mInverted = %d\n", mInverted);
+    vDebug.PrintF("mEnablePullUp = %d\n", mEnablePullUp);
+    vDebug.PrintF("Get() = %d\n", Get());
+  }
+
 private:
 
   const bool mInverted;

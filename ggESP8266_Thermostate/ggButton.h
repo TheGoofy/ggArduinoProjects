@@ -59,6 +59,17 @@ public:
     mReleasedFunc = aReleasedFunc;
   }
 
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggButton", aName);
+    ggInput::PrintDebug();
+    vDebug.PrintF("mDebounceMillis = %d\n", mDebounceMillis);
+    vDebug.PrintF("mPressed = %d\n", mPressed);
+    vDebug.PrintF("mMillis = %d\n", mMillis);
+    vDebug.PrintF("mMillisDelta = %d\n", mMillisDelta);
+    vDebug.PrintF("mPressedForMillis = %d\n", mPressedForMillis);
+    vDebug.PrintF("mPressedForDone = %d\n", mPressedForDone);
+  }
+
 private:
 
   void CheckInput() {
@@ -98,4 +109,3 @@ private:
   tEventFunc mReleasedFunc;
 
 };
-
