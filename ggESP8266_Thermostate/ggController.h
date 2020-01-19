@@ -85,7 +85,7 @@ private:
   float mOutputMax;
   mutable unsigned long mMicrosLast;
   mutable float mErrorLast;
-  mutable float mErrorI;
+  mutable float mErrorOutputI;
 
   // callback when output value changed
   tOutputChangedFunc mOutputChangedFunc;

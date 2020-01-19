@@ -20,7 +20,7 @@ ggController::ggController()
   mOutputMax(1.0f),
   mMicrosLast(0),
   mErrorLast(0.0f),
-  mErrorI(0.0f),
+  mErrorOutputI(0.0f),
   mOutputChangedFunc(nullptr)
 {
 }
@@ -200,7 +200,7 @@ void ggController::PrintDebug(const String& aName) const
   vDebug.PrintF("mOutputMax = %f\n", mOutputMax);
   vDebug.PrintF("mMicrosLast = %ul\n", mMicrosLast);
   vDebug.PrintF("mErrorLast = %f\n", mErrorLast);
-  vDebug.PrintF("mErrorI = %f\n", mErrorI);
+  vDebug.PrintF("mErrorOutputI = %f\n", mErrorOutputI);
 }
 
 
@@ -208,7 +208,7 @@ void ggController::ResetControlStatePID()
 {
   mMicrosLast = micros();
   mErrorLast = 0.0f;
-  mErrorI = 0.0f;
+  mErrorOutputI = 0.0f;
 }
 
 
@@ -302,16 +302,17 @@ void ggController::ControlOutputPID(float& aOutput) const
 
   // I-control (integral error)
   if (mControlI.Get() != 0.0f) {
+    // only sum up integral error, input moves away from set-point
     if (vError * vErrorD >= 0.0f) {
-      // only sum up integral error, input moves away from set-point
-      mErrorI += (vError + mErrorLast) / 2.0f * vTimeDelta; // mid-point riemann sum
+      float vErrorI = (vError + mErrorLast) / 2.0f * vTimeDelta;
+      mErrorOutputI += mControlI.Get() * vErrorI; // mid-point riemann sum
     }
     // avoid windup of integral error, when output gets at its limits
     vOutput = ggClamp(vOutput, mOutputMin, mOutputMax);
-    float vErrorIMin = (mOutputMin - vOutput) / mControlI.Get();
-    float vErrorIMax = (mOutputMax - vOutput) / mControlI.Get();
-    mErrorI = ggClamp(mErrorI, vErrorIMin, vErrorIMax);
-    vOutput += mControlI.Get() * mErrorI;
+    float vErrorOutputIMin = mOutputMin - vOutput;
+    float vErrorOutputIMax = mOutputMax - vOutput;
+    mErrorOutputI = ggClamp(mErrorOutputI, vErrorOutputIMin, vErrorOutputIMax);
+    vOutput += mErrorOutputI;
   }
 
   // clamp output into range
