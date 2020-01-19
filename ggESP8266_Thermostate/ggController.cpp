@@ -10,6 +10,7 @@ ggController::ggController()
   mHysteresisValue(1.0f),
   mOutputAnalog(false),
   mInputValid(true),
+  mInputMicrosLast(0),
   mInputValue(0.0f),
   mOutputValue(0.0f),
   mSamplerPID(0.2f), // 0.2Hz (5s sampling time)
@@ -128,7 +129,13 @@ float ggController::GetInput() const
 void ggController::SetInput(float aInput)
 {
   if (mInputValue != aInput) {
-    mInputValue = aInput;
+    unsigned long vMicros = micros();
+    float vDelta = (vMicros - mInputMicrosLast) / 1000000.0f;
+    float vSamplePeriod = mSamplerPID.GetSamplePeriod();
+    float vInputWeight = vDelta / vSamplePeriod;
+    vInputWeight = ggClamp(vInputWeight, 0.1f, 0.9f);
+    mInputValue = (1.0f - vInputWeight) * mInputValue + vInputWeight * aInput;
+    mInputMicrosLast = vMicros;
   }
 }
 
@@ -190,9 +197,12 @@ void ggController::PrintDebug(const String& aName) const
 {
   ggDebug vDebug("ggController", aName);
   vDebug.PrintF("mMode = %s\n", ToString(mMode.Get()).c_str());
+  vDebug.PrintF("mInputValid = %d\n", mInputValid);
+  vDebug.PrintF("mInputMicrosLast = %ul\n", mInputMicrosLast);
   vDebug.PrintF("mInputValue = %f\n", mInputValue);
   vDebug.PrintF("mSetPointValue = %f\n", mSetPointValue.Get());
   vDebug.PrintF("mHysteresisValue = %f\n", mHysteresisValue.Get());
+  mSamplerPID.PrintDebug("mSamplerPID");
   vDebug.PrintF("mPID = %f / %f / %f\n", mControlP.Get(), mControlI.Get(), mControlD.Get());
   vDebug.PrintF("mOutputAnalog = %d\n", mOutputAnalog.Get());
   vDebug.PrintF("mOutputValue = %f\n", mOutputValue);
@@ -206,6 +216,7 @@ void ggController::PrintDebug(const String& aName) const
 
 void ggController::ResetControlStatePID()
 {
+  mInputMicrosLast = micros();
   mMicrosLast = micros();
   mErrorLast = 0.0f;
   mErrorOutputI = 0.0f;

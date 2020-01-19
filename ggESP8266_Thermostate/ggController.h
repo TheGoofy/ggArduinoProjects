@@ -73,6 +73,7 @@ private:
 
   // variable controls
   bool mInputValid;
+  unsigned long mInputMicrosLast;
   float mInputValue;
   float mOutputValue;
 
