@@ -1,0 +1,55 @@
+Zeigler-Nichols
+===============
+
+https://en.wikipedia.org/wiki/PID_controller#Ziegler%E2%80%93Nichols_method
+https://www.researchgate.net/profile/Om_Gupta2/publication/288567412_New_Techniques_of_PID_Controller_Tuning_of_a_DC_Motor-Development_of_a_Toolbox/links/56821ddc08ae1e63f1edea7e/New-Techniques-of-PID-Controller-Tuning-of-a-DC-Motor-Development-of-a-Toolbox.pdf
+
+Closed Loop at Oscillation
+--------------------------
+
+Ku: "ultimate" gain, when system starts oscilalting
+Tu: oscillation period at Ku
+
+Kp = 0.6 * Ku
+Ki = 1.2 * Ku / Tu
+Kd = 3 * Ku * Tu / 40
+
+Open Loop Step Response
+-----------------------
+
+T: Rise time of tangent at inflection point
+L1: Dead time
+
+Kp = 1.2 * T / L1
+Ti = 2 * L1
+Td = L1 / 2
+
+Ki = 1 / Ti = 0.5 / L1
+Kd = 1 / Td = 2 / L1
+
+
+Values
+======
+
+Vella Schlafzimmer
+------------------
+
+Measure:
+Ku = 1.1
+Tu = (10:18 - 9:29) / 6 = 11.8 min = 710 sec
+L1 = 115 sec
+T = 750 se
+
+Trial and error:
+P = 0.5
+I = 0.004
+D = 30
+
+
+Hedingen LED Heater
+-------------------
+
+Trial and error:
+P = 0.35
+I = 0.004
+D = 13
