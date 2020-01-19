@@ -24,8 +24,8 @@ Kp = 1.2 * T / L1
 Ti = 2 * L1
 Td = L1 / 2
 
-Ki = 1 / Ti = 0.5 / L1
-Kd = 1 / Td = 2 / L1
+Ki = Kp / Ti = 0.6 * T / L1^2
+Kd = Kp * Td = 0.6 * T
 
 
 Values
@@ -37,12 +37,14 @@ Vella Schlafzimmer
 Measure:
 Ku = 1.1
 Tu = (10:18 - 9:29) / 6 = 11.8 min = 710 sec
+Kpid = 0.66, 0.0019, 59
 L1 = 115 sec
-T = 750 se
+T = 750 sec
+Kpid = 7.8, 0.034, 450
 
 Trial and error:
 P = 0.5
-I = 0.004
+I = 0.002
 D = 30
 
 
