@@ -313,11 +313,8 @@ void ggController::ControlOutputPID(float& aOutput) const
 
   // I-control (integral error)
   if (mControlI.Get() != 0.0f) {
-    // only sum up integral error, input moves away from set-point
-    if (vError * vErrorD >= 0.0f) {
-      float vErrorI = (vError + mErrorLast) / 2.0f * vTimeDelta;
-      mErrorOutputI += mControlI.Get() * vErrorI; // mid-point riemann sum
-    }
+    float vErrorI = (vError + mErrorLast) / 2.0f * vTimeDelta;
+    mErrorOutputI += mControlI.Get() * vErrorI; // mid-point riemann sum
     // avoid windup of integral error, when output gets at its limits
     vOutput = ggClamp(vOutput, mOutputMin, mOutputMax);
     float vErrorOutputIMin = mOutputMin - vOutput;
