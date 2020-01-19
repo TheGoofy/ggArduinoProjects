@@ -15,20 +15,28 @@ function CalculatePID() {
   var vTu = mTu.value;
   mP_Kp.innerHTML = (0.5 * vKu).toPrecision(3);
   mPI_Kp.innerHTML = (0.45 * vKu).toPrecision(3);
-  mPID_Kp.innerHTML = (0.6 * vKu).toPrecision(3);
+  mPID0_Kp.innerHTML = (0.6 * vKu).toPrecision(3);
+  mPID1_Kp.innerHTML = (vKu / 3).toPrecision(3);
+  mPID2_Kp.innerHTML = (vKu / 5).toPrecision(3);
   if (vTu != 0) {
     mP_Ki.innerHTML = 0;
     mPI_Ki.innerHTML = (0.54 * vKu / vTu).toPrecision(3);
-    mPID_Ki.innerHTML = (1.2 * vKu / vTu).toPrecision(3);
+    mPID0_Ki.innerHTML = (1.2 * vKu / vTu).toPrecision(3);
+    mPID1_Ki.innerHTML = (2 / 3 * vKu / vTu).toPrecision(3);
+    mPID2_Ki.innerHTML = (2 / 5 * vKu / vTu).toPrecision(3);
   }
   else {
     mPI_Ki.innerHTML = 0;
     mPI_Ki.innerHTML = '-';
-    mPID_Ki.innerHTML = '-';
+    mPID0_Ki.innerHTML = '-';
+    mPID1_Ki.innerHTML = '-';
+    mPID2_Ki.innerHTML = '-';
   }
   mP_Kd.innerHTML = 0;
   mPI_Kd.innerHTML = 0;
-  mPID_Kd.innerHTML = (3 * vKu * vTu / 40).toPrecision(3);
+  mPID0_Kd.innerHTML = (3 * vKu * vTu / 40).toPrecision(3);
+  mPID1_Kd.innerHTML = (vKu * vTu / 9).toPrecision(3);
+  mPID2_Kd.innerHTML = (vKu * vTu / 15).toPrecision(3);
 }
 
 function OnLoad() {
@@ -56,19 +64,21 @@ function OnLoad() {
 
       <hr noshade>
       <div style='width:100%;line-height:1.2;'>
-        Classic PID tuning method by <a href="https://en.wikipedia.org/wiki/Ziegler%E2%80%93Nichols_method" target="_blank">Ziegler-Nichols</a>:
+        PID tuning method by <a href="https://en.wikipedia.org/wiki/Ziegler%E2%80%93Nichols_method" target="_blank">Ziegler-Nichols</a>:
         <p style="margin:6px;"></p>
         <table>
           <tr><td>K<sub>u</sub></td><td><input id="mKu" value="1" type="number" style="width:95%"></td><td>1/°C</td></tr>
           <tr><td>T<sub>u</sub></td><td><input id="mTu" value="1" type="number" style="width:95%"></td><td>sec</td></tr>
         </table>
         <p style="margin:6px;"></p>
-        <style> #mTablePID td { background: black; text-align: center; width: 25%;} </style>
+        <style> #mTablePID td { background: black; text-align: center; vertical-align: middle; width: 25%; height: 1.2rem;} </style>
         <table id='mTablePID' style="width:100%;">
           <tr><td>Type</td><td>K<sub>p</sub></td><td>K<sub>i</sub></td><td>K<sub>d</sub></td></tr>
           <tr><td style="width:25%;">P</td><td id='mP_Kp'></td><td id='mP_Ki'></td><td id='mP_Kd'></td></tr>
           <tr><td style="width:25%;">PI</td><td id='mPI_Kp'></td><td id='mPI_Ki'></td><td id='mPI_Kd'></td></tr>
-          <tr><td style="width:25%;">PID</td><td id='mPID_Kp'></td><td id='mPID_Ki'></td><td id='mPID_Kd'></td></tr>
+          <tr title='classic overshoot'><td style="width:25%;">PID<sub>a</sub></td><td id='mPID0_Kp'></td><td id='mPID0_Ki'></td><td id='mPID0_Kd'></td></tr title='classic overshoot'>
+          <tr title='some overshoot'><td style="width:25%;">PID<sub>b</sub></td><td id='mPID1_Kp'></td><td id='mPID1_Ki'></td><td id='mPID1_Kd'></td></tr title='some overshoot'>
+          <tr title='no overshoot'><td style="width:25%;">PID<sub>c</sub></td><td id='mPID2_Kp'></td><td id='mPID2_Ki'></td><td id='mPID2_Kd'></td></tr title='no overshoot'>
         </table>
       </div>
 
