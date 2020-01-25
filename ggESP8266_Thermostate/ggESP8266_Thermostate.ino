@@ -5,6 +5,7 @@
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
+#include <LittleFS.h>
 
 // PCB version definition (ggPeriphery.h)
 // #define M_PCB_VERSION_V1
@@ -31,12 +32,12 @@ todo:
 - scan LAN for connected devices (app for smart-phone)
 - which web-interface belongs to which device? "ping" flashing status LED
 - data-logging on ESP (multi-time-resolution)
-- own PID-controller
 - PID auto-tuning algorithm
 - adjustable PWM cycle time
 - serial stream to rx/tx AND html client console
 - SW/HW version
-- filter sensor values (iir + median)
+- use "littleFS" instead of "SPIFFS" (sketch data upload: https://github.com/earlephilhower/arduino-esp8266littlefs-plugin)
+- VS-Code: SPIFFS/LittleFS upload, OTA
 */
 
 
@@ -49,7 +50,7 @@ ggWiFiConnection mWiFiConnection;
   
 // create web server on port 80
 const int mWebServerPort = 80;
-ggWebServer mWebServer(mWebServerPort);
+ggWebServer mWebServer(mWebServerPort, &SPIFFS);
 
 // create web sockets server on port 81
 const int mWebSocketsPort = 81;

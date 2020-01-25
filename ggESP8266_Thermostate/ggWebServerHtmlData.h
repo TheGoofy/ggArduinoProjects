@@ -21,7 +21,7 @@ char mWebServerHtmlBack[] PROGMEM = R"=====(
       <hr noshade>
       <a href='/'>[home]</a>
       <a href='/logger'>[logger]</a>
-      <a href='/spiffs'>[spiffs]</a>
+      <a href='/files'>[files]</a>
       <a href='/debug'>[debug]</a>
       <a href='/goofy'>[goofy]</a><br>
       (c) 2020, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>

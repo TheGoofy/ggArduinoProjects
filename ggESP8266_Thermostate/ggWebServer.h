@@ -10,25 +10,26 @@ class ggWebServer {
 
 public:
 
-  ggWebServer(int aPort)
+  ggWebServer(int aPort, FS* aFileSystem)
   : mServer(aPort),
     mDebugStreamFunc(nullptr),
     mResetFunc(nullptr),
-    mRebootFunc(nullptr) {
+    mRebootFunc(nullptr),
+    mFileSystem(aFileSystem) {
   }
 
   void Begin() {
     mServer.on("/", [&] () { OnHome(); });
     mServer.on("/home", [&] () { OnHome(); });
     mServer.on("/logger", [&] () { HandleFile("/ggLogger.html"); });
-    mServer.on("/spiffs", [&] () { OnSPIFFS(); });
+    mServer.on("/files", [&] () { OnFS(); });
     mServer.on("/debug", [&] () { OnDebug(); });
     mServer.on("/goofy", [&] () { HandleFile("/ggGoofy.html"); });
     mServer.on("/reset", [&] () { OnReset(); });
     mServer.on("/reboot", [&] () { OnReboot(); });
     mServer.onNotFound([&] () { OnNotFound(); });
     mServer.begin();
-    SPIFFS.begin();
+    FileSystem().begin();
   }
 
   void Run() {
@@ -72,9 +73,9 @@ private:
   bool HandleFile(const String& aFileName) {
     GG_DEBUG();
     vDebug.PrintF("aFileName = %s\n", aFileName.c_str());
-    if (SPIFFS.exists(aFileName)) {
+    if (FileSystem().exists(aFileName)) {
       vDebug.PrintF("file exists\n");
-      File vFile = SPIFFS.open(aFileName, "r");
+      File vFile = FileSystem().open(aFileName, "r");
       if (vFile) {
         vDebug.PrintF("file opened\n");
         const String vContentType = GetContentType(aFileName);
@@ -98,30 +99,30 @@ private:
     HandleFile("/ggIndex.html");
   }
 
-  void OnSPIFFS() {
+  void OnFS() {
     size_t vNumberOfFiles = 0;
     size_t vTotalFileSize = 0;
-    String vDirHTML = "<script>document.title = 'ESP8266 Thermostate SPIFFS';</script>\n";
-    vDirHTML += "<b style='font-size:larger'>SPIFFS</b><br>\n<hr noshade>\n";
+    String vContent = "<script>document.title = 'ESP8266 Thermostate SPIFFS';</script>\n";
+    vContent += "<b style='font-size:larger'>SPIFFS</b><br>\n<hr noshade>\n";
     Dir vDir = SPIFFS.openDir("");
     while (vDir.next()) {
       vNumberOfFiles++;
       vTotalFileSize += vDir.fileSize();
-      vDirHTML += "<a href='" + vDir.fileName() + "'>" + vDir.fileName()+ "</a> - " + vDir.fileSize() + " bytes<br>\n";
+      vContent += "<a href='" + vDir.fileName() + "'>" + vDir.fileName()+ "</a> - " + vDir.fileSize() + " bytes<br>\n";
     }
-    vDirHTML += String("Total ") + vNumberOfFiles + " files - " + vTotalFileSize + " bytes<br>\n";
-    vDirHTML += "<hr noshade>\n";
+    vContent += String("Total ") + vNumberOfFiles + " files - " + vTotalFileSize + " bytes<br>\n";
+    vContent += "<hr noshade>\n";
     FSInfo vFSInfo;
-    SPIFFS.info(vFSInfo);
-    vDirHTML += String("FSInfo.totalBytes = ") + vFSInfo.totalBytes + " bytes<br>\n";
-    vDirHTML += String("FSInfo.usedBytes = ") + vFSInfo.usedBytes + " bytes<br>\n";
-    vDirHTML += String("FSInfo.blockSize = ") + vFSInfo.blockSize + " bytes<br>\n";
-    vDirHTML += String("FSInfo.pageSize = ") + vFSInfo.pageSize + " bytes<br>\n";
-    vDirHTML += String("FSInfo.maxOpenFiles = ") + vFSInfo.maxOpenFiles + "<br>\n";
-    vDirHTML += String("FSInfo.maxPathLength = ") + vFSInfo.maxPathLength + "<br>\n";
+    FileSystem().info(vFSInfo);
+    vContent += String("FSInfo.totalBytes = ") + vFSInfo.totalBytes + " bytes<br>\n";
+    vContent += String("FSInfo.usedBytes = ") + vFSInfo.usedBytes + " bytes<br>\n";
+    vContent += String("FSInfo.blockSize = ") + vFSInfo.blockSize + " bytes<br>\n";
+    vContent += String("FSInfo.pageSize = ") + vFSInfo.pageSize + " bytes<br>\n";
+    vContent += String("FSInfo.maxOpenFiles = ") + vFSInfo.maxOpenFiles + "<br>\n";
+    vContent += String("FSInfo.maxPathLength = ") + vFSInfo.maxPathLength + "<br>\n";
     float vPercentUsed = (float)vFSInfo.usedBytes / (float)vFSInfo.totalBytes;
-    vDirHTML += String("<progress style='width:100%' value='") + vPercentUsed + "' max='1'></progress><br>\n";
-    SendContent(vDirHTML);
+    vContent += String("<progress style='width:100%' value='") + vPercentUsed + "' max='1'></progress><br>\n";
+    SendContent(vContent);
   }
 
   void OnDebug() {
@@ -165,9 +166,15 @@ private:
     mServer.client().stop();
   }
 
+  FS& FileSystem() {
+    return *mFileSystem;
+  }
+
   ESP8266WebServer mServer;
 
   tStreamFunc mDebugStreamFunc;
   tFunc mResetFunc;
   tFunc mRebootFunc;
+
+  FS* mFileSystem;
 };
