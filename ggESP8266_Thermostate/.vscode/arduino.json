@@ -1,6 +1,6 @@
 {
     "board": "esp8266:esp8266:generic",
-    "configuration": "xtal=80,vt=flash,exception=legacy,ssl=all,ResetMethod=nodemcu,CrystalFreq=26,FlashFreq=40,FlashMode=dout,FlashSize=4M1M,eesz=4M1M,led=2,sdk=nonosdk_190703,ip=lm2f,dbg=Disabled,lvl=None____,wipe=none,baud=230400",
+    "configuration": "xtal=80,vt=flash,exception=legacy,ssl=all,ResetMethod=nodemcu,CrystalFreq=26,FlashFreq=40,FlashMode=dout,eesz=4M1M,led=2,sdk=nonosdk_190703,ip=lm2f,dbg=Disabled,lvl=None____,wipe=none,baud=230400",
     "sketch": "ggESP8266_Thermostate.ino",
     "port": "/dev/cu.wchusbserialfd140"
 }
