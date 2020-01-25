@@ -1,0 +1,24 @@
+{
+    "configurations": [
+        {
+            "name": "Mac",
+            "includePath": [
+                "/Users/christoph/Documents/Arduino/libraries/WebSockets/src",
+                "/Users/christoph/Documents/Arduino/libraries/WiFiManager",
+                "/Users/christoph/Documents/Arduino/libraries/BME280/src",
+                "/Users/christoph/Library/Arduino15/packages/esp8266/tools/**",
+                "/Users/christoph/Library/Arduino15/packages/esp8266/hardware/esp8266/2.6.3/**"
+            ],
+            "forcedInclude": [],
+            "macFrameworkPath": [
+                "/System/Library/Frameworks",
+                "/Library/Frameworks"
+            ],
+            "intelliSenseMode": "clang-x64",
+            "compilerPath": "/usr/bin/clang",
+            "cStandard": "c11",
+            "cppStandard": "c++17"
+        }
+    ],
+    "version": 4
+}
