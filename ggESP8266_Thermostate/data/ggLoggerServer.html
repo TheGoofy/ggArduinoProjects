@@ -1,0 +1,159 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01//EN' 'http://www.w3.org/TR/html4/strict.dtd'>
+<html>
+
+  <head>
+    <title>ESP8266 Thermostate Logger Server</title>
+    <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+    <meta http-equiv='Content-Style-Type' content='text/css'/>
+    <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
+    <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
+    <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script language='javascript' type='text/javascript'>
+
+      var mHostName = window.location.hostname;
+      var mTemperatureChart = null;
+      
+      function InitAll() {
+        InitHtmlElements();
+        CreateCharts();
+      }
+
+      function InitHtmlElements() {
+      }
+      
+      // google.charts.load('current', {'packages':['line']});
+      google.charts.load('current', {'packages':['corechart']});
+
+      function CreateTimeChart(aContainer, aUnit, aColor) {
+        var vTimeChart = new ggTimeChart(aContainer, aUnit, aColor);
+        google.charts.setOnLoadCallback(vTimeChart.Draw);
+        return vTimeChart;
+      }
+
+      class ggTimeChart {
+
+        constructor(aContainer, aUnit, aColor) {
+          this.mData = new google.visualization.DataTable();
+          this.mData.addColumn('date', '');
+          this.mData.addColumn('number', aUnit);
+          this.mOptions = {
+            legend: { position: 'none' },
+            series: { 0: { color: aColor } },
+            axisTitlesPosition: 'none',
+            chartArea: { width: '98%',  height: '100%' },
+            hAxis: {
+              textPosition: 'in',
+              maxTextLines: 2,
+              format: 'HH:mm:ss\ndd.MM.yyyy',
+              gridlines: { count: 3, color: '#eee' },
+            },
+            vAxis: {
+              textPosition: 'in',
+            },
+            explorer: {
+              axis: 'horizontal',
+              keepInBounds: true,
+              zoomDelta: 0.8,
+            }
+          };
+          // this.mChart = new google.charts.Line(aContainer);
+          this.mChart = new google.visualization.LineChart(aContainer);
+          this.mSamplesPerRow = 1;
+          this.mSamples = 0;
+          this.mTime = 0;
+          this.mValue = 0;
+          this.mRowsMax = 1024;
+        }
+
+        Add(aValue) {
+          this.mTime += Date.now() / this.mSamplesPerRow;
+          this.mValue += aValue / this.mSamplesPerRow;
+          this.mSamples++;
+          if (this.mSamples == this.mSamplesPerRow) {
+            this.mData.addRow([new Date(this.mTime), this.mValue]);
+            this.mSamples = 0;
+            this.mTime = 0;
+            this.mValue = 0;
+            if (this.mData.getNumberOfRows() >= this.mRowsMax) {
+              var vRowIndex;
+              for (vRowIndex = 0; vRowIndex < this.mRowsMax/2; vRowIndex++) {
+                var vTime = (this.mData.getValue(2*vRowIndex, 0).getTime() + this.mData.getValue(2*vRowIndex+1, 0).getTime()) / 2.0;
+                var vValue = (this.mData.getValue(2*vRowIndex, 1) + this.mData.getValue(2*vRowIndex+1, 1)) / 2.0;
+                this.mData.setValue(vRowIndex, 0, new Date(vTime));
+                this.mData.setValue(vRowIndex, 1, vValue);
+              }
+              this.mData.removeRows(this.mRowsMax/2, this.mRowsMax/2);
+              this.mSamplesPerRow *= 2;
+            }
+            this.Draw();
+          }
+        }
+
+        Draw() {
+          // this.mChart.draw(this.mData, google.charts.Line.convertOptions(this.mOptions));
+          this.mChart.draw(this.mData, this.mOptions);
+        }
+      
+      }
+      
+      function CreateCharts() {
+
+        if (mHostName == '') {
+          mHostName = window.prompt('Please enter host address', "192.168.0.88");
+        }
+        var vReq = new XMLHttpRequest();
+        vReq.open("GET", "http://" + mHostName + "/ggLoggerData.dat");
+        vReq.responseType = "arraybuffer";
+
+        vReq.onload = function (aEvent) {
+          if (vReq.status == 200) {
+            console.log("vReq.onload");
+            console.log("aEvent = " + aEvent);
+            var vArrayBuffer = vReq.response; // Note: not vReq.responseText
+            if (vArrayBuffer) {
+              var vIndex = new Uint32Array(vArrayBuffer, 0, 1);
+              console.log("vIndex = " + vIndex[0]);
+              var i = 4;
+              while (i < vArrayBuffer.byteLength) {
+                var vMicros = new Uint32Array(vArrayBuffer, i, 1);
+                i += 4;
+                var vTemperature = new Uint16Array(vArrayBuffer, i, 1);
+                i += 4;
+                console.log("i = " + i + " / vMicros = " + vMicros[0] + " / vTemperature = " + vTemperature[0] / 100.0);
+              }
+            } 
+          }
+        }
+
+        vReq.send(null);
+        
+        // mTemperatureChart = CreateTimeChart(document.getElementById('mTemperatureChartDiv'), '°C', '#08f');
+      }
+      
+    </script>
+  </head>
+
+  <body onload='javascript:InitAll()'>
+    <div style='text-align:left;display:inline-block;min-width:340px'>
+      <b style="font-size: larger;">Data Logging Client</b><br>
+      <hr noshade>
+      
+      <style> .cChartTitle { text-align: center; } </style>
+      <div id='mCharts' style='padding:3px;background:white'>
+        <div class='cChartTitle'>Temperature [°C]</div>
+        <div id='mTemperatureChartDiv' style='width:100%;height:150px'></div>
+      </div>
+      
+      <br>
+      <hr noshade>
+      <a href='/'>[home]</a>
+      <a href='/logger'>[logger]</a>
+      <a href='/files'>[files]</a>
+      <a href='/debug'>[debug]</a>
+      <a href='/goofy'>[goofy]</a><br>
+      (c) 2020, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
+    </div>
+  </body>
+
+</html>

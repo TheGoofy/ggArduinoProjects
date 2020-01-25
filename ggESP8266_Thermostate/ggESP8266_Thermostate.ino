@@ -21,6 +21,8 @@
 #include "ggController.h"
 #include "ggValueEEPromString.h"
 #include "ggStreams.h"
+#include "ggLoggerDataT.h"
+
 
 
 /*
@@ -65,6 +67,18 @@ ggController mTemperatureController;
 // device name
 ggValueEEPromString<> mName(mHostName);
 
+// data logging
+typedef struct cData {
+  unsigned long mTime;
+  int16_t mTemperature;
+};
+ggLoggerDataT<cData> mLogger("/ggLoggerData.dat", 256, &SPIFFS);
+void Log(float aTemperature) {
+  cData vData;
+  vData.mTime = micros();
+  vData.mTemperature = ggRound<int16_t>(100.0f * aTemperature);
+  mLogger.Log(vData);
+}
 
 void ConnectComponents()
 {
@@ -94,6 +108,7 @@ void ConnectComponents()
   mTemperatureController.OnOutputChanged([&] (float aOutputValue) {
     mPeriphery.mOutputPWM.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
+    Log(mPeriphery.mSensor.GetTemperature());
   });
 
   // when button "key" is pressed we switch the SSR manually

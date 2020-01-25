@@ -21,15 +21,13 @@ public:
     vDebug.PrintF("mFileName = %s\n", mFileName.c_str());
     vDebug.PrintF("mIndexSize = %d\n", mIndexSize);
     // open file for append/update "a+" and binary "b" 
-    File vFile = FileSystem().open(mFileName.c_str(), "r+b");
+    File vFile;
+    Initialize(vFile);
     if (vFile) {
-      Initialize(vFile);
       vDebug.PrintF("file opened\n");
       uint32_t vIndex = ReadIndex(vFile);
       vDebug.PrintF("vIndex = %d\n", vIndex);
-      vIndex = (vIndex + 1) % mIndexSize;
-      vDebug.PrintF("next vIndex = %d\n", vIndex);
-      WriteIndex(vFile, vIndex);
+      WriteIndex(vFile, (vIndex + 1) % mIndexSize);
       Write(vFile, vIndex, aData);
       vFile.flush();
       vFile.close();
@@ -48,15 +46,43 @@ private:
     return sizeof(uint32_t) + mIndexSize * sizeof(TData);
   }
 
-  void Initialize(File& aFile) const {
-    GG_DEBUG();
+  void Reset(File& aFile) const {
+    aFile.seek(0);
     const size_t vFileSize = GetFileSize();
-    if (aFile.size() != vFileSize) {
-      vDebug.PrintF("resetting file\n");
-      aFile.seek(0);
-      size_t vIndex = vFileSize;
-      while (vIndex--) aFile.write(0);
-      aFile.truncate(vFileSize);
+    size_t vIndex = vFileSize;
+    while (vIndex--) aFile.write(0);
+    aFile.truncate(vFileSize);
+  }
+
+  void Initialize(File& aFile) const {
+    
+    GG_DEBUG();
+    
+    if (!aFile) {
+      // open an existing file for update
+      vDebug.PrintF("open an existing file for update\n");
+      aFile = FileSystem().open(mFileName.c_str(), "r+b");
+      if (!aFile) {
+        // create an empty file for output operations
+        vDebug.PrintF("file did not exist - create new\n");
+        aFile = FileSystem().open(mFileName.c_str(), "w");
+        // close it and re-open in update mode
+        if (aFile) {
+          vDebug.PrintF("init file data, flush, close, and re-open\n");
+          Reset(aFile);
+          aFile.flush();
+          aFile.close();
+          aFile = FileSystem().open(mFileName.c_str(), "r+b");
+        }
+      }
+    }
+
+    if (aFile) {
+      const size_t vFileSize = GetFileSize();
+      if (aFile.size() != vFileSize) {
+        vDebug.PrintF("resetting file\n");
+        Reset(aFile);
+      }
     }
   }
 
