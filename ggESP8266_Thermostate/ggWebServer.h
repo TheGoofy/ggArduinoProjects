@@ -67,6 +67,8 @@ private:
     if (aFileName.endsWith(".pdf")) return "application/x-pdf";
     if (aFileName.endsWith(".zip")) return "application/x-zip";
     if (aFileName.endsWith(".gz")) return "application/x-gzip";
+    if (aFileName.endsWith(".dat")) return "application/x-binary";
+    if (aFileName.endsWith(".bin")) return "application/x-binary";
     return "text/plain";
   }
 
