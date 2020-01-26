@@ -22,7 +22,8 @@
 #include "ggValueEEPromString.h"
 #include "ggStreams.h"
 #include "ggLoggerDataT.h"
-
+#include "ggTimerNTP.h"
+#include "ggAveragesT.h"
 
 
 /*
@@ -40,6 +41,8 @@ todo:
 - SW/HW version
 - use "littleFS" instead of "SPIFFS" (sketch data upload: https://github.com/earlephilhower/arduino-esp8266littlefs-plugin)
 - VS-Code: SPIFFS/LittleFS upload, OTA
+- NTP server in eeprom
+- pin-assignment in eeprom
 */
 
 
@@ -67,18 +70,28 @@ ggController mTemperatureController;
 // device name
 ggValueEEPromString<> mName(mHostName);
 
+
 // data logging
+ggTimerNTP mTimerNTP("ch.pool.ntp.org", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00");
+ggAveragesT<float> mTemperatureAVG;
 typedef struct cData {
-  unsigned long mTime;
+  time_t mTime;
   int16_t mTemperature;
+  int16_t mTemperatureMin;
+  int16_t mTemperatureMax;
+  int16_t mTemperatureStdDev;
 };
-ggLoggerDataT<cData> mLogger("/ggLoggerData.dat", 256, &SPIFFS);
-void Log(float aTemperature) {
+ggLoggerDataT<cData> mLogger("/ggLoggerData.dat", 4+2880*sizeof(cData), &SPIFFS);
+void Log(uint32_t aPeriod) {
   cData vData;
-  vData.mTime = micros();
-  vData.mTemperature = ggRound<int16_t>(100.0f * aTemperature);
+  vData.mTime = mTimerNTP.GetTime() - aPeriod; // calc interval start time
+  vData.mTemperature = ggRound<int16_t>(100.0f * mTemperatureAVG.GetMean());
+  vData.mTemperatureMin = ggRound<int16_t>(100.0f * mTemperatureAVG.GetMin());
+  vData.mTemperatureMax = ggRound<int16_t>(100.0f * mTemperatureAVG.GetMax());
+  vData.mTemperatureStdDev = ggRound<int16_t>(100.0f * mTemperatureAVG.GetStdDev());
   mLogger.Log(vData);
 }
+
 
 void ConnectComponents()
 {
@@ -108,7 +121,6 @@ void ConnectComponents()
   mTemperatureController.OnOutputChanged([&] (float aOutputValue) {
     mPeriphery.mOutputPWM.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
-    Log(mPeriphery.mSensor.GetTemperature());
   });
 
   // when button "key" is pressed we switch the SSR manually
@@ -142,10 +154,9 @@ void ConnectComponents()
     mWebSockets.UpdatePressure(aPressure);
   });
   mPeriphery.mSensor.OnTemperatureChanged([&] (float aTemperature) {
-    // ggDebug vDebug("mPeriphery.mSensor.OnTemperatureChanged");
-    // vDebug.PrintF("aTemperature = %0.3f\n", aTemperature);
     mTemperatureController.SetInput(aTemperature);
     mWebSockets.UpdateTemperature(aTemperature);
+    mTemperatureAVG.AddSample(aTemperature);
   });
   mPeriphery.mSensor.OnHumidityChanged([&] (float aHumidity) {
     mWebSockets.UpdateHumidity(aHumidity);
@@ -188,8 +199,6 @@ void ConnectComponents()
     mWebSockets.UpdateHysteresis(mTemperatureController.GetHysteresis());
   });
   mWebSockets.OnSetControlPID([&] (float aP, float aI, float aD) {
-    ggDebug vDebug("mWebSockets.OnSetControlPID");
-    vDebug.PrintF("PID=%f/%f/%f\n", aP, aI, aD);
     mTemperatureController.SetPID(aP, aI, aD);
     mWebSockets.UpdateControlPID(aP, aI, aD);
   });
@@ -202,6 +211,7 @@ void ConnectComponents()
     mWebSockets.UpdateOutput(aOutputValue);
   });
 
+  // web server
   mWebServer.OnDebugStream([] (Stream& aStream) {
     ggStreams vStreams;
     vStreams.push_back(&aStream);
@@ -219,6 +229,12 @@ void ConnectComponents()
   mWebServer.OnReboot([] () {
     ESP.restart();
   });
+
+  // timer (for logging)
+  mTimerNTP.AddTimer(30, [] (uint32_t aPeriod) {
+    Log(aPeriod);
+    mTemperatureAVG.Reset();
+  });
 }
 
 
@@ -229,6 +245,7 @@ void Run()
   mWebServer.Run();
   mWebSockets.Run();
   mWiFiConnection.Run();
+  mTimerNTP.Run();
   MDNS.update();
   ArduinoOTA.handle();
   yield();
@@ -256,6 +273,10 @@ void setup()
   
   GG_DEBUG();
 
+  // startup eeprom utility class
+  ggValueEEProm::Begin();
+  Serial.printf("Device Name: %s\n", mName.Get().c_str());
+
   // connect to wifi
   mWifiManager.setDebugOutput(true);
   mWifiManager.setAPCallback(WifiManagerConfigPortalStart);
@@ -268,12 +289,11 @@ void setup()
   Serial.println(WiFi.localIP());
   mWiFiConnection.Begin();
 
-  // startup eeprom utility class
-  ggValueEEProm::Begin();
-  Serial.printf("Device Name: %s\n", mName.Get().c_str());
-
   // connect inputs, outputs, socket-events, ...
   ConnectComponents();
+
+  // NTP timer
+  mTimerNTP.Begin();
 
   // configure and start web-server
   mWebServer.Begin();

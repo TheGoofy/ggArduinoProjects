@@ -27,7 +27,7 @@
 
       function CreateTimeChart(aContainer, aUnit, aColor) {
         var vTimeChart = new ggTimeChart(aContainer, aUnit, aColor);
-        google.charts.setOnLoadCallback(vTimeChart.Draw);
+        // google.charts.setOnLoadCallback(vTimeChart.Draw);
         return vTimeChart;
       }
 
@@ -37,9 +37,15 @@
           this.mData = new google.visualization.DataTable();
           this.mData.addColumn('date', '');
           this.mData.addColumn('number', aUnit);
+          this.mData.addColumn('number', aUnit);
+          this.mData.addColumn('number', aUnit);
           this.mOptions = {
             legend: { position: 'none' },
-            series: { 0: { color: aColor } },
+            series: {
+              0: { color: aColor, lineDashStyle: [1, 2] },
+              1: { color: aColor, lineDashStyle: [1, 2] },
+              2: { color: aColor }
+            },
             axisTitlesPosition: 'none',
             chartArea: { width: '98%',  height: '100%' },
             hAxis: {
@@ -59,35 +65,11 @@
           };
           // this.mChart = new google.charts.Line(aContainer);
           this.mChart = new google.visualization.LineChart(aContainer);
-          this.mSamplesPerRow = 1;
-          this.mSamples = 0;
-          this.mTime = 0;
-          this.mValue = 0;
-          this.mRowsMax = 1024;
         }
 
-        Add(aValue) {
-          this.mTime += Date.now() / this.mSamplesPerRow;
-          this.mValue += aValue / this.mSamplesPerRow;
-          this.mSamples++;
-          if (this.mSamples == this.mSamplesPerRow) {
-            this.mData.addRow([new Date(this.mTime), this.mValue]);
-            this.mSamples = 0;
-            this.mTime = 0;
-            this.mValue = 0;
-            if (this.mData.getNumberOfRows() >= this.mRowsMax) {
-              var vRowIndex;
-              for (vRowIndex = 0; vRowIndex < this.mRowsMax/2; vRowIndex++) {
-                var vTime = (this.mData.getValue(2*vRowIndex, 0).getTime() + this.mData.getValue(2*vRowIndex+1, 0).getTime()) / 2.0;
-                var vValue = (this.mData.getValue(2*vRowIndex, 1) + this.mData.getValue(2*vRowIndex+1, 1)) / 2.0;
-                this.mData.setValue(vRowIndex, 0, new Date(vTime));
-                this.mData.setValue(vRowIndex, 1, vValue);
-              }
-              this.mData.removeRows(this.mRowsMax/2, this.mRowsMax/2);
-              this.mSamplesPerRow *= 2;
-            }
-            this.Draw();
-          }
+        Add(aDate, aValue, aValueMin, aValueMax, aRedraw) {
+          this.mData.addRow([aDate, aValueMin, aValueMax, aValue]);
+          if (aRedraw) this.Draw();
         }
 
         Draw() {
@@ -99,36 +81,46 @@
       
       function CreateCharts() {
 
+        mTemperatureChart = CreateTimeChart(document.getElementById('mTemperatureChartDiv'), '°C', '#08f');
+
         if (mHostName == '') {
-          mHostName = window.prompt('Please enter host address', "192.168.0.88");
+          mHostName = window.prompt('Please enter host name', "192.168.0.88");
         }
+        var vFileName = "ggLoggerData.dat";
+        var vURL = "http://" + mHostName + "/" + vFileName;
+
         var vReq = new XMLHttpRequest();
-        vReq.open("GET", "http://" + mHostName + "/ggLoggerData.dat");
+        vReq.open("GET", vURL);
         vReq.responseType = "arraybuffer";
 
         vReq.onload = function (aEvent) {
           if (vReq.status == 200) {
-            console.log("vReq.onload");
-            console.log("aEvent = " + aEvent);
             var vArrayBuffer = vReq.response; // Note: not vReq.responseText
             if (vArrayBuffer) {
-              var vIndex = new Uint32Array(vArrayBuffer, 0, 1);
-              console.log("vIndex = " + vIndex[0]);
-              var i = 4;
-              while (i < vArrayBuffer.byteLength) {
-                var vMicros = new Uint32Array(vArrayBuffer, i, 1);
-                i += 4;
-                var vTemperature = new Uint16Array(vArrayBuffer, i, 1);
-                i += 4;
-                console.log("i = " + i + " / vMicros = " + vMicros[0] + " / vTemperature = " + vTemperature[0] / 100.0);
+              const vBlockOffsetSize = 4;
+              const vBlockSize = 4 + 2 + 2 + 2 + 2;
+              const vNumberOfBlocks = (vArrayBuffer.byteLength - vBlockOffsetSize) / vBlockSize;
+              if (vNumberOfBlocks > 0) {
+                const vBlockOffset = (new Uint32Array(vArrayBuffer, 0, 1))[0];
+                for (var vBlockIndex = 0; vBlockIndex < vNumberOfBlocks; vBlockIndex++) {
+                  const vPosition = vBlockOffsetSize + vBlockSize * ((vBlockIndex + vBlockOffset) % vNumberOfBlocks);
+                  var vTime = (new Uint32Array(vArrayBuffer, vPosition, 1))[0];
+                  if (vTime != 0) {
+                    var vTemperature = (new Uint16Array(vArrayBuffer, vPosition + 4, 1))[0];
+                    var vTemperatureMin = (new Uint16Array(vArrayBuffer, vPosition + 6, 1))[0];
+                    var vTemperatureMax = (new Uint16Array(vArrayBuffer, vPosition + 8, 1))[0];
+                    var vTemperatureStdDev = (new Uint16Array(vArrayBuffer, vPosition + 10, 1))[0];
+                    var vDate = new Date(1000 * vTime);
+                    mTemperatureChart.Add(vDate, vTemperature / 100.0,  vTemperatureMin / 100.0, vTemperatureMax / 100.0, false);
+                  }
+                } 
+                mTemperatureChart.Draw();
               }
             } 
           }
         }
 
         vReq.send(null);
-        
-        // mTemperatureChart = CreateTimeChart(document.getElementById('mTemperatureChartDiv'), '°C', '#08f');
       }
       
     </script>
@@ -136,7 +128,7 @@
 
   <body onload='javascript:InitAll()'>
     <div style='text-align:left;display:inline-block;min-width:340px'>
-      <b style="font-size: larger;">Data Logging Client</b><br>
+      <b style="font-size: larger;">Data Logging Server</b><br>
       <hr noshade>
       
       <style> .cChartTitle { text-align: center; } </style>
