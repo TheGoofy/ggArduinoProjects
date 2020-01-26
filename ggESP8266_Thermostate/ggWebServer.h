@@ -80,6 +80,7 @@ private:
       File vFile = FileSystem().open(aFileName, "r");
       if (vFile) {
         vDebug.PrintF("file opened\n");
+        mServer.sendHeader("Access-Control-Allow-Origin", "*");
         const String vContentType = GetContentType(aFileName);
         size_t sent = mServer.streamFile(vFile, vContentType);
         vFile.close();
@@ -160,6 +161,7 @@ private:
     vContentLength += strlen_P(mWebServerHtmlFront);
     vContentLength += aHtmlContent.length();
     vContentLength += strlen_P(mWebServerHtmlBack);
+    mServer.sendHeader("Access-Control-Allow-Origin", "*");
     mServer.setContentLength(vContentLength);
     mServer.send(200, "text/html", "");
     mServer.sendContent_P(mWebServerHtmlFront);
