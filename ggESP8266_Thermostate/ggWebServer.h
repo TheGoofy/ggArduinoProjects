@@ -105,9 +105,9 @@ private:
   void OnFS() {
     size_t vNumberOfFiles = 0;
     size_t vTotalFileSize = 0;
-    String vContent = "<script>document.title = 'ESP8266 Thermostate SPIFFS';</script>\n";
-    vContent += "<b style='font-size:larger'>SPIFFS</b><br>\n<hr noshade>\n";
-    Dir vDir = SPIFFS.openDir("");
+    String vContent = "<script>document.title = 'ESP8266 Thermostate Files';</script>\n";
+    vContent += "<b style='font-size:larger'>Files</b><br>\n<hr noshade>\n";
+    Dir vDir = FileSystem().openDir("");
     while (vDir.next()) {
       vNumberOfFiles++;
       vTotalFileSize += vDir.fileSize();
