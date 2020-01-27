@@ -3,6 +3,9 @@
 #include <Arduino.h>
 #include <FS.h>
 
+/**
+ * Saves binary data blocks circular buffered in a file.
+ */
 template <class TData>
 class ggLoggerDataT {
 
@@ -17,16 +20,10 @@ public:
   }
 
   void Log(const TData& aData) const {
-    GG_DEBUG();
-    vDebug.PrintF("mFileName = %s\n", mFileName.c_str());
-    vDebug.PrintF("mIndexSize = %d\n", mIndexSize);
-    // open file for append/update "a+" and binary "b" 
     File vFile;
     Initialize(vFile);
     if (vFile) {
-      vDebug.PrintF("file opened\n");
       uint32_t vIndex = ReadIndex(vFile);
-      vDebug.PrintF("vIndex = %d\n", vIndex);
       WriteIndex(vFile, (vIndex + 1) % mIndexSize);
       Write(vFile, vIndex, aData);
       vFile.flush();
@@ -37,8 +34,6 @@ public:
 private:
 
   FS& FileSystem() const {
-    GG_DEBUG();
-    vDebug.PrintF("mFileSystem = %d\n", mFileSystem);
     return *mFileSystem;
   }
 
@@ -55,39 +50,35 @@ private:
   }
 
   void Initialize(File& aFile) const {
-    
-    GG_DEBUG();
-    
+    // if file is not open, it needs to be opened or created    
     if (!aFile) {
       // open an existing file for update
-      vDebug.PrintF("open an existing file for update\n");
       aFile = FileSystem().open(mFileName.c_str(), "r+b");
+      // if file can't be opened, it probably doesn't exist
       if (!aFile) {
         // create an empty file for output operations
-        vDebug.PrintF("file did not exist - create new\n");
         aFile = FileSystem().open(mFileName.c_str(), "w");
         // close it and re-open in update mode
         if (aFile) {
-          vDebug.PrintF("init file data, flush, close, and re-open\n");
           Reset(aFile);
           aFile.flush();
           aFile.close();
+          // for later operations, the file must be opened for update
           aFile = FileSystem().open(mFileName.c_str(), "r+b");
         }
       }
     }
-
+    // hopefully there is now a file open for update
     if (aFile) {
+      // if the filesize does not match, we're resetting the file
       const size_t vFileSize = GetFileSize();
       if (aFile.size() != vFileSize) {
-        vDebug.PrintF("resetting file\n");
         Reset(aFile);
       }
     }
   }
 
   static uint32_t ReadIndex(File& aFile) {
-    GG_DEBUG();
     uint32_t vIndex = 0;
     if (aFile.seek(0)) {
       Read(aFile, vIndex);
@@ -96,8 +87,6 @@ private:
   }
 
   static void WriteIndex(File& aFile, uint32_t aIndex) {
-    GG_DEBUG();
-    vDebug.PrintF("aIndex = %d\n", aIndex);
     if (aFile.seek(0)) {
       Write(aFile, aIndex);
     }
@@ -105,29 +94,21 @@ private:
 
   template <typename T>
   static bool Read(File& aFile, T& aData) {
-    GG_DEBUG();
     T vData = aData;
     if (aFile.read(reinterpret_cast<uint8_t*>(&vData), sizeof(T)) == sizeof(T)) {
-      vDebug.PrintF("reading succeeded\n");
       aData = vData;
       return true;
     }
-    vDebug.PrintF("reading failed\n");
     return false;
   }
 
   template <typename T>
   static void Write(File& aFile, const T& aData) {
-    GG_DEBUG();
     size_t vNumWritten = aFile.write(reinterpret_cast<uint8_t*>(const_cast<T*>(&aData)), sizeof(T));
-    vDebug.PrintF("sizeof(T) = %d\n", sizeof(T));
-    vDebug.PrintF("vNumWritten = %d\n", vNumWritten);
   }
 
   static void Write(File& aFile, uint32_t aIndex, const TData& aData) {
-    GG_DEBUG();
     size_t vPosition = sizeof(uint32_t) + aIndex * sizeof(TData);
-    vDebug.PrintF("vPosition = %d\n", vPosition);
     if (aFile.seek(vPosition)) {
       Write(aFile, aData);
     }

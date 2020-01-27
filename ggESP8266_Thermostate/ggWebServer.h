@@ -54,7 +54,6 @@ public:
 private:
 
   static String GetContentType(const String& aFileName) {
-    GG_DEBUG();
     if (aFileName.endsWith(".htm")) return "text/html";
     if (aFileName.endsWith(".html")) return "text/html";
     if (aFileName.endsWith(".css")) return "text/css";
@@ -74,19 +73,21 @@ private:
 
   bool HandleFile(const String& aFileName) {
     GG_DEBUG();
-    vDebug.PrintF("aFileName = %s\n", aFileName.c_str());
     if (FileSystem().exists(aFileName)) {
-      vDebug.PrintF("file exists\n");
       File vFile = FileSystem().open(aFileName, "r");
       if (vFile) {
-        vDebug.PrintF("file opened\n");
+        unsigned long vMicrosStart = micros();
         mServer.sendHeader("Access-Control-Allow-Origin", "*");
         const String vContentType = GetContentType(aFileName);
         size_t sent = mServer.streamFile(vFile, vContentType);
+        unsigned long vMicrosEnd = micros();
+        float vMilliSeconds = (vMicrosEnd - vMicrosStart) / 1000.0f;
+        vDebug.PrintF("file \"%s\" transferred in %lf ms\n", aFileName.c_str(), vMilliSeconds);
         vFile.close();
         return true;
       }
     }
+    vDebug.PrintF("file \"%s\" not found\n", aFileName.c_str());
     return false;
   }
 
