@@ -76,21 +76,20 @@ ggValueEEPromString<> mName(mHostName);
 ggTimerNTP mTimerNTP("ch.pool.ntp.org", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00");
 ggAveragesT<float> mTemperatureAVG;
 typedef struct cData {
-  time_t mTime;
   int16_t mTemperature;
   int16_t mTemperatureMin;
   int16_t mTemperatureMax;
   int16_t mTemperatureStdDev;
 };
-ggCircularFileT<cData> mCircularFile("/ggLoggerData.dat", 2880, &SPIFFS);
+ggCircularFileT<time_t, cData> mCircularFile("/ggData1D.dat", 2880, &SPIFFS);
 void Log(uint32_t aPeriod) {
+  time_t vTime = mTimerNTP.GetTime() - aPeriod; // calc interval start time
   cData vData;
-  vData.mTime = mTimerNTP.GetTime() - aPeriod; // calc interval start time
   vData.mTemperature = ggRound<int16_t>(100.0f * mTemperatureAVG.GetMean());
   vData.mTemperatureMin = ggRound<int16_t>(100.0f * mTemperatureAVG.GetMin());
   vData.mTemperatureMax = ggRound<int16_t>(100.0f * mTemperatureAVG.GetMax());
   vData.mTemperatureStdDev = ggRound<int16_t>(100.0f * mTemperatureAVG.GetStdDev());
-  mCircularFile.Write(vData);
+  mCircularFile.Write(vTime, vData);
 }
 
 

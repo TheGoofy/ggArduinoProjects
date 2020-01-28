@@ -67,8 +67,8 @@
           this.mChart = new google.visualization.LineChart(aContainer);
         }
 
-        Add(aDate, aValue, aValueMin, aValueMax, aRedraw) {
-          this.mData.addRow([aDate, aValueMin, aValueMax, aValue]);
+        Add(aRowIndex, aDate, aValue, aValueMin, aValueMax, aRedraw) {
+          this.mData.insertRows(aRowIndex, [[aDate, aValueMin, aValueMax, aValue]]);
           if (aRedraw) this.Draw();
         }
 
@@ -86,10 +86,10 @@
         if (mHostName == '') {
           mHostName = window.prompt('Please enter host name', "192.168.0.88");
         }
-        var vFileName = "ggLoggerData.dat";
-        var vURL = "http://" + mHostName + "/" + vFileName;
+        let vFileName = "ggData1D.dat";
+        let vURL = "http://" + mHostName + "/" + vFileName;
 
-        var vReq = new XMLHttpRequest();
+        let vReq = new XMLHttpRequest();
         vReq.open("GET", vURL);
         vReq.responseType = "arraybuffer";
 
@@ -97,25 +97,27 @@
           if (vReq.status == 200) {
             var vArrayBuffer = vReq.response; // Note: not vReq.responseText
             if (vArrayBuffer) {
-              const vBlockOffsetSize = 4;
+              let vArrayDataView = new DataView(vArrayBuffer);
+              const vLittleEndian = true;
               const vBlockSize = 4 + 2 + 2 + 2 + 2;
-              const vNumberOfBlocks = (vArrayBuffer.byteLength - vBlockOffsetSize) / vBlockSize;
-              if (vNumberOfBlocks > 0) {
-                const vBlockOffset = (new Uint32Array(vArrayBuffer, 0, 1))[0];
-                for (var vBlockIndex = 0; vBlockIndex < vNumberOfBlocks; vBlockIndex++) {
-                  const vPosition = vBlockOffsetSize + vBlockSize * ((vBlockIndex + vBlockOffset) % vNumberOfBlocks);
-                  var vTime = (new Uint32Array(vArrayBuffer, vPosition, 1))[0];
-                  if (vTime != 0) {
-                    var vTemperature = (new Uint16Array(vArrayBuffer, vPosition + 4, 1))[0];
-                    var vTemperatureMin = (new Uint16Array(vArrayBuffer, vPosition + 6, 1))[0];
-                    var vTemperatureMax = (new Uint16Array(vArrayBuffer, vPosition + 8, 1))[0];
-                    var vTemperatureStdDev = (new Uint16Array(vArrayBuffer, vPosition + 10, 1))[0];
-                    var vDate = new Date(1000 * vTime);
-                    mTemperatureChart.Add(vDate, vTemperature / 100.0,  vTemperatureMin / 100.0, vTemperatureMax / 100.0, false);
-                  }
-                } 
-                mTemperatureChart.Draw();
+              const vNumberOfBlocks = vArrayDataView.byteLength / vBlockSize;
+              let vRowIndex = 0;
+              let vLastTime = 0;
+              for (let vIndex = 0; vIndex < vNumberOfBlocks; vIndex++) {
+                let vPosition = vIndex * vBlockSize;
+                let vTime = vArrayDataView.getUint32(vPosition + 0, vLittleEndian);
+                if (vTime != 0) {
+                  if (vTime < vLastTime) vRowIndex = 0;
+                  let vTemperature = vArrayDataView.getInt16(vPosition + 4, vLittleEndian) / 100.0;
+                  let vTemperatureMin = vArrayDataView.getInt16(vPosition + 6, vLittleEndian) / 100.0;
+                  let vTemperatureMax = vArrayDataView.getInt16(vPosition + 8, vLittleEndian) / 100.0;
+                  let vTemperatureStdDev = vArrayDataView.getInt16(vPosition + 10, vLittleEndian) / 100.0;
+                  let vDate = new Date(1000 * vTime);
+                  mTemperatureChart.Add(vRowIndex++, vDate, vTemperature,  vTemperatureMin, vTemperatureMax, false);
+                  vLastTime = vTime;
+                }
               }
+              mTemperatureChart.Draw();
             } 
           }
         }
@@ -140,7 +142,8 @@
       <br>
       <hr noshade>
       <a href='/'>[home]</a>
-      <a href='/logger'>[logger]</a>
+      <a href='/logger'>[live-log]</a>
+      <a href='/ggLoggerServer.html'>[file-log]</a>
       <a href='/files'>[files]</a>
       <a href='/debug'>[debug]</a>
       <a href='/goofy'>[goofy]</a><br>

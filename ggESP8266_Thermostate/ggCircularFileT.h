@@ -6,7 +6,7 @@
 /**
  * Saves binary data blocks circular buffered in a file.
  */
-template <class TData>
+template <class TTime, class TData>
 class ggCircularFileT {
 
 public:
@@ -14,20 +14,18 @@ public:
   ggCircularFileT(const String& aFileName,
                   unsigned long aNumberOfDataBlocks,
                   FS* aFileSystem)
-  : mFileName(aFileName),
+  : mFileSystem(aFileSystem),
+    mFileName(aFileName),
     mNumberOfDataBlocks(aNumberOfDataBlocks),
-    mFileSystem(aFileSystem) {
+    mIndex(aNumberOfDataBlocks) {
   }
 
-  void Write(const TData& aData) const {
-    File vFile;
-    Initialize(vFile);
-    if (vFile) {
-      uint32_t vIndex = ReadIndex(vFile);
-      WriteIndex(vFile, (vIndex + 1) % mNumberOfDataBlocks);
-      Write(vFile, vIndex, aData);
-      vFile.flush();
-      vFile.close();
+  // "aTime" must have an incremental value
+  void Write(const TTime& aTime, const TData& aData) {
+    if (OpenFile()) {
+      ReadIndex();
+      WriteIndex(aTime, aData);
+      CloseFile();
     }
   }
 
@@ -38,84 +36,104 @@ private:
   }
 
   size_t GetFileSize() const {
-    return sizeof(uint32_t) + mNumberOfDataBlocks * sizeof(TData);
+    return mNumberOfDataBlocks * (sizeof(TTime) + sizeof(TData));
   }
 
-  void Reset(File& aFile) const {
-    aFile.seek(0);
-    const size_t vFileSize = GetFileSize();
-    size_t vIndex = vFileSize;
-    while (vIndex--) aFile.write(0);
-    aFile.truncate(vFileSize);
+  size_t GetPosition(uint32_t aIndex) const {
+    return aIndex * (sizeof(TTime) + sizeof(TData));
   }
 
-  void Initialize(File& aFile) const {
-    // if file is not open, it needs to be opened or created    
-    if (!aFile) {
-      // open an existing file for update
-      aFile = FileSystem().open(mFileName.c_str(), "r+b");
-      // if file can't be opened, it probably doesn't exist
-      if (!aFile) {
-        // create an empty file for output operations
-        aFile = FileSystem().open(mFileName.c_str(), "w");
-        // close it and re-open in update mode
-        if (aFile) {
-          Reset(aFile);
-          aFile.flush();
-          aFile.close();
-          // for later operations, the file must be opened for update
-          aFile = FileSystem().open(mFileName.c_str(), "r+b");
-        }
-      }
+  // allocates a complete new file and opens it for update
+  void ResetAndOpenFile() {
+    mFile.close();
+    // create an empty file for output operations
+    mFile = FileSystem().open(mFileName.c_str(), "w");
+    if (mFile) {
+      // initialize all bytes with zero
+      mFile.seek(0);
+      const size_t vFileSize = GetFileSize();
+      size_t vPosition = vFileSize;
+      while (vPosition--) mFile.write(0);
+      mFile.truncate(vFileSize);
+      mFile.flush();
+      mFile.close();
+      // for later operations, the file must be opened for update
+      mFile = FileSystem().open(mFileName.c_str(), "r+b");
+    }
+  }
+
+  bool OpenFile() {
+    // open an existing file for update
+    mFile = FileSystem().open(mFileName.c_str(), "r+b");
+    // if file can't be opened, it probably doesn't exist
+    if (!mFile) {
+      ResetAndOpenFile();
+    }
+    // if the filesize does not match, we're resetting the file
+    if (mFile && (mFile.size() != GetFileSize())) {
+      ResetAndOpenFile();
     }
     // hopefully there is now a file open for update
-    if (aFile) {
-      // if the filesize does not match, we're resetting the file
-      const size_t vFileSize = GetFileSize();
-      if (aFile.size() != vFileSize) {
-        Reset(aFile);
+    return mFile;
+  }
+
+  void ReadIndex() {
+    // index is valid, if smaller than number of blocks
+    if (mIndex < mNumberOfDataBlocks) return;
+    // invalid index => need to search in file
+    mIndex = 0;
+    TTime vTime = 0;
+    TTime vLastTime = 0;
+    // search whole file when "time" jumps back
+    while (mIndex < mNumberOfDataBlocks) {
+      size_t vPosition = GetPosition(mIndex);
+      if (mFile.seek(vPosition)) {
+        if (Read(mFile, vTime)) {
+          // found free (unused) block
+          if (vTime == 0) return;
+          // found wrap-around block (ring closed)
+          if (vTime < vLastTime) return;
+          // remember current time for next check
+          vLastTime = vTime;
+        }
       }
+      // iterate next
+      ++mIndex;
+    }
+    // last block was newest
+    mIndex = 0;
+  }
+
+  void WriteIndex(const TTime& aTime, const TData& aData) {
+    size_t vPosition = GetPosition(mIndex++);
+    if (mIndex >= mNumberOfDataBlocks) mIndex = 0;
+    if (mFile.seek(vPosition)) {
+      Write(mFile, aTime);
+      Write(mFile, aData);
     }
   }
 
-  static uint32_t ReadIndex(File& aFile) {
-    uint32_t vIndex = 0;
-    if (aFile.seek(0)) {
-      Read(aFile, vIndex);
-    }
-    return vIndex;
-  }
-
-  static void WriteIndex(File& aFile, uint32_t aIndex) {
-    if (aFile.seek(0)) {
-      Write(aFile, aIndex);
-    }
+  void CloseFile() {
+    mFile.flush();
+    mFile.close();
   }
 
   template <typename T>
   static bool Read(File& aFile, T& aData) {
-    T vData = aData;
-    if (aFile.read(reinterpret_cast<uint8_t*>(&vData), sizeof(T)) == sizeof(T)) {
-      aData = vData;
-      return true;
-    }
-    return false;
+    return aFile.read(reinterpret_cast<uint8_t*>(&aData), sizeof(T)) == sizeof(T);
   }
 
   template <typename T>
-  static void Write(File& aFile, const T& aData) {
-    size_t vNumWritten = aFile.write(reinterpret_cast<uint8_t*>(const_cast<T*>(&aData)), sizeof(T));
+  static bool Write(File& aFile, const T& aData) {
+    return aFile.write(reinterpret_cast<uint8_t*>(const_cast<T*>(&aData)), sizeof(T)) == sizeof(T);
   }
 
-  static void Write(File& aFile, uint32_t aIndex, const TData& aData) {
-    size_t vPosition = sizeof(uint32_t) + aIndex * sizeof(TData);
-    if (aFile.seek(vPosition)) {
-      Write(aFile, aData);
-    }
-  }
+  FS* mFileSystem;
 
   const String mFileName;
   const unsigned long mNumberOfDataBlocks;
-  FS* mFileSystem;
+
+  File mFile;
+  uint32_t mIndex;
 
 };
