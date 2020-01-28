@@ -21,7 +21,7 @@
 #include "ggController.h"
 #include "ggValueEEPromString.h"
 #include "ggStreams.h"
-#include "ggLoggerDataT.h"
+#include "ggCircularFileT.h"
 #include "ggTimerNTP.h"
 #include "ggAveragesT.h"
 
@@ -43,6 +43,7 @@ todo:
 - VS-Code: SPIFFS/LittleFS upload, OTA
 - NTP server in eeprom
 - pin-assignment in eeprom
+- debugging: print number of connected web socket clients
 */
 
 
@@ -81,7 +82,7 @@ typedef struct cData {
   int16_t mTemperatureMax;
   int16_t mTemperatureStdDev;
 };
-ggLoggerDataT<cData> mLogger("/ggLoggerData.dat", 4+2880*sizeof(cData), &SPIFFS);
+ggCircularFileT<cData> mCircularFile("/ggLoggerData.dat", 2880, &SPIFFS);
 void Log(uint32_t aPeriod) {
   cData vData;
   vData.mTime = mTimerNTP.GetTime() - aPeriod; // calc interval start time
@@ -89,7 +90,7 @@ void Log(uint32_t aPeriod) {
   vData.mTemperatureMin = ggRound<int16_t>(100.0f * mTemperatureAVG.GetMin());
   vData.mTemperatureMax = ggRound<int16_t>(100.0f * mTemperatureAVG.GetMax());
   vData.mTemperatureStdDev = ggRound<int16_t>(100.0f * mTemperatureAVG.GetStdDev());
-  mLogger.Log(vData);
+  mCircularFile.Write(vData);
 }
 
 

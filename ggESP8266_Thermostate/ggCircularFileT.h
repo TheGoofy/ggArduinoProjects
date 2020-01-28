@@ -7,24 +7,24 @@
  * Saves binary data blocks circular buffered in a file.
  */
 template <class TData>
-class ggLoggerDataT {
+class ggCircularFileT {
 
 public:
 
-  ggLoggerDataT(const String& aFileName,
-                unsigned long aMaxSizeBytes,
-                FS* aFileSystem)
+  ggCircularFileT(const String& aFileName,
+                  unsigned long aNumberOfDataBlocks,
+                  FS* aFileSystem)
   : mFileName(aFileName),
-    mIndexSize((aMaxSizeBytes - sizeof(uint32_t)) / sizeof(TData)),
+    mNumberOfDataBlocks(aNumberOfDataBlocks),
     mFileSystem(aFileSystem) {
   }
 
-  void Log(const TData& aData) const {
+  void Write(const TData& aData) const {
     File vFile;
     Initialize(vFile);
     if (vFile) {
       uint32_t vIndex = ReadIndex(vFile);
-      WriteIndex(vFile, (vIndex + 1) % mIndexSize);
+      WriteIndex(vFile, (vIndex + 1) % mNumberOfDataBlocks);
       Write(vFile, vIndex, aData);
       vFile.flush();
       vFile.close();
@@ -38,7 +38,7 @@ private:
   }
 
   size_t GetFileSize() const {
-    return sizeof(uint32_t) + mIndexSize * sizeof(TData);
+    return sizeof(uint32_t) + mNumberOfDataBlocks * sizeof(TData);
   }
 
   void Reset(File& aFile) const {
@@ -115,7 +115,7 @@ private:
   }
 
   const String mFileName;
-  const unsigned long mIndexSize;
+  const unsigned long mNumberOfDataBlocks;
   FS* mFileSystem;
 
 };
