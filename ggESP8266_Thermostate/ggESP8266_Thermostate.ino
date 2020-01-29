@@ -44,6 +44,7 @@ todo:
 - NTP server in eeprom
 - pin-assignment in eeprom
 - debugging: print number of connected web socket clients
+- average: internal type template (allow float or double)
 */
 
 
@@ -74,22 +75,41 @@ ggValueEEPromString<> mName(mHostName);
 
 // data logging
 ggTimerNTP mTimerNTP("ch.pool.ntp.org", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00");
+ggAveragesT<float> mPressureAVG;
 ggAveragesT<float> mTemperatureAVG;
-typedef struct cData {
-  int16_t mTemperature;
-  int16_t mTemperatureMin;
-  int16_t mTemperatureMax;
-  int16_t mTemperatureStdDev;
+ggAveragesT<float> mHumidityAVG;
+ggAveragesT<float> mOutputAVG;
+typedef struct cValue {
+  int16_t mMean;
+  int16_t mMin;
+  int16_t mMax;
+  int16_t mStdDev;
 };
-ggCircularFileT<time_t, cData> mCircularFile("/ggData1D.dat", 2880, &SPIFFS);
+typedef struct cMeasurements {
+  cValue mPressure;
+  cValue mTemperature;
+  cValue mHumidity;
+  cValue mOutput;
+};
+void AssignValues(const ggAveragesT<float>& aAverages, float aScale, cValue& aValue) {
+  aValue.mMean = ggRound<int16_t>(aScale * aAverages.GetMean());
+  aValue.mMin = ggRound<int16_t>(aScale * aAverages.GetMin());
+  aValue.mMax = ggRound<int16_t>(aScale * aAverages.GetMax());
+  aValue.mStdDev = ggRound<int16_t>(aScale * aAverages.GetStdDev());
+}
+ggCircularFileT<time_t, cMeasurements> mCircularFile("/ggData1D.dat", 2880, &SPIFFS);
 void Log(uint32_t aPeriod) {
-  time_t vTime = mTimerNTP.GetTime() - aPeriod; // calc interval start time
-  cData vData;
-  vData.mTemperature = ggRound<int16_t>(100.0f * mTemperatureAVG.GetMean());
-  vData.mTemperatureMin = ggRound<int16_t>(100.0f * mTemperatureAVG.GetMin());
-  vData.mTemperatureMax = ggRound<int16_t>(100.0f * mTemperatureAVG.GetMax());
-  vData.mTemperatureStdDev = ggRound<int16_t>(100.0f * mTemperatureAVG.GetStdDev());
-  mCircularFile.Write(vTime, vData);
+  time_t vTime = mTimerNTP.GetTime() - aPeriod; // interval start time
+  cMeasurements vMeasurements;
+  AssignValues(mPressureAVG, 10.0f, vMeasurements.mPressure);
+  AssignValues(mTemperatureAVG, 100.0f, vMeasurements.mTemperature);
+  AssignValues(mHumidityAVG, 100.0f, vMeasurements.mHumidity);
+  AssignValues(mOutputAVG, 10000.0f, vMeasurements.mOutput);
+  mCircularFile.Write(vTime, vMeasurements);
+  mPressureAVG.Reset();
+  mTemperatureAVG.Reset();
+  mHumidityAVG.Reset();
+  mOutputAVG.Reset();
 }
 
 
@@ -121,6 +141,7 @@ void ConnectComponents()
   mTemperatureController.OnOutputChanged([&] (float aOutputValue) {
     mPeriphery.mOutputPWM.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
+    mOutputAVG.AddSample(aOutputValue);
   });
 
   // when button "key" is pressed we switch the SSR manually
@@ -152,6 +173,7 @@ void ConnectComponents()
   });
   mPeriphery.mSensor.OnPressureChanged([&] (float aPressure) {
     mWebSockets.UpdatePressure(aPressure);
+    mPressureAVG.AddSample(aPressure);
   });
   mPeriphery.mSensor.OnTemperatureChanged([&] (float aTemperature) {
     mTemperatureController.SetInput(aTemperature);
@@ -160,6 +182,7 @@ void ConnectComponents()
   });
   mPeriphery.mSensor.OnHumidityChanged([&] (float aHumidity) {
     mWebSockets.UpdateHumidity(aHumidity);
+    mHumidityAVG.AddSample(aHumidity);
   });
 
   // wifi events
@@ -209,6 +232,7 @@ void ConnectComponents()
   mWebSockets.OnSetOutput([&] (float aOutputValue) {
     mPeriphery.mOutputPWM.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
+    mOutputAVG.AddSample(aOutputValue);
   });
 
   // web server
@@ -233,7 +257,6 @@ void ConnectComponents()
   // timer (for logging)
   mTimerNTP.AddTimer(30, [] (uint32_t aPeriod) {
     Log(aPeriod);
-    mTemperatureAVG.Reset();
   });
 }
 

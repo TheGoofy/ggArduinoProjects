@@ -99,7 +99,7 @@
             if (vArrayBuffer) {
               let vArrayDataView = new DataView(vArrayBuffer);
               const vLittleEndian = true;
-              const vBlockSize = 4 + 2 + 2 + 2 + 2;
+              const vBlockSize = 4 + 4 * 4 * 2;
               const vNumberOfBlocks = vArrayDataView.byteLength / vBlockSize;
               let vRowIndex = 0;
               let vLastTime = 0;
@@ -108,10 +108,11 @@
                 let vTime = vArrayDataView.getUint32(vPosition + 0, vLittleEndian);
                 if (vTime != 0) {
                   if (vTime < vLastTime) vRowIndex = 0;
-                  let vTemperature = vArrayDataView.getInt16(vPosition + 4, vLittleEndian) / 100.0;
-                  let vTemperatureMin = vArrayDataView.getInt16(vPosition + 6, vLittleEndian) / 100.0;
-                  let vTemperatureMax = vArrayDataView.getInt16(vPosition + 8, vLittleEndian) / 100.0;
-                  let vTemperatureStdDev = vArrayDataView.getInt16(vPosition + 10, vLittleEndian) / 100.0;
+                  const vPositionTemperature = vPosition + 4 + 8;
+                  let vTemperature = vArrayDataView.getInt16(vPositionTemperature, vLittleEndian) / 100.0;
+                  let vTemperatureMin = vArrayDataView.getInt16(vPositionTemperature + 2, vLittleEndian) / 100.0;
+                  let vTemperatureMax = vArrayDataView.getInt16(vPositionTemperature + 4, vLittleEndian) / 100.0;
+                  let vTemperatureStdDev = vArrayDataView.getInt16(vPositionTemperature + 6, vLittleEndian) / 100.0;
                   let vDate = new Date(1000 * vTime);
                   mTemperatureChart.Add(vRowIndex++, vDate, vTemperature,  vTemperatureMin, vTemperatureMax, false);
                   vLastTime = vTime;
