@@ -59,6 +59,8 @@ private:
       mFile.close();
       // for later operations, the file must be opened for update
       mFile = FileSystem().open(mFileName.c_str(), "r+b");
+      // the file is empty - no need to "search" index in file
+      mIndex = 0;
     }
   }
 
