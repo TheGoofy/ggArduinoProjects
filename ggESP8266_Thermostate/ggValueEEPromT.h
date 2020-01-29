@@ -2,35 +2,35 @@
 
 #include "ggValueEEProm.h"
 
-template <class TValueType>
+template <class TValue>
 class ggValueEEPromT : private ggValueEEProm {
 
 public:
 
   ggValueEEPromT()
-  : ggValueEEProm(sizeof(TValueType)),
+  : ggValueEEProm(sizeof(TValue)),
     mValue() {
   }
 
-  ggValueEEPromT(const TValueType& aValue)
-  : ggValueEEProm(sizeof(TValueType)),
+  ggValueEEPromT(const TValue& aValue)
+  : ggValueEEProm(sizeof(TValue)),
     mValue(aValue) {
   }
 
-  inline operator const TValueType& () const {
+  inline operator const TValue& () const {
     return mValue;
   }
 
-  inline ggValueEEPromT& operator = (const TValueType& aValue) {
+  inline ggValueEEPromT& operator = (const TValue& aValue) {
     Set(aValue);
     return *this;
   }
 
-  inline const TValueType& Get() const {
+  inline const TValue& Get() const {
     return mValue;
   }
 
-  inline void Set(const TValueType& aValue) {
+  inline void Set(const TValue& aValue) {
     if (mValue != aValue) {
       mValue = aValue;
       Write(true);
@@ -40,7 +40,7 @@ public:
 protected:
 
   virtual int GetSize() const {
-    return sizeof(TValueType);
+    return sizeof(TValue);
   }
   
   virtual void* GetValuePtr() {
@@ -65,6 +65,6 @@ protected:
     }
   }
 
-  TValueType mValue;
+  TValue mValue;
 
 };

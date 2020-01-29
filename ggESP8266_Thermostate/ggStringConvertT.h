@@ -2,12 +2,12 @@
 
 #include <WString.h>
 
-template <typename TValueType>
-String ToString(const TValueType& aValue) {
+template <typename TValue>
+String ToString(const TValue& aValue) {
   return String(aValue);
 }
 
-template <typename TValueType>
-TValueType FromString(const String& aString) {
-  return TValueType(aString);
+template <typename TValue>
+TValue FromString(const String& aString) {
+  return TValue(aString);
 }
