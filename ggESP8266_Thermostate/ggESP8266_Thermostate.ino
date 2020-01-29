@@ -49,8 +49,7 @@ todo:
 
 const String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
 
-// the file system in use ...
-FS* mFileSystem = &SPIFFS;
+FS* mFileSystem = &SPIFFS; // &LittleFS or &SPIFFS;
 
 // runs AP, if no wifi connection
 WiFiManager mWifiManager;
@@ -99,7 +98,7 @@ void AssignValues(const tAverages& aAverages, float aScale, cValue& aValue) {
   aValue.mMax = ggRound<int16_t>(aScale * aAverages.GetMax());
   aValue.mStdDev = ggRound<int16_t>(aScale * aAverages.GetStdDev());
 }
-ggCircularFileT<time_t, cMeasurements> mCircularFile("/ggData1D.dat", 2880, &SPIFFS);
+ggCircularFileT<time_t, cMeasurements> mCircularFile("/ggData1D.dat", 2880, mFileSystem);
 void Log(uint32_t aPeriod) {
   time_t vTime = mTimerNTP.GetTime() - aPeriod; // interval start time
   cMeasurements vMeasurements;
