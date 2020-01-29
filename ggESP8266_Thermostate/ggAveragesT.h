@@ -29,7 +29,7 @@ public:
     mMax() {
   }
 
-  // reset the running averages
+  // reset the averages
   inline void Reset() {
     mShiftK = 0.0;
     mSum = 0.0;
@@ -39,11 +39,28 @@ public:
     mMax = TValue();
   }
 
+  // add/merge samples from other averages
+  inline void Add(const ggAveragesT& aOther) {
+    if (mCount == 0) {
+      *this = aOther;
+    }
+    else {
+      if (aOther.mMin < mMin) mMin = aOther.mMin;
+      if (aOther.mMax > mMax) mMax = aOther.mMax;
+      TValueS mDeltaShiftK = aOther.mShiftK - mShiftK;
+      mSum += aOther.mSum + aOther.mCount * mDeltaShiftK;
+      mSumOfSquares += aOther.mSumOfSquares +
+                       2 * mDeltaShiftK * (aOther.mSum + aOther.mCount * aOther.mShiftK) +
+                       aOther.mCount * (mShiftK * mShiftK - aOther.mShiftK * aOther.mShiftK);
+      mCount += aOther.mCount;
+    }
+  }
+
   // adds a sample
   inline void AddSample(TValue aValue,
                         TValueS aCount = 1) {
     const TValueS vValue = ggRound<TValueS>(aValue);
-    if (mCount == 0.0) {
+    if (mCount == 0) {
       mShiftK = vValue;
       mMin = aValue;
       mMax = aValue;
