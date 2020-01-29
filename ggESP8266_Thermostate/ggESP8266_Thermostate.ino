@@ -49,6 +49,8 @@ todo:
 
 const String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
 
+// the file system in use ...
+FS* mFileSystem = &SPIFFS;
 
 // runs AP, if no wifi connection
 WiFiManager mWifiManager;
@@ -56,7 +58,7 @@ ggWiFiConnection mWiFiConnection;
   
 // create web server on port 80
 const int mWebServerPort = 80;
-ggWebServer mWebServer(mWebServerPort, &SPIFFS);
+ggWebServer mWebServer(mWebServerPort, mFileSystem);
 
 // create web sockets server on port 81
 const int mWebSocketsPort = 81;
@@ -299,6 +301,9 @@ void setup()
   // startup eeprom utility class
   ggValueEEProm::Begin();
   Serial.printf("Device Name: %s\n", mName.Get().c_str());
+
+  // start the file system
+  mFileSystem->begin();
 
   // connect to wifi
   mWifiManager.setDebugOutput(true);

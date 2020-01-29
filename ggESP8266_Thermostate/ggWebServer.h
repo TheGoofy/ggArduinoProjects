@@ -29,7 +29,6 @@ public:
     mServer.on("/reboot", [&] () { OnReboot(); });
     mServer.onNotFound([&] () { OnNotFound(); });
     mServer.begin();
-    FileSystem().begin();
   }
 
   void Run() {
