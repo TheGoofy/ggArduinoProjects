@@ -10,8 +10,11 @@
  * compute the Median). Also known as "Online-Averages" ...
  *
  * see: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
+ * 
+ * TValue: input number type
+ * TValueS: statistics number type
  */
-template <class TValueType>
+template <class TValue, class TValueS = double>
 class ggAveragesT
 {
 
@@ -32,14 +35,14 @@ public:
     mSum = 0.0;
     mSumOfSquares = 0.0;
     mCount = 0.0;
-    mMin = TValueType();
-    mMax = TValueType();
+    mMin = TValue();
+    mMax = TValue();
   }
 
   // adds a sample
-  inline void AddSample(TValueType aValue,
-                        double aCount = 1.0) {
-    const double vValue = ggRound<double>(aValue);
+  inline void AddSample(TValue aValue,
+                        TValueS aCount = 1) {
+    const TValueS vValue = ggRound<TValueS>(aValue);
     if (mCount == 0.0) {
       mShiftK = vValue;
       mMin = aValue;
@@ -49,17 +52,17 @@ public:
       if (aValue < mMin) mMin = aValue;
       if (aValue > mMax) mMax = aValue;
     }
-    const double vValueShifted = vValue - mShiftK;
+    const TValueS vValueShifted = vValue - mShiftK;
     mSum += aCount * vValueShifted;
     mSumOfSquares += aCount * vValueShifted * vValueShifted;
     mCount += aCount;
   }
 
   // removes a sample (min and max are not updated)
-  inline void RemoveSample(TValueType aValue,
-                           double aCount = 1.0) {
-    const double vValue = ggRound<double>(aValue);
-    const double vValueShifted = vValue - mShiftK;
+  inline void RemoveSample(TValue aValue,
+                           TValueS aCount = 1) {
+    const TValueS vValue = ggRound<TValueS>(aValue);
+    const TValueS vValueShifted = vValue - mShiftK;
     mSum -= aCount * vValueShifted;
     mSumOfSquares -= aCount * vValueShifted * vValueShifted;
     mCount -= aCount;
@@ -69,111 +72,111 @@ public:
   }
 
   // returns the number of samples
-  inline double GetNumberOfSamples() const {
+  inline TValueS GetNumberOfSamples() const {
     return mCount;
   }
 
   // returns the sum of all samples
-  inline double GetSum() const {
-    return GetSumDouble();
+  inline TValueS GetSum() const {
+    return GetSumS();
   }
 
   // returns the minimum
-  inline TValueType GetMin() const {
+  inline TValue GetMin() const {
     return mMin;
   }
 
   // returns the maximum
-  inline TValueType GetMax() const {
+  inline TValue GetMax() const {
     return mMax;
   }
 
   // returns the mean value
-  inline double GetMean() const {
+  inline TValueS GetMean() const {
     if (mCount > 0.0) {
-      return GetMeanDouble();
+      return GetMeanS();
     }
-    return TValueType();
+    return TValue();
   }
 
   // sum of squared errors, also known as "residual sum of scquares" (RSS, or SSR, or SSE)
-  inline double GetSumOfSquaredErrors() const {
+  inline TValueS GetSumOfSquaredErrors() const {
     if (mCount > 0.0) {
-      return GetSumOfSquaredErrorsDouble();
+      return GetSumOfSquaredErrorsS();
     }
-    return TValueType();
+    return TValue();
   }
 
   // variance of sample (square of standard deviation)
-  inline double GetVariance() const {
+  inline TValueS GetVariance() const {
     if (mCount > 1.0) {
-      double vSumOfSquaredErrors = GetSumOfSquaredErrorsDouble();
+      TValueS vSumOfSquaredErrors = GetSumOfSquaredErrorsS();
       return vSumOfSquaredErrors / (mCount - 1.0);
     }
-    return TValueType();
+    return TValue();
   }
 
   // variance of population (square the standard deviation)
-  inline double GetVarianceP() const {
+  inline TValueS GetVarianceP() const {
     if (mCount > 0.0) {
-      double vSumOfSquaredErrors = GetSumOfSquaredErrorsDouble();
+      TValueS vSumOfSquaredErrors = GetSumOfSquaredErrorsS();
       return vSumOfSquaredErrors / mCount;
     }
-    return TValueType();
+    return TValue();
   }
 
   // returns the standard deviation of sample
-  inline double GetStdDev() const {
+  inline TValueS GetStdDev() const {
     if (mCount > 1.0) {
-      double vSumOfSquaredErrors = GetSumOfSquaredErrorsDouble();
+      TValueS vSumOfSquaredErrors = GetSumOfSquaredErrorsS();
       if (vSumOfSquaredErrors >= 0.0) return sqrt(vSumOfSquaredErrors / (mCount - 1));
     }
-    return TValueType();
+    return TValue();
   }
 
   // returns the standard deviation of population
-  inline double GetStdDevP() const {
+  inline TValueS GetStdDevP() const {
     if (mCount > 0.0) {
-      double vSumOfSquaredErrors = GetSumOfSquaredErrorsDouble();
+      TValueS vSumOfSquaredErrors = GetSumOfSquaredErrorsS();
       if (vSumOfSquaredErrors >= 0.0) return sqrt(vSumOfSquaredErrors / mCount);
     }
-    return TValueType();
+    return TValue();
   }
 
   // returns the coefficient of variation
-  inline double GetVariationCoefficient() const {
+  inline TValueS GetVariationCoefficient() const {
     if (mCount > 1.0) {
-      double vMean = GetMeanDouble();
+      TValueS vMean = GetMeanS();
       if (vMean != 0.0) {
-        double vSumOfSquaredErrors = GetSumOfSquaredErrorsDouble();
+        TValueS vSumOfSquaredErrors = GetSumOfSquaredErrorsS();
         return sqrt(vSumOfSquaredErrors / (mCount - 1.0)) / vMean;
       }
     }
-    return TValueType();
+    return TValue();
   }
 
 private:
 
   // sum
-  inline double GetSumDouble() const {
+  inline TValueS GetSumS() const {
     return mSum + mCount * mShiftK;
   }
 
   // mean, internal (note: mCount must not be zero)
-  inline double GetMeanDouble() const {
+  inline TValueS GetMeanS() const {
     return mSum / mCount + mShiftK;
   }
 
   // sum of squared errors, internal (note: mCount must not be zero)
-  inline double GetSumOfSquaredErrorsDouble() const {
+  inline TValueS GetSumOfSquaredErrorsS() const {
     return mSumOfSquares - mSum * mSum / mCount;
   }
 
-  double mShiftK;
-  double mSum;
-  double mSumOfSquares;
-  double mCount;
-  TValueType mMin;
-  TValueType mMax;
+  TValueS mShiftK;
+  TValueS mSum;
+  TValueS mSumOfSquares;
+  TValueS mCount;
+  TValue mMin;
+  TValue mMax;
 
 };

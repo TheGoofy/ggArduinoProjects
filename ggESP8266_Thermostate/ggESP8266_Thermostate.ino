@@ -44,7 +44,6 @@ todo:
 - NTP server in eeprom
 - pin-assignment in eeprom
 - debugging: print number of connected web socket clients
-- average: internal type template (allow float or double)
 */
 
 
@@ -75,10 +74,11 @@ ggValueEEPromString<> mName(mHostName);
 
 // data logging
 ggTimerNTP mTimerNTP("ch.pool.ntp.org", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00");
-ggAveragesT<float> mPressureAVG;
-ggAveragesT<float> mTemperatureAVG;
-ggAveragesT<float> mHumidityAVG;
-ggAveragesT<float> mOutputAVG;
+typedef ggAveragesT<float, float> tAverages;
+tAverages mPressureAVG;
+tAverages mTemperatureAVG;
+tAverages mHumidityAVG;
+tAverages mOutputAVG;
 typedef struct cValue {
   int16_t mMean;
   int16_t mMin;
@@ -91,7 +91,7 @@ typedef struct cMeasurements {
   cValue mHumidity;
   cValue mOutput;
 };
-void AssignValues(const ggAveragesT<float>& aAverages, float aScale, cValue& aValue) {
+void AssignValues(const tAverages& aAverages, float aScale, cValue& aValue) {
   aValue.mMean = ggRound<int16_t>(aScale * aAverages.GetMean());
   aValue.mMin = ggRound<int16_t>(aScale * aAverages.GetMin());
   aValue.mMax = ggRound<int16_t>(aScale * aAverages.GetMax());
