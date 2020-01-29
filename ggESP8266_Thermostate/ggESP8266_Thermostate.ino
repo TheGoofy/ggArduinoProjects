@@ -44,6 +44,7 @@ todo:
 - NTP server in eeprom
 - pin-assignment in eeprom
 - debugging: print number of connected web socket clients
+- live-log discard old samples, 1h-view, no super-sample
 */
 
 
@@ -75,43 +76,83 @@ ggValueEEPromString<> mName(mHostName);
 
 // data logging
 ggTimerNTP mTimerNTP("ch.pool.ntp.org", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00");
-typedef ggAveragesT<float, float> tAverages;
-tAverages mPressureAVG;
-tAverages mTemperatureAVG;
-tAverages mHumidityAVG;
-tAverages mOutputAVG;
-typedef struct cValue {
-  int16_t mMean;
-  int16_t mMin;
-  int16_t mMax;
-  int16_t mStdDev;
+
+class ggDataLog {
+public:
+  ggDataLog(uint32_t aPeriod, // time ins seconds from sample to sample
+            uint32_t aDuration, // overall recording time in seconds until circular file rolls over
+            const String& aFileName, // filename for the circular file (ring-buffer)
+            FS* aFileSystem) // file-system ro use
+  : mPeriod(aPeriod),
+    mCircularFile(aFileName, aDuration / aPeriod, aFileSystem) {
+  }
+  uint32_t GetPeriod() const {
+    return mPeriod;
+  }
+  void AddPressureSample(float aPressure) {
+    mPressureAVG.AddSample(aPressure);
+  }
+  void AddTemperatureSample(float aTemperature) {
+    mTemperatureAVG.AddSample(aTemperature);
+  }
+  void AddHumiditySample(float aHumidity) {
+    mHumidityAVG.AddSample(aHumidity);
+  }
+  void AddOutputSample(float aOutput) {
+    mOutputAVG.AddSample(aOutput);
+  }
+  void Write(time_t aTime) {
+    cMeasurements vMeasurements;
+    AssignValues(mPressureAVG, 10.0f, vMeasurements.mPressure);
+    AssignValues(mTemperatureAVG, 100.0f, vMeasurements.mTemperature);
+    AssignValues(mHumidityAVG, 100.0f, vMeasurements.mHumidity);
+    AssignValues(mOutputAVG, 10000.0f, vMeasurements.mOutput);
+    mCircularFile.Write(aTime, vMeasurements);
+  }
+  void MoveSamplesTo(ggDataLog& aDataLog) {
+    aDataLog.mPressureAVG.Add(mPressureAVG);
+    aDataLog.mTemperatureAVG.Add(mTemperatureAVG);
+    aDataLog.mHumidityAVG.Add(mHumidityAVG);
+    aDataLog.mOutputAVG.Add(mOutputAVG);
+    mPressureAVG.Reset();
+    mTemperatureAVG.Reset();
+    mHumidityAVG.Reset();
+    mOutputAVG.Reset();
+  }
+private:
+  typedef ggAveragesT<float, float> tAverages;
+  typedef struct cValue {
+    int16_t mMean;
+    int16_t mMin;
+    int16_t mMax;
+    int16_t mStdDev;
+  };
+  typedef struct cMeasurements {
+    cValue mPressure;
+    cValue mTemperature;
+    cValue mHumidity;
+    cValue mOutput;
+  };
+  void AssignValues(const tAverages& aAverages, float aScale, cValue& aValue) {
+    aValue.mMean = ggRound<int16_t>(aScale * aAverages.GetMean());
+    aValue.mMin = ggRound<int16_t>(aScale * aAverages.GetMin());
+    aValue.mMax = ggRound<int16_t>(aScale * aAverages.GetMax());
+    aValue.mStdDev = ggRound<int16_t>(aScale * aAverages.GetStdDev());
+  }
+  uint32_t mPeriod;
+  tAverages mPressureAVG;
+  tAverages mTemperatureAVG;
+  tAverages mHumidityAVG;
+  tAverages mOutputAVG;
+  typedef ggCircularFileT<time_t, cMeasurements> tCircularFile;
+  tCircularFile mCircularFile;
 };
-typedef struct cMeasurements {
-  cValue mPressure;
-  cValue mTemperature;
-  cValue mHumidity;
-  cValue mOutput;
-};
-void AssignValues(const tAverages& aAverages, float aScale, cValue& aValue) {
-  aValue.mMean = ggRound<int16_t>(aScale * aAverages.GetMean());
-  aValue.mMin = ggRound<int16_t>(aScale * aAverages.GetMin());
-  aValue.mMax = ggRound<int16_t>(aScale * aAverages.GetMax());
-  aValue.mStdDev = ggRound<int16_t>(aScale * aAverages.GetStdDev());
-}
-ggCircularFileT<time_t, cMeasurements> mCircularFile("/ggData1D.dat", 2880, mFileSystem);
-void Log(uint32_t aPeriod) {
-  time_t vTime = mTimerNTP.GetTime() - aPeriod; // interval start time
-  cMeasurements vMeasurements;
-  AssignValues(mPressureAVG, 10.0f, vMeasurements.mPressure);
-  AssignValues(mTemperatureAVG, 100.0f, vMeasurements.mTemperature);
-  AssignValues(mHumidityAVG, 100.0f, vMeasurements.mHumidity);
-  AssignValues(mOutputAVG, 10000.0f, vMeasurements.mOutput);
-  mCircularFile.Write(vTime, vMeasurements);
-  mPressureAVG.Reset();
-  mTemperatureAVG.Reset();
-  mHumidityAVG.Reset();
-  mOutputAVG.Reset();
-}
+
+ggDataLog mDataLog1D(30, 24*60*60, "/ggData1D.dat", mFileSystem);
+ggDataLog mDataLog1W(5*60, 7*24*60*60, "/ggData1W.dat", mFileSystem);
+ggDataLog mDataLog1M(15*60, 30*7*24*60*60, "/ggData1M.dat", mFileSystem);
+ggDataLog mDataLog1Y(3*60*60, 365*7*24*60*60, "/ggData1Y.dat", mFileSystem);
+ggDataLog mDataLog1Max(24*60*60, 10*365*7*24*60*60, "/ggDataMax.dat", mFileSystem);
 
 
 void ConnectComponents()
@@ -142,7 +183,7 @@ void ConnectComponents()
   mTemperatureController.OnOutputChanged([&] (float aOutputValue) {
     mPeriphery.mOutputPWM.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
-    mOutputAVG.AddSample(aOutputValue);
+    mDataLog1D.AddOutputSample(aOutputValue);
   });
 
   // when button "key" is pressed we switch the SSR manually
@@ -174,16 +215,16 @@ void ConnectComponents()
   });
   mPeriphery.mSensor.OnPressureChanged([&] (float aPressure) {
     mWebSockets.UpdatePressure(aPressure);
-    mPressureAVG.AddSample(aPressure);
+    mDataLog1D.AddPressureSample(aPressure);
   });
   mPeriphery.mSensor.OnTemperatureChanged([&] (float aTemperature) {
     mTemperatureController.SetInput(aTemperature);
     mWebSockets.UpdateTemperature(aTemperature);
-    mTemperatureAVG.AddSample(aTemperature);
+    mDataLog1D.AddTemperatureSample(aTemperature);
   });
   mPeriphery.mSensor.OnHumidityChanged([&] (float aHumidity) {
     mWebSockets.UpdateHumidity(aHumidity);
-    mHumidityAVG.AddSample(aHumidity);
+    mDataLog1D.AddHumiditySample(aHumidity);
   });
 
   // wifi events
@@ -233,7 +274,7 @@ void ConnectComponents()
   mWebSockets.OnSetOutput([&] (float aOutputValue) {
     mPeriphery.mOutputPWM.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
-    mOutputAVG.AddSample(aOutputValue);
+    mDataLog1D.AddOutputSample(aOutputValue);
   });
 
   // web server
@@ -256,8 +297,21 @@ void ConnectComponents()
   });
 
   // timer (for logging)
-  mTimerNTP.AddTimer(30, [] (uint32_t aPeriod) {
-    Log(aPeriod);
+  mTimerNTP.AddTimer(mDataLog1D.GetPeriod(), [] (uint32_t aPeriod) {
+    mDataLog1D.Write(mTimerNTP.GetTime() - aPeriod);
+    mDataLog1D.MoveSamplesTo(mDataLog1W);
+  });
+  mTimerNTP.AddTimer(mDataLog1W.GetPeriod(), [] (uint32_t aPeriod) {
+    mDataLog1W.Write(mTimerNTP.GetTime() - aPeriod);
+    mDataLog1W.MoveSamplesTo(mDataLog1M);
+  });
+  mTimerNTP.AddTimer(mDataLog1M.GetPeriod(), [] (uint32_t aPeriod) {
+    mDataLog1M.Write(mTimerNTP.GetTime() - aPeriod);
+    mDataLog1M.MoveSamplesTo(mDataLog1Y);
+  });
+  mTimerNTP.AddTimer(mDataLog1Y.GetPeriod(), [] (uint32_t aPeriod) {
+    mDataLog1Y.Write(mTimerNTP.GetTime() - aPeriod);
+    mDataLog1Y.MoveSamplesTo(mDataLog1Max);
   });
 }
 
