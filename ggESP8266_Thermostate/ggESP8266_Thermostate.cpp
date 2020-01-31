@@ -127,11 +127,13 @@ public:
     mOutputAVG.ResetOnNextAddSample();
   }
   void Write(time_t aTime) {
+    // BME280 ranges: 300..1100hPa, -40..85°C, 0..100%
+    // https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf
     cMeasurements vMeasurements;
-    mPressureAVG.AssignValues(10.0f, vMeasurements.mPressure);
-    mTemperatureAVG.AssignValues(100.0f, vMeasurements.mTemperature);
-    mHumidityAVG.AssignValues(100.0f, vMeasurements.mHumidity);
-    mOutputAVG.AssignValues(10000.0f, vMeasurements.mOutput);
+    mPressureAVG.AssignValues(vMeasurements.mPressure, 100.0f, -800.0f); // common range: 600..1000hPa (https://de.wikipedia.org/wiki/Luftdruck)
+    mTemperatureAVG.AssignValues(vMeasurements.mTemperature, 100.0f, 0.0f); // common range: -20..40°C
+    mHumidityAVG.AssignValues(vMeasurements.mHumidity, 100.0f, 0.0f); // common range: 0..100%
+    mOutputAVG.AssignValues(vMeasurements.mOutput, 10000.0f, 0.0f); // common range: 0..1
     mCircularFile.Write(aTime, vMeasurements);
   }
 private:
@@ -165,11 +167,11 @@ private:
     void ResetOnNextAddSample() {
       mResetOnNextAddSample = true;
     }
-    void AssignValues(float aScale, cValue& aValue) {
-      aValue.mMean = ggRound<int16_t>(aScale * mAverages.GetMean());
-      aValue.mMin = ggRound<int16_t>(aScale * mAverages.GetMin());
-      aValue.mMax = ggRound<int16_t>(aScale * mAverages.GetMax());
-      aValue.mStdDev = ggRound<int16_t>(aScale * mAverages.GetStdDev());
+    void AssignValues(cValue& aValue, float aScale = 1.0f, float aOffset = 0.0f) {
+      aValue.mMean = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMean()));
+      aValue.mMin = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMin()));
+      aValue.mMax = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMax()));
+      aValue.mStdDev = ggRound<int16_t>(aScale * (aOffset + mAverages.GetStdDev()));
     }
   private:
     void ResetIfNeeded() {
