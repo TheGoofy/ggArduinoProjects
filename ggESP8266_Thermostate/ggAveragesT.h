@@ -21,39 +21,22 @@ class ggAveragesT
 public:
 
   inline ggAveragesT()
-  : mShiftK(0.0),
-    mSum(0.0),
-    mSumOfSquares(0.0),
-    mCount(0.0),
+  : mShiftK(0),
+    mSum(0),
+    mSumOfSquares(0),
+    mCount(0),
     mMin(),
     mMax() {
   }
 
   // reset the averages
   inline void Reset() {
-    mShiftK = 0.0;
-    mSum = 0.0;
-    mSumOfSquares = 0.0;
-    mCount = 0.0;
+    mShiftK = 0;
+    mSum = 0;
+    mSumOfSquares = 0;
+    mCount = 0;
     mMin = TValue();
     mMax = TValue();
-  }
-
-  // add/merge samples from other averages
-  inline void Add(const ggAveragesT& aOther) {
-    if (mCount == 0) {
-      *this = aOther;
-    }
-    else {
-      if (aOther.mMin < mMin) mMin = aOther.mMin;
-      if (aOther.mMax > mMax) mMax = aOther.mMax;
-      TValueS mDeltaShiftK = aOther.mShiftK - mShiftK;
-      mSum += aOther.mSum + aOther.mCount * mDeltaShiftK;
-      mSumOfSquares += aOther.mSumOfSquares +
-                       2 * mDeltaShiftK * (aOther.mSum + aOther.mCount * aOther.mShiftK) +
-                       aOther.mCount * (mShiftK * mShiftK - aOther.mShiftK * aOther.mShiftK);
-      mCount += aOther.mCount;
-    }
   }
 
   // adds a sample
@@ -73,6 +56,23 @@ public:
     mSum += aCount * vValueShifted;
     mSumOfSquares += aCount * vValueShifted * vValueShifted;
     mCount += aCount;
+  }
+
+  // add/merge samples from other averages
+  inline void AddSamples(const ggAveragesT& aOther) {
+    if (mCount == 0) {
+      *this = aOther;
+    }
+    else {
+      if (aOther.mMin < mMin) mMin = aOther.mMin;
+      if (aOther.mMax > mMax) mMax = aOther.mMax;
+      TValueS mDeltaShiftK = aOther.mShiftK - mShiftK;
+      mSum += aOther.mSum + aOther.mCount * mDeltaShiftK;
+      mSumOfSquares += aOther.mSumOfSquares +
+                       2 * mDeltaShiftK * (aOther.mSum + aOther.mCount * aOther.mShiftK) +
+                       aOther.mCount * (mShiftK * mShiftK - aOther.mShiftK * aOther.mShiftK);
+      mCount += aOther.mCount;
+    }
   }
 
   // removes a sample (min and max are not updated)

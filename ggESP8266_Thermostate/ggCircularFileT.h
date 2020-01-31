@@ -20,6 +20,10 @@ public:
     mIndex(aNumberOfDataBlocks) {
   }
 
+  const String& GetFileName() const {
+    return mFileName;
+  }
+
   // "aTime" must have an incremental value
   void Write(const TTime& aTime, const TData& aData) {
     if (OpenFile()) {
@@ -45,10 +49,14 @@ private:
 
   // allocates a complete new file and opens it for update
   void ResetAndOpenFile() {
+    GG_DEBUG();
+    vDebug.PrintF("mFileName = %s\n", mFileName.c_str());
     mFile.close();
+    FileSystem().remove(mFileName.c_str());
     // create an empty file for output operations
     mFile = FileSystem().open(mFileName.c_str(), "w");
     if (mFile) {
+      vDebug.PrintF("init/reset file content\n");
       // initialize all bytes with zero
       mFile.seek(0);
       const size_t vFileSize = GetFileSize();
@@ -62,18 +70,27 @@ private:
       // the file is empty - no need to "search" index in file
       mIndex = 0;
     }
+    else {
+      vDebug.PrintF("can't open file for writing\n");
+    }
   }
 
   bool OpenFile() {
+    GG_DEBUG();
     // open an existing file for update
     mFile = FileSystem().open(mFileName.c_str(), "r+b");
     // if file can't be opened, it probably doesn't exist
     if (!mFile) {
+      vDebug.PrintF("allocate new file ...\n");
       ResetAndOpenFile();
     }
     // if the filesize does not match, we're resetting the file
     if (mFile && (mFile.size() != GetFileSize())) {
+      vDebug.PrintF("fix file size ...\n");
       ResetAndOpenFile();
+    }
+    if (!mFile) {
+      vDebug.PrintF("this is bad ... :-(\n");
     }
     // hopefully there is now a file open for update
     return mFile;
