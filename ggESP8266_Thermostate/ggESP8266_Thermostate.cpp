@@ -22,9 +22,8 @@
 #include "ggController.h"
 #include "ggValueEEPromString.h"
 #include "ggStreams.h"
-#include "ggCircularFileT.h"
 #include "ggTimerNTP.h"
-#include "ggAveragesT.h"
+#include "ggDataLog.h"
 
 
 /*
@@ -35,7 +34,6 @@ todo:
 - in AP-mode also run http-server with controller settings
 - scan LAN for connected devices (app for smart-phone)
 - which web-interface belongs to which device? "ping" flashing status LED
-- data-logging on ESP (multi-time-resolution)
 - PID auto-tuning algorithm
 - adjustable PWM cycle time
 - serial stream to rx/tx AND html client console
@@ -48,9 +46,10 @@ todo:
 - live-log discard old samples, 1h-view, no super-sample
 */
 
-
+// imoque identification name
 const String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
 
+// file system to use (for webserver and datalogger)
 FS* mFileSystem = &SPIFFS; // &LittleFS or &SPIFFS;
 
 // runs AP, if no wifi connection
@@ -74,125 +73,10 @@ ggController mTemperatureController;
 // device name
 ggValueEEPromString<> mName(mHostName);
 
-
-// data logging
+// NTP synchronized timer
 ggTimerNTP mTimerNTP("ch.pool.ntp.org", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00");
 
-class ggDataLog {
-public:
-  ggDataLog(uint32_t aPeriod, // time ins seconds from sample to sample
-            uint32_t aDuration, // overall recording time in seconds until circular file rolls over
-            const String& aFileName, // filename for the circular file (ring-buffer)
-            FS* aFileSystem) // file-system ro use
-  : mPressureAVG(),
-    mTemperatureAVG(),
-    mHumidityAVG(),
-    mOutputAVG(),
-    mPeriod(aPeriod),
-    mCircularFile(aFileName, aDuration / aPeriod, aFileSystem) {
-    GG_DEBUG();
-    vDebug.PrintF("aPeriod = %d\n", aPeriod);
-    vDebug.PrintF("aDuration = %d\n", aDuration);
-    vDebug.PrintF("number of data blocks = %d\n", mCircularFile.GetNumberOfDataBlocks());
-    vDebug.PrintF("aFileName = \"%s\"\n", aFileName.c_str());
-  }
-  uint32_t GetPeriod() const {
-    return mPeriod;
-  }
-  const String& GetFileName() const {
-    return mCircularFile.GetFileName();
-  }
-  void AddPressureSample(float aPressure) {
-    mPressureAVG.AddSample(aPressure);
-  }
-  void AddTemperatureSample(float aTemperature) {
-    mTemperatureAVG.AddSample(aTemperature);
-  }
-  void AddHumiditySample(float aHumidity) {
-    mHumidityAVG.AddSample(aHumidity);
-  }
-  void AddOutputSample(float aOutput) {
-    mOutputAVG.AddSample(aOutput);
-  }
-  void AddSamples(const ggDataLog& aDataLogSrc) {
-    mPressureAVG.AddSamples(aDataLogSrc.mPressureAVG);
-    mTemperatureAVG.AddSamples(aDataLogSrc.mTemperatureAVG);
-    mHumidityAVG.AddSamples(aDataLogSrc.mHumidityAVG);
-    mOutputAVG.AddSamples(aDataLogSrc.mOutputAVG);
-  }
-  void ResetOnNextAddSample() {
-    mPressureAVG.ResetOnNextAddSample();
-    mTemperatureAVG.ResetOnNextAddSample();
-    mHumidityAVG.ResetOnNextAddSample();
-    mOutputAVG.ResetOnNextAddSample();
-  }
-  void Write(time_t aTime) {
-    // BME280 ranges: 300..1100hPa, -40..85°C, 0..100%
-    // https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf
-    cMeasurements vMeasurements;
-    mPressureAVG.AssignValues(vMeasurements.mPressure, 100.0f, -800.0f); // common range: 600..1000hPa (https://de.wikipedia.org/wiki/Luftdruck)
-    mTemperatureAVG.AssignValues(vMeasurements.mTemperature, 100.0f, 0.0f); // common range: -20..40°C
-    mHumidityAVG.AssignValues(vMeasurements.mHumidity, 100.0f, 0.0f); // common range: 0..100%
-    mOutputAVG.AssignValues(vMeasurements.mOutput, 10000.0f, 0.0f); // common range: 0..1
-    mCircularFile.Write(aTime, vMeasurements);
-  }
-private:
-  typedef struct cValue {
-    int16_t mMean;
-    int16_t mMin;
-    int16_t mMax;
-    int16_t mStdDev;
-  };
-  typedef struct cMeasurements {
-    cValue mPressure;
-    cValue mTemperature;
-    cValue mHumidity;
-    cValue mOutput;
-  };
-  class cAverages {
-  public:
-    typedef ggAveragesT<float, float> tBaseClass;
-    cAverages()
-    : mAverages(),
-      mResetOnNextAddSample(false) {
-    }
-    void AddSample(float aValue) {
-      ResetIfNeeded();
-      mAverages.AddSample(aValue);
-    }
-    void AddSamples(const cAverages& aAveragesSrc) {
-      ResetIfNeeded();
-      mAverages.AddSamples(aAveragesSrc.mAverages);
-    }
-    void ResetOnNextAddSample() {
-      mResetOnNextAddSample = true;
-    }
-    void AssignValues(cValue& aValue, float aScale = 1.0f, float aOffset = 0.0f) {
-      aValue.mMean = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMean()));
-      aValue.mMin = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMin()));
-      aValue.mMax = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMax()));
-      aValue.mStdDev = ggRound<int16_t>(aScale * (aOffset + mAverages.GetStdDev()));
-    }
-  private:
-    void ResetIfNeeded() {
-      if (mResetOnNextAddSample) {
-        mAverages.Reset();
-        mResetOnNextAddSample = false;
-      }
-    }
-    ggAveragesT<float, float> mAverages;
-    bool mResetOnNextAddSample;
-  };
-  typedef ggCircularFileT<time_t, cMeasurements> tCircularFile;
-  cAverages mPressureAVG;
-  cAverages mTemperatureAVG;
-  cAverages mHumidityAVG;
-  cAverages mOutputAVG;
-  uint32_t mPeriod;
-  tCircularFile mCircularFile;
-};
-
-
+// data logging
 ggDataLog* mDataLog1D = nullptr;
 ggDataLog* mDataLog1W = nullptr;
 ggDataLog* mDataLog1M = nullptr;
@@ -203,18 +87,11 @@ ggDataLog* mDataLogMax = nullptr;
 void CreateComponents()
 {
   // create data loggers with various sampling rates
-  /*
   mDataLog1D = new ggDataLog(30, 24*60*60, "/ggData1D.dat", mFileSystem);
   mDataLog1W = new ggDataLog(5*60, 7*24*60*60, "/ggData1W.dat", mFileSystem);
   mDataLog1M = new ggDataLog(15*60, 30*24*60*60, "/ggData1M.dat", mFileSystem);
   mDataLog1Y = new ggDataLog(3*60*60, 365*24*60*60, "/ggData1Y.dat", mFileSystem);
-  mDataLog1Max = new ggDataLog(24*60*60, 10*365*24*60*60, "/ggDataMax.dat", mFileSystem);
-  */
-  mDataLog1D = new ggDataLog(5, 500, "/ggData1D.dat", mFileSystem);
-  mDataLog1W = new ggDataLog(10, 1000, "/ggData1W.dat", mFileSystem);
-  mDataLog1M = new ggDataLog(30, 3000, "/ggData1M.dat", mFileSystem);
-  mDataLog1Y = new ggDataLog(60, 6000, "/ggData1Y.dat", mFileSystem);
-  mDataLogMax = new ggDataLog(120, 12000, "/ggDataMax.dat", mFileSystem);
+  mDataLogMax = new ggDataLog(24*60*60, 10*365*24*60*60, "/ggDataMax.dat", mFileSystem);
 }
 
 
