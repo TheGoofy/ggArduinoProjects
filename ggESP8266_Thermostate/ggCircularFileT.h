@@ -12,7 +12,7 @@ class ggCircularFileT {
 public:
 
   ggCircularFileT(const String& aFileName,
-                  unsigned long aNumberOfDataBlocks,
+                  uint32_t aNumberOfDataBlocks,
                   FS* aFileSystem)
   : mFileSystem(aFileSystem),
     mFileName(aFileName),
@@ -22,6 +22,10 @@ public:
 
   const String& GetFileName() const {
     return mFileName;
+  }
+
+  uint32_t GetNumberOfDataBlocks() const {
+    return mNumberOfDataBlocks;
   }
 
   // "aTime" must have an incremental value
@@ -49,20 +53,15 @@ private:
 
   // allocates a complete new file and opens it for update
   void ResetAndOpenFile() {
-    GG_DEBUG();
-    vDebug.PrintF("mFileName = %s\n", mFileName.c_str());
+    // ultimately clean up
     mFile.close();
     FileSystem().remove(mFileName.c_str());
-    // create an empty file for output operations
+    // create a new empty file for writing
     mFile = FileSystem().open(mFileName.c_str(), "w");
     if (mFile) {
-      vDebug.PrintF("init/reset file content\n");
       // initialize all bytes with zero
-      mFile.seek(0);
-      const size_t vFileSize = GetFileSize();
-      size_t vPosition = vFileSize;
+      size_t vPosition = GetFileSize();;
       while (vPosition--) mFile.write(0);
-      mFile.truncate(vFileSize);
       mFile.flush();
       mFile.close();
       // for later operations, the file must be opened for update
@@ -70,27 +69,18 @@ private:
       // the file is empty - no need to "search" index in file
       mIndex = 0;
     }
-    else {
-      vDebug.PrintF("can't open file for writing\n");
-    }
   }
 
   bool OpenFile() {
-    GG_DEBUG();
     // open an existing file for update
     mFile = FileSystem().open(mFileName.c_str(), "r+b");
     // if file can't be opened, it probably doesn't exist
     if (!mFile) {
-      vDebug.PrintF("allocate new file ...\n");
       ResetAndOpenFile();
     }
     // if the filesize does not match, we're resetting the file
     if (mFile && (mFile.size() != GetFileSize())) {
-      vDebug.PrintF("fix file size ...\n");
       ResetAndOpenFile();
-    }
-    if (!mFile) {
-      vDebug.PrintF("this is bad ... :-(\n");
     }
     // hopefully there is now a file open for update
     return mFile;
@@ -150,7 +140,7 @@ private:
   FS* mFileSystem;
 
   const String mFileName;
-  const unsigned long mNumberOfDataBlocks;
+  const uint32_t mNumberOfDataBlocks;
 
   File mFile;
   uint32_t mIndex;

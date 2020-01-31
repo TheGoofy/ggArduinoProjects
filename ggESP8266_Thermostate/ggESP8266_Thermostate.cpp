@@ -93,6 +93,8 @@ public:
     GG_DEBUG();
     vDebug.PrintF("aPeriod = %d\n", aPeriod);
     vDebug.PrintF("aDuration = %d\n", aDuration);
+    vDebug.PrintF("number of data blocks = %d\n", mCircularFile.GetNumberOfDataBlocks());
+    vDebug.PrintF("aFileName = \"%s\"\n", aFileName.c_str());
   }
   uint32_t GetPeriod() const {
     return mPeriod;
@@ -113,23 +115,18 @@ public:
     mOutputAVG.AddSample(aOutput);
   }
   void AddSamples(const ggDataLog& aDataLogSrc) {
-    GG_DEBUG();
-    vDebug.PrintF("add from \"%s\" to \"%s\"\n", aDataLogSrc.GetFileName().c_str(), GetFileName().c_str());
     mPressureAVG.AddSamples(aDataLogSrc.mPressureAVG);
     mTemperatureAVG.AddSamples(aDataLogSrc.mTemperatureAVG);
     mHumidityAVG.AddSamples(aDataLogSrc.mHumidityAVG);
     mOutputAVG.AddSamples(aDataLogSrc.mOutputAVG);
   }
   void ResetOnNextAddSample() {
-    GG_DEBUG();
     mPressureAVG.ResetOnNextAddSample();
     mTemperatureAVG.ResetOnNextAddSample();
     mHumidityAVG.ResetOnNextAddSample();
     mOutputAVG.ResetOnNextAddSample();
   }
   void Write(time_t aTime) {
-    GG_DEBUG();
-    vDebug.PrintF("aTime = %d\n", aTime);
     cMeasurements vMeasurements;
     mPressureAVG.AssignValues(10.0f, vMeasurements.mPressure);
     mTemperatureAVG.AssignValues(100.0f, vMeasurements.mTemperature);
@@ -362,36 +359,26 @@ void ConnectComponents()
 
   // timer and logging
   mTimerNTP.AddTimer(mDataLog1D->GetPeriod(), [] (uint32_t aPeriod) {
-    GG_DEBUG();
-    vDebug.PrintF("Logging data to \"%s\"\n", mDataLog1D->GetFileName().c_str());
     mDataLog1D->Write(mTimerNTP.GetTime());
     mDataLog1W->AddSamples(*mDataLog1D);
     mDataLog1D->ResetOnNextAddSample();
   });
   mTimerNTP.AddTimer(mDataLog1W->GetPeriod(), [] (uint32_t aPeriod) {
-    GG_DEBUG();
-    vDebug.PrintF("Logging data to \"%s\"\n", mDataLog1W->GetFileName().c_str());
     mDataLog1W->Write(mTimerNTP.GetTime());
     mDataLog1M->AddSamples(*mDataLog1W);
     mDataLog1W->ResetOnNextAddSample();
   });
   mTimerNTP.AddTimer(mDataLog1M->GetPeriod(), [] (uint32_t aPeriod) {
-    GG_DEBUG();
-    vDebug.PrintF("Logging data to \"%s\"\n", mDataLog1M->GetFileName().c_str());
     mDataLog1M->Write(mTimerNTP.GetTime());
     mDataLog1Y->AddSamples(*mDataLog1M);
     mDataLog1M->ResetOnNextAddSample();
   });
   mTimerNTP.AddTimer(mDataLog1Y->GetPeriod(), [] (uint32_t aPeriod) {
-    GG_DEBUG();
-    vDebug.PrintF("Logging data to \"%s\"\n", mDataLog1Y->GetFileName().c_str());
     mDataLog1Y->Write(mTimerNTP.GetTime());
     mDataLogMax->AddSamples(*mDataLog1Y);
     mDataLog1Y->ResetOnNextAddSample();
   });
   mTimerNTP.AddTimer(mDataLogMax->GetPeriod(), [] (uint32_t aPeriod) {
-    GG_DEBUG();
-    vDebug.PrintF("Logging data to \"%s\"\n", mDataLogMax->GetFileName().c_str());
     mDataLogMax->Write(mTimerNTP.GetTime());
     mDataLogMax->ResetOnNextAddSample();
   });
