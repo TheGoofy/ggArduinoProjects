@@ -9,7 +9,12 @@
 			"*.tcc": "cpp",
 			"istream": "cpp",
 			"ostream": "cpp",
-			"locale": "cpp"
+			"locale": "cpp",
+			"unordered_map": "cpp",
+			"complex": "cpp",
+			"functional": "cpp",
+			"system_error": "cpp",
+			"ratio": "cpp"
 		}
 	}
 }
