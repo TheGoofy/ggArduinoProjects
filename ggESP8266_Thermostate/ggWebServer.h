@@ -21,7 +21,8 @@ public:
   void Begin() {
     mServer.on("/", [&] () { OnHome(); });
     mServer.on("/home", [&] () { OnHome(); });
-    mServer.on("/logger", [&] () { HandleFile("/ggLogger.html"); });
+    mServer.on("/loglive", [&] () { HandleFile("/ggLogLive.html"); });
+    mServer.on("/logfile", [&] () { HandleFile("/ggLogFile.html"); });
     mServer.on("/files", [&] () { OnFS(); });
     mServer.on("/debug", [&] () { OnDebug(); });
     mServer.on("/goofy", [&] () { HandleFile("/ggGoofy.html"); });

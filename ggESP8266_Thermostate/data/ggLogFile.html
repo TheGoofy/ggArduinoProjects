@@ -1,0 +1,190 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01//EN' 'http://www.w3.org/TR/html4/strict.dtd'>
+<html>
+
+  <head>
+    <title>ESP8266 Thermostate Log File</title>
+    <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+    <meta http-equiv='Content-Style-Type' content='text/css'/>
+    <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
+    <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
+    <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
+    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script language='javascript' type='text/javascript'>
+
+      var mHostName = window.location.hostname;
+      var mTemperatureChart = null;
+      
+      function InitAll() {
+        if (mHostName == '') {
+          mHostName = window.prompt('Please enter host name', "192.168.0.88");
+        }
+        InitHtmlElements();
+        CreateCharts();
+      }
+
+      function InitHtmlElements() {
+      }
+      
+      // google.charts.load('current', {'packages':['line']});
+      google.charts.load('current', {'packages':['corechart']});
+
+      class ggTimeChart {
+
+        constructor(aContainer, aUnit, aColor) {
+          this.mData = new google.visualization.DataTable();
+          this.mData.addColumn('date', '');
+          this.mData.addColumn('number', aUnit);
+          this.mData.addColumn('number', aUnit);
+          this.mData.addColumn('number', aUnit);
+          this.mOptions = {
+            legend: { position: 'none' },
+            series: {
+              0: { color: aColor, lineDashStyle: [1, 2] },
+              1: { color: aColor, lineDashStyle: [1, 2] },
+              2: { color: aColor }
+            },
+            axisTitlesPosition: 'none',
+            chartArea: { width: '98%',  height: '100%' },
+            hAxis: {
+              textPosition: 'in',
+              maxTextLines: 2,
+              format: 'HH:mm:ss\ndd.MM.yyyy',
+              gridlines: { count: 3, color: '#eee' },
+            },
+            vAxis: {
+              textPosition: 'in',
+            },
+            explorer: {
+              axis: 'horizontal',
+              keepInBounds: true,
+              zoomDelta: 0.8,
+            }
+          };
+          // this.mChart = new google.charts.Line(aContainer);
+          this.mChart = new google.visualization.LineChart(aContainer);
+        }
+
+        Add(aRowIndex, aDate, aValue, aValueMin, aValueMax, aRedraw) {
+          this.mData.insertRows(aRowIndex, [[aDate, aValueMin, aValueMax, aValue]]);
+          if (aRedraw) this.Draw();
+        }
+
+        RemoveRows() {
+          let vNumberOfRows = this.mData.getNumberOfRows();
+          if (vNumberOfRows > 0) {
+            this.mData.removeRows(0, vNumberOfRows);
+          }
+        }
+
+        SetRows(aDataView, aPositionOffset, aOffset, aScale) {
+          this.RemoveRows();
+          const vLittleEndian = true;
+          const vBlockSize = 4 + 4 * 4 * 2;
+          const vNumberOfBlocks = aDataView.byteLength / vBlockSize;
+          let vRowIndex = 0;
+          let vLastTime = 0;
+          for (let vIndex = 0; vIndex < vNumberOfBlocks; vIndex++) {
+            let vPosition = vIndex * vBlockSize;
+            let vTime = aDataView.getUint32(vPosition + 0, vLittleEndian);
+            if (vTime != 0) {
+              if (vTime < vLastTime) vRowIndex = 0;
+              const vValuePosition = vPosition + 4 + aPositionOffset;
+              let vValue = aOffset + aScale * aDataView.getInt16(vValuePosition, vLittleEndian);
+              let vValueMin = aOffset + aScale * aDataView.getInt16(vValuePosition + 2, vLittleEndian);
+              let vValueMax = aOffset + aScale * aDataView.getInt16(vValuePosition + 4, vLittleEndian);
+              let vValueStdDev = aOffset + aScale * aDataView.getInt16(vValuePosition + 6, vLittleEndian);
+              let vDate = new Date(1000 * vTime);
+              this.Add(vRowIndex++, vDate, vValue,  vValueMin, vValueMax, false);
+              vLastTime = vTime;
+            }
+          }
+          this.Draw();
+        }
+
+        Draw() {
+          // this.mChart.draw(this.mData, google.charts.Line.convertOptions(this.mOptions));
+          this.mChart.draw(this.mData, this.mOptions);
+        }
+      
+      }
+
+      function LoadChart(aFileName) {
+        let vURL = "http://" + mHostName + "/" + aFileName;
+        let vReq = new XMLHttpRequest();
+        vReq.open("GET", vURL);
+        vReq.responseType = "arraybuffer";
+        vReq.onload = function (aEvent) {
+          if (vReq.status == 200) {
+            if (vReq.response) { // Note: not vReq.responseText
+              let vDataView = new DataView(vReq.response);
+              mPressureChart.SetRows(vDataView, 0, 800.0, 0.01);
+              mTemperatureChart.SetRows(vDataView, 8, 0.0, 0.01);
+              mHumidityChart.SetRows(vDataView, 16, 0.0, 0.01);
+              mOutputChart.SetRows(vDataView, 24, 0.0, 0.01);
+            } 
+          }
+        }
+        vReq.send(null);
+      }
+      
+      function DrawCharts() {
+        mPressureChart.Draw();
+        mTemperatureChart.Draw();
+        mHumidityChart.Draw();
+        mOutputChart.Draw();
+      }
+
+      function CreateCharts() {
+        mPressureChart = new ggTimeChart(document.getElementById('mPressureChartDiv'), 'hPa', '#fa0');
+        mTemperatureChart = new ggTimeChart(document.getElementById('mTemperatureChartDiv'), '°C', '#08f');
+        mHumidityChart = new ggTimeChart(document.getElementById('mHumidityChartDiv'), '%', '#5b0');
+        mOutputChart = new ggTimeChart(document.getElementById('mOutputChartDiv'), '%', '#f04');
+        google.charts.setOnLoadCallback(DrawCharts);
+        LoadChart("ggData1D.dat");
+      }
+      
+    </script>
+  </head>
+
+  <body onload='javascript:InitAll()'>
+    <div style='text-align:left;display:inline-block;min-width:340px'>
+      <b style="font-size: larger;">Log File</b><br>
+      <hr noshade>
+
+      <style> .mTabs cTab { cursor: pointer; background-color: red; } </style>
+      <div id='mTabs'>
+        <button class='cTab' onclick="LoadChart('ggData1D.dat')">1D</button>
+        <button class='cTab' onclick="LoadChart('ggData1W.dat')">1W</button>
+        <button class='cTab' onclick="LoadChart('ggData1M.dat')">1M</button>
+        <button class='cTab' onclick="LoadChart('ggData1Y.dat')">1Y</button>
+        <button class='cTab' onclick="LoadChart('ggDataMax.dat')">Max</button>
+      </div>
+      
+      <style> .cChartTitle { text-align: center; } </style>
+      <div id='mCharts' style='padding:3px;background:white'>
+        <div class='cChartTitle'>Pressure [hPa]</div>
+        <div id='mPressureChartDiv' style='width:100%;height:150px'></div>
+        <hr noshade style="border:white">
+        <div class='cChartTitle'>Temperature [°C]</div>
+        <div id='mTemperatureChartDiv' style='width:100%;height:150px'></div>
+        <hr noshade style="border:white">
+        <div class='cChartTitle'>Humidity [%]</div>
+        <div id='mHumidityChartDiv' style='width:100%;height:150px'></div>
+        <hr noshade style="border:white">
+        <div class='cChartTitle'>Output [%]</div>
+        <div id='mOutputChartDiv' style='width:100%;height:150px'></div>
+      </div>
+      
+      <br>
+      <hr noshade>
+      <a href='/'>[home]</a>
+      <a href='/loglive'>[log-live]</a>
+      <a href='/logfile'>[log-file]</a>
+      <a href='/files'>[files]</a>
+      <a href='/debug'>[debug]</a>
+      <a href='/goofy'>[goofy]</a><br>
+      (c) 2020, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
+    </div>
+  </body>
+
+</html>
