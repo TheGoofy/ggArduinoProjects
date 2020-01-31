@@ -29,12 +29,25 @@ public:
   }
 
   // "aTime" must have an incremental value
-  void Write(const TTime& aTime, const TData& aData) {
+  bool Write(const TTime& aTime, const TData& aData) {
     if (OpenFile()) {
-      ReadIndex();
-      WriteIndex(aTime, aData);
+      GetIndex();
+      WriteData(aTime, aData);
       CloseFile();
+      return true;
     }
+    return false;
+  }
+
+  // reads the newest data block
+  bool Read(TTime& aTime, TData& aData) const {
+    if (OpenFile()) {
+      GetIndex();
+      ReadData(aTime, aData);
+      CloseFile();
+      return true;
+    }
+    return false;
   }
 
 private:
@@ -52,7 +65,7 @@ private:
   }
 
   // allocates a complete new file and opens it for update
-  void ResetAndOpenFile() {
+  void ResetAndOpenFile() const {
     // ultimately clean up
     mFile.close();
     FileSystem().remove(mFileName.c_str());
@@ -71,7 +84,7 @@ private:
     }
   }
 
-  bool OpenFile() {
+  bool OpenFile() const {
     // open an existing file for update
     mFile = FileSystem().open(mFileName.c_str(), "r+b");
     // if file can't be opened, it probably doesn't exist
@@ -86,7 +99,7 @@ private:
     return mFile;
   }
 
-  void ReadIndex() {
+  void GetIndex() const {
     // index is valid, if smaller than number of blocks
     if (mIndex < mNumberOfDataBlocks) return;
     // invalid index => need to search in file
@@ -113,7 +126,7 @@ private:
     mIndex = 0;
   }
 
-  void WriteIndex(const TTime& aTime, const TData& aData) {
+  void WriteData(const TTime& aTime, const TData& aData) {
     size_t vPosition = GetPosition(mIndex++);
     if (mIndex >= mNumberOfDataBlocks) mIndex = 0;
     if (mFile.seek(vPosition)) {
@@ -122,7 +135,16 @@ private:
     }
   }
 
-  void CloseFile() {
+  void ReadData(TTime& aTime, TData& aData) const {
+    uint32_t vIndex = mIndex > 0 ? mIndex - 1 : mNumberOfDataBlocks - 1;
+    size_t vPosition = GetPosition(vIndex);
+    if (mFile.seek(vPosition)) {
+      Read(mFile, aTime);
+      Read(mFile, aData);
+    }
+  }
+
+  void CloseFile() const {
     mFile.flush();
     mFile.close();
   }
@@ -142,7 +164,7 @@ private:
   const String mFileName;
   const uint32_t mNumberOfDataBlocks;
 
-  File mFile;
-  uint32_t mIndex;
+  mutable File mFile;
+  mutable uint32_t mIndex;
 
 };
