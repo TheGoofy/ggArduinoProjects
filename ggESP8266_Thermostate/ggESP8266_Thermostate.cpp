@@ -77,6 +77,7 @@ ggValueEEPromString<> mName(mHostName);
 ggTimerNTP mTimerNTP("ch.pool.ntp.org", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00");
 
 // data logging
+ggDataLog* mDataLog1H = nullptr;
 ggDataLog* mDataLog1D = nullptr;
 ggDataLog* mDataLog1W = nullptr;
 ggDataLog* mDataLog1M = nullptr;
@@ -87,6 +88,7 @@ ggDataLog* mDataLogMax = nullptr;
 void CreateComponents()
 {
   // create data loggers with various sampling rates
+  mDataLog1H = new ggDataLog(2, 60*60, "/ggData1H.dat", mFileSystem);
   mDataLog1D = new ggDataLog(30, 24*60*60, "/ggData1D.dat", mFileSystem);
   mDataLog1W = new ggDataLog(5*60, 7*24*60*60, "/ggData1W.dat", mFileSystem);
   mDataLog1M = new ggDataLog(15*60, 30*24*60*60, "/ggData1M.dat", mFileSystem);
@@ -123,7 +125,7 @@ void ConnectComponents()
   mTemperatureController.OnOutputChanged([&] (float aOutputValue) {
     mPeriphery.mOutputPWM.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
-    mDataLog1D->AddOutputSample(aOutputValue);
+    mDataLog1H->AddOutputSample(aOutputValue);
   });
 
   // when button "key" is pressed we switch the SSR manually
@@ -155,16 +157,16 @@ void ConnectComponents()
   });
   mPeriphery.mSensor.OnPressureChanged([&] (float aPressure) {
     mWebSockets.UpdatePressure(aPressure);
-    mDataLog1D->AddPressureSample(aPressure);
+    mDataLog1H->AddPressureSample(aPressure);
   });
   mPeriphery.mSensor.OnTemperatureChanged([&] (float aTemperature) {
     mTemperatureController.SetInput(aTemperature);
     mWebSockets.UpdateTemperature(aTemperature);
-    mDataLog1D->AddTemperatureSample(aTemperature);
+    mDataLog1H->AddTemperatureSample(aTemperature);
   });
   mPeriphery.mSensor.OnHumidityChanged([&] (float aHumidity) {
     mWebSockets.UpdateHumidity(aHumidity);
-    mDataLog1D->AddHumiditySample(aHumidity);
+    mDataLog1H->AddHumiditySample(aHumidity);
   });
 
   // wifi events
@@ -214,7 +216,7 @@ void ConnectComponents()
   mWebSockets.OnSetOutput([&] (float aOutputValue) {
     mPeriphery.mOutputPWM.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
-    mDataLog1D->AddOutputSample(aOutputValue);
+    mDataLog1H->AddOutputSample(aOutputValue);
   });
 
   // web server
@@ -237,6 +239,11 @@ void ConnectComponents()
   });
 
   // timer and logging
+  mTimerNTP.AddTimer(mDataLog1H->GetPeriod(), [] (uint32_t aPeriod) {
+    mDataLog1H->Write(mTimerNTP.GetTime());
+    mDataLog1D->AddSamples(*mDataLog1H);
+    mDataLog1H->ResetOnNextAddSample();
+  });
   mTimerNTP.AddTimer(mDataLog1D->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLog1D->Write(mTimerNTP.GetTime());
     mDataLog1W->AddSamples(*mDataLog1D);
