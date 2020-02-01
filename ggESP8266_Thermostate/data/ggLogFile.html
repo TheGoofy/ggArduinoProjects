@@ -142,6 +142,15 @@
         google.charts.setOnLoadCallback(DrawCharts);
         LoadChart("ggData1D.dat");
       }
+
+      function OnTabClick(aButton) {
+        var vTabs = Array.from(document.getElementsByClassName("cTab"));
+        vTabs.forEach(vTab => {
+          vTab.className = vTab.className.replace(" selected", "");
+        });
+        aButton.className += " selected";
+        LoadChart(aButton.value);
+      }
       
     </script>
   </head>
@@ -151,14 +160,18 @@
       <b style="font-size: larger;">Log File</b><br>
       <hr noshade>
 
-      <style> .mTabs cTab { cursor: pointer; background-color: red; } </style>
-      <div id='mTabs'>
-        <button class='cTab' onclick="LoadChart('ggData1H.dat')">1H</button>
-        <button class='cTab' onclick="LoadChart('ggData1D.dat')">1D</button>
-        <button class='cTab' onclick="LoadChart('ggData1W.dat')">1W</button>
-        <button class='cTab' onclick="LoadChart('ggData1M.dat')">1M</button>
-        <button class='cTab' onclick="LoadChart('ggData1Y.dat')">1Y</button>
-        <button class='cTab' onclick="LoadChart('ggDataMax.dat')">Max</button>
+      <style>
+        .cTabs button { cursor: pointer; background-color:#ccc; border:none; outline:none; transition:0.3s; }
+        .cTabs button.selected { background-color:white; }
+        .cTabs button:hover { background-color:#fc0; }
+      </style>
+      <div class='cTabs'>
+        <button class='cTab' onclick="OnTabClick(this)" value='ggData1H.dat'>1H</button>
+        <button class='cTab selected' onclick="OnTabClick(this)" value='ggData1D.dat'>1D</button>
+        <button class='cTab' onclick="OnTabClick(this)" value='ggData1W.dat'>1W</button>
+        <button class='cTab' onclick="OnTabClick(this)" value='ggData1M.dat'>1M</button>
+        <button class='cTab' onclick="OnTabClick(this)" value='ggData1Y.dat'>1Y</button>
+        <button class='cTab' onclick="OnTabClick(this)" value='ggDataMax.dat'>Max</button>
       </div>
       
       <style> .cChartTitle { text-align: center; } </style>
@@ -176,7 +189,6 @@
         <div id='mOutputChartDiv' style='width:100%;height:150px'></div>
       </div>
       
-      <br>
       <hr noshade>
       <a href='/'>[home]</a>
       <a href='/loglive'>[log-live]</a>
