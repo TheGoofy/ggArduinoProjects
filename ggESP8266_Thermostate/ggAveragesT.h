@@ -6,7 +6,7 @@
 /**
  * Computes the averages: Sum, Min, Max, Mean, StdDev, and
  * Variation. The class requires a minimum amount of memory, and
- * does not store individual samples (for this reason it can not
+ * does not store individual values (for this reason it can not
  * compute the Median). Also known as "Online-Averages" ...
  *
  * see: https://en.wikipedia.org/wiki/Algorithms_for_calculating_variance
@@ -40,8 +40,8 @@ public:
   }
 
   // adds a sample
-  inline void AddSample(TValue aValue,
-                        TValueS aCount = 1) {
+  inline void AddValue(TValue aValue,
+                       TValueS aCount = 1) {
     const TValueS vValue = ggRound<TValueS>(aValue);
     if (mCount == 0) {
       mShiftK = vValue;
@@ -59,7 +59,7 @@ public:
   }
 
   // add/merge samples from other averages
-  inline void AddSamples(const ggAveragesT& aOther) {
+  inline void AddValues(const ggAveragesT& aOther) {
     if (mCount == 0) {
       *this = aOther;
     }
@@ -76,8 +76,8 @@ public:
   }
 
   // removes a sample (min and max are not updated)
-  inline void RemoveSample(TValue aValue,
-                           TValueS aCount = 1) {
+  inline void RemoveValue(TValue aValue,
+                          TValueS aCount = 1) {
     const TValueS vValue = ggRound<TValueS>(aValue);
     const TValueS vValueShifted = vValue - mShiftK;
     mSum -= aCount * vValueShifted;

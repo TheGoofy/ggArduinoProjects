@@ -44,6 +44,7 @@ todo:
 - pin-assignment in eeprom
 - debugging: print number of connected web socket clients
 - live-log discard old samples, 1h-view, no super-sample
+- file-log: export table as csv
 */
 
 // imoque identification name
@@ -125,7 +126,7 @@ void ConnectComponents()
   mTemperatureController.OnOutputChanged([&] (float aOutputValue) {
     mPeriphery.mOutputPWM.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
-    mDataLog1H->AddOutputSample(aOutputValue);
+    mDataLog1H->AddOutputValue(aOutputValue);
   });
 
   // when button "key" is pressed we switch the SSR manually
@@ -157,7 +158,7 @@ void ConnectComponents()
   });
   mPeriphery.mSensor.OnPressureChanged([&] (float aPressure) {
     mWebSockets.UpdatePressure(aPressure);
-    mDataLog1H->AddPressureSample(aPressure);
+    mDataLog1H->AddPressureValue(aPressure);
   });
   mPeriphery.mSensor.OnTemperatureChanged([&] (float aTemperature) {
     mTemperatureController.SetInput(aTemperature);
@@ -166,7 +167,7 @@ void ConnectComponents()
   });
   mPeriphery.mSensor.OnHumidityChanged([&] (float aHumidity) {
     mWebSockets.UpdateHumidity(aHumidity);
-    mDataLog1H->AddHumiditySample(aHumidity);
+    mDataLog1H->AddHumidityValue(aHumidity);
   });
 
   // wifi events
@@ -216,7 +217,7 @@ void ConnectComponents()
   mWebSockets.OnSetOutput([&] (float aOutputValue) {
     mPeriphery.mOutputPWM.Set(aOutputValue);
     mWebSockets.UpdateOutput(aOutputValue);
-    mDataLog1H->AddOutputSample(aOutputValue);
+    mDataLog1H->AddOutputValue(aOutputValue);
   });
 
   // web server
@@ -241,32 +242,32 @@ void ConnectComponents()
   // timer and logging
   mTimerNTP.AddTimer(mDataLog1H->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLog1H->Write(mTimerNTP.GetTime());
-    mDataLog1D->AddSamples(*mDataLog1H);
-    mDataLog1H->ResetOnNextAddSample();
+    mDataLog1D->AddValues(*mDataLog1H);
+    mDataLog1H->ResetOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLog1D->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLog1D->Write(mTimerNTP.GetTime());
-    mDataLog1W->AddSamples(*mDataLog1D);
-    mDataLog1D->ResetOnNextAddSample();
+    mDataLog1W->AddValues(*mDataLog1D);
+    mDataLog1D->ResetOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLog1W->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLog1W->Write(mTimerNTP.GetTime());
-    mDataLog1M->AddSamples(*mDataLog1W);
-    mDataLog1W->ResetOnNextAddSample();
+    mDataLog1M->AddValues(*mDataLog1W);
+    mDataLog1W->ResetOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLog1M->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLog1M->Write(mTimerNTP.GetTime());
-    mDataLog1Y->AddSamples(*mDataLog1M);
-    mDataLog1M->ResetOnNextAddSample();
+    mDataLog1Y->AddValues(*mDataLog1M);
+    mDataLog1M->ResetOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLog1Y->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLog1Y->Write(mTimerNTP.GetTime());
-    mDataLogMax->AddSamples(*mDataLog1Y);
-    mDataLog1Y->ResetOnNextAddSample();
+    mDataLogMax->AddValues(*mDataLog1Y);
+    mDataLog1Y->ResetOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLogMax->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLogMax->Write(mTimerNTP.GetTime());
-    mDataLogMax->ResetOnNextAddSample();
+    mDataLogMax->ResetOnNextAddValue();
   });
 }
 

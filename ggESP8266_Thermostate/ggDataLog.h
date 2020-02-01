@@ -17,7 +17,7 @@ public:
     mPeriod(aPeriod),
     mCircularFile(aFileName, aDuration / aPeriod, aFileSystem),
     mLastTime(0),
-    mLastMeasurements(nullptr) {
+    mLastSamples(nullptr) {
     GG_DEBUG();
     vDebug.PrintF("aPeriod = %d\n", aPeriod);
     vDebug.PrintF("aDuration = %d\n", aDuration);
@@ -33,67 +33,67 @@ public:
     return mCircularFile.GetFileName();
   }
 
-  void AddPressureSample(float aPressure) {
-    mPressureAVG.AddSample(aPressure);
+  void AddPressureValue(float aPressure) {
+    mPressureAVG.AddValue(aPressure);
   }
 
   void AddTemperatureSample(float aTemperature) {
-    mTemperatureAVG.AddSample(aTemperature);
+    mTemperatureAVG.AddValue(aTemperature);
   }
 
-  void AddHumiditySample(float aHumidity) {
-    mHumidityAVG.AddSample(aHumidity);
+  void AddHumidityValue(float aHumidity) {
+    mHumidityAVG.AddValue(aHumidity);
   }
 
-  void AddOutputSample(float aOutput) {
-    mOutputAVG.AddSample(aOutput);
+  void AddOutputValue(float aOutput) {
+    mOutputAVG.AddValue(aOutput);
   }
 
-  void AddSamples(const ggDataLog& aDataLogSrc) {
-    mPressureAVG.AddSamples(aDataLogSrc.mPressureAVG);
-    mTemperatureAVG.AddSamples(aDataLogSrc.mTemperatureAVG);
-    mHumidityAVG.AddSamples(aDataLogSrc.mHumidityAVG);
-    mOutputAVG.AddSamples(aDataLogSrc.mOutputAVG);
+  void AddValues(const ggDataLog& aDataLogSrc) {
+    mPressureAVG.AddValues(aDataLogSrc.mPressureAVG);
+    mTemperatureAVG.AddValues(aDataLogSrc.mTemperatureAVG);
+    mHumidityAVG.AddValues(aDataLogSrc.mHumidityAVG);
+    mOutputAVG.AddValues(aDataLogSrc.mOutputAVG);
   }
 
-  void ResetOnNextAddSample() {
-    mPressureAVG.ResetOnNextAddSample();
-    mTemperatureAVG.ResetOnNextAddSample();
-    mHumidityAVG.ResetOnNextAddSample();
-    mOutputAVG.ResetOnNextAddSample();
+  void ResetOnNextAddValue() {
+    mPressureAVG.ResetOnNextAddValue();
+    mTemperatureAVG.ResetOnNextAddValue();
+    mHumidityAVG.ResetOnNextAddValue();
+    mOutputAVG.ResetOnNextAddValue();
   }
 
   void Write(time_t aTime) {
     // BME280 ranges: 300..1100hPa, -40..85°C, 0..100%
     // https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf
-    cMeasurements vMeasurements;
+    cSamples vMeasurements;
     // common range: 600..1000hPa (full uint16 range: 480..1120hPa, 0.01hPa, see: https://de.wikipedia.org/wiki/Luftdruck)
-    mPressureAVG.AssignValues(vMeasurements.mPressure, -800.0f, 100.0f, LastMeasurements().mPressure);
+    mPressureAVG.AssignSample(vMeasurements.mPressure, -800.0f, 100.0f, LastSamples().mPressure);
     // common range: -20..40°C (full uint16 range: -320..320°C, resolution: 0.01°C)
-    mTemperatureAVG.AssignValues(vMeasurements.mTemperature, 0.0f, 100.0f, LastMeasurements().mTemperature);
+    mTemperatureAVG.AssignSample(vMeasurements.mTemperature, 0.0f, 100.0f, LastSamples().mTemperature);
     // range: 0..100% (full uint16 range: -320..320%, resolution: 0.01%)
-    mHumidityAVG.AssignValues(vMeasurements.mHumidity, 0.0f, 100.0f, LastMeasurements().mHumidity);
+    mHumidityAVG.AssignSample(vMeasurements.mHumidity, 0.0f, 100.0f, LastSamples().mHumidity);
     // range: 0..1 (full uint16 range: -320..320%, resolution: 0.01%)
-    mOutputAVG.AssignValues(vMeasurements.mOutput, 0.0f, 10000.0f, LastMeasurements().mOutput);
+    mOutputAVG.AssignSample(vMeasurements.mOutput, 0.0f, 10000.0f, LastSamples().mOutput);
     // write "time" and "measurements" into circular file
     mCircularFile.Write(aTime, vMeasurements);
   }
 
 private:
 
-  typedef struct cValue {
-    cValue() : mMean(0), mMin(0), mMax(0), mStdDev(0) {}
+  typedef struct cSample {
+    cSample() : mMean(0), mMin(0), mMax(0), mStdDev(0) {}
     int16_t mMean;
     int16_t mMin;
     int16_t mMax;
     int16_t mStdDev;
   };
 
-  typedef struct cMeasurements {
-    cValue mPressure;
-    cValue mTemperature;
-    cValue mHumidity;
-    cValue mOutput;
+  typedef struct cSamples {
+    cSample mPressure;
+    cSample mTemperature;
+    cSample mHumidity;
+    cSample mOutput;
   };
 
   // helper sub-class for averages
@@ -102,42 +102,43 @@ private:
     typedef ggAveragesT<float, float> tBaseClass;
     cAverages()
     : mAverages(),
-      mResetOnNextAddSample(false) {
+      mResetOnNextAddValue(false) {
     }
-    void AddSample(float aValue) {
+    void AddValue(float aValue) {
       ResetIfNeeded();
-      mAverages.AddSample(aValue);
+      mAverages.AddValue(aValue);
     }
-    void AddSamples(const cAverages& aAveragesSrc) {
+    void AddValues(const cAverages& aAveragesSrc) {
       ResetIfNeeded();
-      mAverages.AddSamples(aAveragesSrc.mAverages);
+      mAverages.AddValues(aAveragesSrc.mAverages);
     }
-    void ResetOnNextAddSample() {
-      mResetOnNextAddSample = true;
+    void ResetOnNextAddValue() {
+      mResetOnNextAddValue = true;
     }
-    void AssignValues(cValue& aValue, float aOffset, float aScale, const cValue& aValueDefault) {
+    void AssignSample(cSample& aSample, float aOffset, float aScale, cSample& aSampleLast) {
       if (mAverages.GetNumberOfSamples() > 0) {
-        aValue.mMean = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMean()));
-        aValue.mMin = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMin()));
-        aValue.mMax = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMax()));
-        aValue.mStdDev = ggRound<int16_t>(aScale * (aOffset + mAverages.GetStdDev()));
+        aSample.mMean = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMean()));
+        aSample.mMin = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMin()));
+        aSample.mMax = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMax()));
+        aSample.mStdDev = ggRound<int16_t>(aScale * (aOffset + mAverages.GetStdDev()));
+        aSampleLast = aSample;
       }
       else {
-        aValue = aValueDefault;
+        aSample = aSampleLast;
       }
     }
   private:
     void ResetIfNeeded() {
-      if (mResetOnNextAddSample) {
+      if (mResetOnNextAddValue) {
         mAverages.Reset();
-        mResetOnNextAddSample = false;
+        mResetOnNextAddValue = false;
       }
     }
     ggAveragesT<float, float> mAverages;
-    bool mResetOnNextAddSample;
+    bool mResetOnNextAddValue;
   };
 
-  typedef ggCircularFileT<time_t, cMeasurements> tCircularFile;
+  typedef ggCircularFileT<time_t, cSamples> tCircularFile;
 
   cAverages mPressureAVG;
   cAverages mTemperatureAVG;
@@ -148,13 +149,13 @@ private:
   tCircularFile mCircularFile;
 
   mutable time_t mLastTime;
-  mutable cMeasurements* mLastMeasurements;
-  const cMeasurements& LastMeasurements() const {
-    if (mLastMeasurements == nullptr) {
-      mLastMeasurements = new cMeasurements();
-      mCircularFile.Read(mLastTime, *mLastMeasurements);
+  mutable cSamples* mLastSamples;
+  cSamples& LastSamples() const {
+    if (mLastSamples == nullptr) {
+      mLastSamples = new cSamples();
+      mCircularFile.Read(mLastTime, *mLastSamples);
     }
-    return *mLastMeasurements;
+    return *mLastSamples;
   }
 
 };
