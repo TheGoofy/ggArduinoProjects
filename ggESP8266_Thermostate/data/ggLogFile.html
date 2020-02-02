@@ -66,8 +66,8 @@
           this.mChart = new google.visualization.LineChart(aContainer);
         }
 
-        Add(aRowIndex, aDate, aValue, aValueMin, aValueMax, aRedraw) {
-          this.mData.insertRows(aRowIndex, [[aDate, aValueMin, aValueMax, aValue]]);
+        Add(aDate, aValue, aValueMin, aValueMax, aRedraw) {
+          this.mData.addRow([aDate, aValueMin, aValueMax, aValue]);
           if (aRedraw) this.Draw();
         }
 
@@ -78,27 +78,22 @@
           }
         }
 
-        SetRows(aDataView, aPositionOffset, aOffset, aScale) {
+        SetRows(aDataView, aIndexBegin, aPositionOffset, aValueOffset, aValueScale) {
           this.RemoveRows();
-          const vLittleEndian = true;
-          const vBlockSize = 4 + 4 * 4 * 2;
-          const vNumberOfBlocks = aDataView.byteLength / vBlockSize;
-          let vRowIndex = 0;
-          let vLastTime = 0;
+          const vLittleEndian = GetLittleEndian();
+          const vBlockSize = GetBlockSize();
+          const vNumberOfBlocks = GetNumberOfBlocks(aDataView);
           for (let vIndex = 0; vIndex < vNumberOfBlocks; vIndex++) {
-            let vPosition = vIndex * vBlockSize;
-            let vTime = aDataView.getUint32(vPosition + 0, vLittleEndian);
-            if (vTime != 0) {
-              if (vTime < vLastTime) vRowIndex = 0;
-              const vValuePosition = vPosition + 4 + aPositionOffset;
-              let vValueMean = aOffset + aScale * aDataView.getInt16(vValuePosition, vLittleEndian);
-              let vValueMin = aOffset + aScale * aDataView.getInt16(vValuePosition + 2, vLittleEndian);
-              let vValueMax = aOffset + aScale * aDataView.getInt16(vValuePosition + 4, vLittleEndian);
-              let vValueStdDev = aOffset + aScale * aDataView.getInt16(vValuePosition + 6, vLittleEndian);
-              let vDate = new Date(1000 * vTime);
-              this.Add(vRowIndex++, vDate, vValueMean,  vValueMin, vValueMax, false);
-            }
-            vLastTime = vTime;
+            let vPosition = ((vIndex + aIndexBegin) % vNumberOfBlocks) * vBlockSize;
+            let vTime = GetTime(aDataView, vPosition);
+            if (vTime == 0) break;
+            let vDate = new Date(1000 * vTime);
+            const vValuePosition = vPosition + 4 + aPositionOffset;
+            let vMean = aValueOffset + aValueScale * aDataView.getInt16(vValuePosition, vLittleEndian);
+            let vMin = aValueOffset + aValueScale * aDataView.getInt16(vValuePosition + 2, vLittleEndian);
+            let vMax = aValueOffset + aValueScale * aDataView.getInt16(vValuePosition + 4, vLittleEndian);
+            let vStdDev = aValueOffset + aValueScale * aDataView.getInt16(vValuePosition + 6, vLittleEndian);
+            this.Add(vDate, vMean,  vMin, vMax, false);
           }
           this.Draw();
         }
@@ -130,10 +125,11 @@
 
       function LoadCharts(aFileName) {
         LoadData(aFileName, function (aDataView) {
-          mPressureChart.SetRows(aDataView, 0, 800.0, 0.01);
-          mTemperatureChart.SetRows(aDataView, 8, 0.0, 0.01);
-          mHumidityChart.SetRows(aDataView, 16, 0.0, 0.01);
-          mOutputChart.SetRows(aDataView, 24, 0.0, 0.01);
+          let vIndexBegin = FindIndexBegin(aDataView);
+          mPressureChart.SetRows(aDataView, vIndexBegin, 0, 800.0, 0.01);
+          mTemperatureChart.SetRows(aDataView, vIndexBegin, 8, 0.0, 0.01);
+          mHumidityChart.SetRows(aDataView, vIndexBegin, 16, 0.0, 0.01);
+          mOutputChart.SetRows(aDataView, vIndexBegin, 24, 0.0, 0.01);
         });
       }
       
@@ -162,13 +158,44 @@
         LoadCharts(aButton.value + ".dat");
       }
 
-      function GetValuesCSV(aDataView, aPosition, aOffset, aScale, aSep) {
-        const vLittleEndian = true;
-        let vValueMean = aOffset + aScale * aDataView.getInt16(aPosition, vLittleEndian);
-        let vValueMin = aOffset + aScale * aDataView.getInt16(aPosition + 2, vLittleEndian);
-        let vValueMax = aOffset + aScale * aDataView.getInt16(aPosition + 4, vLittleEndian);
-        let vValueStdDev = aOffset + aScale * aDataView.getInt16(aPosition + 6, vLittleEndian);
-        return vValueMean + aSep + vValueMin + aSep + vValueMax + aSep + vValueStdDev;
+      function GetLittleEndian() {
+        return true;
+      }
+
+      function GetBlockSize() {
+        return 4 + 4 * 4 * 2; // (time) * uint32 + (p,t,h,o) * (mean,min,max,stddev) * int16
+      }
+
+      function GetNumberOfBlocks(aDataView) {
+        return aDataView.byteLength / GetBlockSize();
+      }
+
+      function GetTime(aDataView, aPosition) {
+        return aDataView.getUint32(aPosition, GetLittleEndian());
+      }
+
+      function FindIndexBegin(aDataView) {
+        let vLastTime = 0;
+        const vBlockSize = GetBlockSize();
+        const vNumberOfBlocks = aDataView.byteLength / vBlockSize;
+        for (let vIndex = 0; vIndex < vNumberOfBlocks; vIndex++) {
+          let vPosition = vIndex * vBlockSize;
+          let vTime = GetTime(aDataView, vPosition);
+          if ((vTime != 0) && (vTime < vLastTime)) {
+            return vIndex;
+          }
+          vLastTime = vTime;
+        }
+        return 0;
+      }
+
+      function GetValuesCSV(aDataView, aPosition, aValueOffset, aValueScale, aSep) {
+        const vLittleEndian = GetLittleEndian();
+        let vMean = aValueOffset + aValueScale * aDataView.getInt16(aPosition, vLittleEndian);
+        let vMin = aValueOffset + aValueScale * aDataView.getInt16(aPosition + 2, vLittleEndian);
+        let vMax = aValueOffset + aValueScale * aDataView.getInt16(aPosition + 4, vLittleEndian);
+        let vStdDev = aValueOffset + aValueScale * aDataView.getInt16(aPosition + 6, vLittleEndian);
+        return vMean + aSep + vMin + aSep + vMax + aSep + vStdDev;
       }
 
       function DownloadCSV() {
@@ -184,23 +211,13 @@
                 "t_mean" + vSep + "t_min" + vSep + "t_max" + vSep + "t_stddev" + vSep + 
                 "h_mean" + vSep + "h_min" + vSep + "h_max" + vSep + "h_stddev" + vSep + 
                 "o_mean" + vSep + "o_min" + vSep + "o_max" + vSep + "o_stddev\n";
-              const vLittleEndian = true;
-              const vBlockSize = 4 + 4 * 4 * 2;
-              const vNumberOfBlocks = aDataView.byteLength / vBlockSize;
-              let vIndexFirst = 0;
-              let vLastTime = 0;
+              const vLittleEndian = GetLittleEndian();
+              const vBlockSize = GetBlockSize();
+              const vNumberOfBlocks = GetNumberOfBlocks(aDataView);
+              let vIndexBegin = FindIndexBegin(aDataView);
               for (let vIndex = 0; vIndex < vNumberOfBlocks; vIndex++) {
-                let vPosition = vIndex * vBlockSize;
-                let vTime = aDataView.getUint32(vPosition + 0, vLittleEndian);
-                if ((vTime != 0) && (vTime < vLastTime)) {
-                  vIndexFirst = vIndex;
-                  break;
-                }
-                vLastTime = vTime;
-              }
-              for (let vIndex = 0; vIndex < vNumberOfBlocks; vIndex++) {
-                let vPosition = ((vIndex + vIndexFirst) % vNumberOfBlocks) * vBlockSize;
-                let vTime = aDataView.getUint32(vPosition + 0, vLittleEndian);
+                let vPosition = ((vIndex + vIndexBegin) % vNumberOfBlocks) * vBlockSize;
+                let vTime = GetTime(aDataView, vPosition);
                 if (vTime == 0) break;
                 let vDate = new Date(1000 * vTime);
                 vDataCSV += vDate.toISOString() + vSep;
