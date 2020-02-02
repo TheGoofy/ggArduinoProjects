@@ -23,6 +23,7 @@
       }
 
       function InitHtmlElements() {
+        mDownloadCSV.onclick = DownloadCSV;
       }
       
       // google.charts.load('current', {'packages':['line']});
@@ -31,11 +32,12 @@
       class ggTimeChart {
 
         constructor(aContainer, aUnit, aColor) {
-          this.mData = new google.visualization.DataTable();
-          this.mData.addColumn('date', '');
-          this.mData.addColumn('number', aUnit);
-          this.mData.addColumn('number', aUnit);
-          this.mData.addColumn('number', aUnit);
+          this.mData = new google.visualization.DataTable({
+            cols: [{type: 'datetime', label: 'Time', pattern: 'HH:mm:ss dd.MM.yyyy'},
+                   {type: 'number', label: aUnit},
+                   {type: 'number', label: aUnit},
+                   {type: 'number', label: aUnit}]
+          });
           this.mOptions = {
             legend: { position: 'none' },
             series: {
@@ -49,7 +51,7 @@
               textPosition: 'in',
               maxTextLines: 2,
               format: 'HH:mm:ss\ndd.MM.yyyy',
-              gridlines: { count: 3, color: '#eee' },
+              gridlines: { count: 4, color: '#eee' },
             },
             vAxis: {
               textPosition: 'in',
@@ -89,26 +91,28 @@
             if (vTime != 0) {
               if (vTime < vLastTime) vRowIndex = 0;
               const vValuePosition = vPosition + 4 + aPositionOffset;
-              let vValue = aOffset + aScale * aDataView.getInt16(vValuePosition, vLittleEndian);
+              let vValueMean = aOffset + aScale * aDataView.getInt16(vValuePosition, vLittleEndian);
               let vValueMin = aOffset + aScale * aDataView.getInt16(vValuePosition + 2, vLittleEndian);
               let vValueMax = aOffset + aScale * aDataView.getInt16(vValuePosition + 4, vLittleEndian);
               let vValueStdDev = aOffset + aScale * aDataView.getInt16(vValuePosition + 6, vLittleEndian);
               let vDate = new Date(1000 * vTime);
-              this.Add(vRowIndex++, vDate, vValue,  vValueMin, vValueMax, false);
-              vLastTime = vTime;
+              this.Add(vRowIndex++, vDate, vValueMean,  vValueMin, vValueMax, false);
             }
+            vLastTime = vTime;
           }
           this.Draw();
         }
 
         Draw() {
+          var vDateFormatter = new google.visualization.DateFormat({pattern: 'dd.MM.yyyy / HH:mm:ss'});
+          vDateFormatter.format(this.mData, 0);
           // this.mChart.draw(this.mData, google.charts.Line.convertOptions(this.mOptions));
           this.mChart.draw(this.mData, this.mOptions);
         }
       
       }
 
-      function LoadChart(aFileName) {
+      function LoadData(aFileName, aLoadDataCallback) {
         let vURL = "http://" + mHostName + "/" + aFileName;
         let vReq = new XMLHttpRequest();
         vReq.open("GET", vURL);
@@ -117,14 +121,20 @@
           if (vReq.status == 200) {
             if (vReq.response) { // Note: not vReq.responseText
               let vDataView = new DataView(vReq.response);
-              mPressureChart.SetRows(vDataView, 0, 800.0, 0.01);
-              mTemperatureChart.SetRows(vDataView, 8, 0.0, 0.01);
-              mHumidityChart.SetRows(vDataView, 16, 0.0, 0.01);
-              mOutputChart.SetRows(vDataView, 24, 0.0, 0.01);
+              aLoadDataCallback(vDataView);
             } 
           }
         }
         vReq.send(null);
+      }
+
+      function LoadCharts(aFileName) {
+        LoadData(aFileName, function (aDataView) {
+          mPressureChart.SetRows(aDataView, 0, 800.0, 0.01);
+          mTemperatureChart.SetRows(aDataView, 8, 0.0, 0.01);
+          mHumidityChart.SetRows(aDataView, 16, 0.0, 0.01);
+          mOutputChart.SetRows(aDataView, 24, 0.0, 0.01);
+        });
       }
       
       function DrawCharts() {
@@ -140,7 +150,7 @@
         mHumidityChart = new ggTimeChart(document.getElementById('mHumidityChartDiv'), '%', '#5b0');
         mOutputChart = new ggTimeChart(document.getElementById('mOutputChartDiv'), '%', '#f04');
         google.charts.setOnLoadCallback(DrawCharts);
-        LoadChart("ggData1D.dat");
+        LoadCharts("ggData1D.dat");
       }
 
       function OnTabClick(aButton) {
@@ -149,7 +159,69 @@
           vTab.className = vTab.className.replace(" selected", "");
         });
         aButton.className += " selected";
-        LoadChart(aButton.value);
+        LoadCharts(aButton.value + ".dat");
+      }
+
+      function GetValuesCSV(aDataView, aPosition, aOffset, aScale, aSep) {
+        const vLittleEndian = true;
+        let vValueMean = aOffset + aScale * aDataView.getInt16(aPosition, vLittleEndian);
+        let vValueMin = aOffset + aScale * aDataView.getInt16(aPosition + 2, vLittleEndian);
+        let vValueMax = aOffset + aScale * aDataView.getInt16(aPosition + 4, vLittleEndian);
+        let vValueStdDev = aOffset + aScale * aDataView.getInt16(aPosition + 6, vLittleEndian);
+        return vValueMean + aSep + vValueMin + aSep + vValueMax + aSep + vValueStdDev;
+      }
+
+      function DownloadCSV() {
+        var vTabs = Array.from(document.getElementsByClassName("cTab"));
+        vTabs.forEach(vTab => {
+          if (vTab.className.includes("selected")) {
+            let vFileNameCSV = vTab.value + '.csv';
+            let vFileNameDAT = vTab.value + '.dat';
+            LoadData(vFileNameDAT, function (aDataView) {
+              const vSep = ';';
+              let vDataCSV = "time" + vSep +
+                "p_mean" + vSep + "p_min" + vSep + "p_max" + vSep + "p_stddev" + vSep + 
+                "t_mean" + vSep + "t_min" + vSep + "t_max" + vSep + "t_stddev" + vSep + 
+                "h_mean" + vSep + "h_min" + vSep + "h_max" + vSep + "h_stddev" + vSep + 
+                "o_mean" + vSep + "o_min" + vSep + "o_max" + vSep + "o_stddev\n";
+              const vLittleEndian = true;
+              const vBlockSize = 4 + 4 * 4 * 2;
+              const vNumberOfBlocks = aDataView.byteLength / vBlockSize;
+              let vIndexFirst = 0;
+              let vLastTime = 0;
+              for (let vIndex = 0; vIndex < vNumberOfBlocks; vIndex++) {
+                let vPosition = vIndex * vBlockSize;
+                let vTime = aDataView.getUint32(vPosition + 0, vLittleEndian);
+                if ((vTime != 0) && (vTime < vLastTime)) {
+                  vIndexFirst = vIndex;
+                  break;
+                }
+                vLastTime = vTime;
+              }
+              for (let vIndex = 0; vIndex < vNumberOfBlocks; vIndex++) {
+                let vPosition = ((vIndex + vIndexFirst) % vNumberOfBlocks) * vBlockSize;
+                let vTime = aDataView.getUint32(vPosition + 0, vLittleEndian);
+                if (vTime == 0) break;
+                let vDate = new Date(1000 * vTime);
+                vDataCSV += vDate.toISOString() + vSep;
+                vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 0, 800.0, 0.01, vSep) + vSep;
+                vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 8, 0.0, 0.01, vSep) + vSep;
+                vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 16, 0.0, 0.01, vSep) + vSep;
+                vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 24, 0.0, 0.01, vSep) + '\n';
+              }
+              let vDataCSVencodedUri = 'data:application/csv;charset=utf-8,' + encodeURIComponent(vDataCSV);
+              let vDownloadCSV = document.getElementById('mDownloadCSV');
+              vDownloadCSV.href = vDataCSVencodedUri;
+              vDownloadCSV.download = vFileNameCSV;
+              vDownloadCSV.target = '_blank';
+              vDownloadCSV.onclick = null;
+              vDownloadCSV.click();
+              vDownloadCSV.onclick = DownloadCSV;
+              vDownloadCSV.href = '#';
+              vDownloadCSV.target = '';
+            });
+          }
+        });
       }
       
     </script>
@@ -166,15 +238,18 @@
         .cTabs button:hover { background-color:#fc0; }
       </style>
       <div class='cTabs'>
-        <button class='cTab' onclick="OnTabClick(this)" value='ggData1H.dat'>1H</button>
-        <button class='cTab selected' onclick="OnTabClick(this)" value='ggData1D.dat'>1D</button>
-        <button class='cTab' onclick="OnTabClick(this)" value='ggData1W.dat'>1W</button>
-        <button class='cTab' onclick="OnTabClick(this)" value='ggData1M.dat'>1M</button>
-        <button class='cTab' onclick="OnTabClick(this)" value='ggData1Y.dat'>1Y</button>
-        <button class='cTab' onclick="OnTabClick(this)" value='ggDataMax.dat'>Max</button>
+        <button class='cTab' onclick="OnTabClick(this)" value='ggData1H'>1H</button>
+        <button class='cTab selected' onclick="OnTabClick(this)" value='ggData1D'>1D</button>
+        <button class='cTab' onclick="OnTabClick(this)" value='ggData1W'>1W</button>
+        <button class='cTab' onclick="OnTabClick(this)" value='ggData1M'>1M</button>
+        <button class='cTab' onclick="OnTabClick(this)" value='ggData1Y'>1Y</button>
+        <button class='cTab' onclick="OnTabClick(this)" value='ggDataMax'>Max</button>
+        <a id='mDownloadCSV' href="#">Download CSV</a>
       </div>
       
-      <style> .cChartTitle { text-align: center; } </style>
+      <style>
+        .cChartTitle { text-align: center; }
+      </style>
       <div id='mCharts' style='padding:3px;background:white'>
         <div class='cChartTitle'>Pressure [hPa]</div>
         <div id='mPressureChartDiv' style='width:100%;height:150px'></div>
