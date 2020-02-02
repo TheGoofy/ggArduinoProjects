@@ -88,13 +88,22 @@ ggDataLog* mDataLogMax = nullptr;
 
 void CreateComponents()
 {
-  // create data loggers with various sampling rates
-  mDataLog1H = new ggDataLog(2, 60*60, "/ggData1H.dat", mFileSystem);
-  mDataLog1D = new ggDataLog(30, 24*60*60, "/ggData1D.dat", mFileSystem);
-  mDataLog1W = new ggDataLog(5*60, 7*24*60*60, "/ggData1W.dat", mFileSystem);
-  mDataLog1M = new ggDataLog(15*60, 30*24*60*60, "/ggData1M.dat", mFileSystem);
-  mDataLog1Y = new ggDataLog(3*60*60, 365*24*60*60, "/ggData1Y.dat", mFileSystem);
-  mDataLogMax = new ggDataLog(24*60*60, 10*365*24*60*60, "/ggDataMax.dat", mFileSystem);
+  // create data loggers with various sampling rates  
+  mDataLog1H  = new ggDataLog(2,        60*60,           "/ggData1H.dat",  mFileSystem);
+  mDataLog1D  = new ggDataLog(30,       60*60*24,        "/ggData1D.dat",  mFileSystem);
+  mDataLog1W  = new ggDataLog(60*5,     60*60*24*7,      "/ggData1W.dat",  mFileSystem);
+  mDataLog1M  = new ggDataLog(60*15,    60*60*24*30,     "/ggData1M.dat",  mFileSystem);
+  mDataLog1Y  = new ggDataLog(60*60*3,  60*60*24*365,    "/ggData1Y.dat",  mFileSystem);
+  mDataLogMax = new ggDataLog(60*60*24, 60*60*24*365*10, "/ggDataMax.dat", mFileSystem);
+  /*
+  // shorter rollover duration (for debugging)
+  mDataLog1H =  new ggDataLog(2,     60*2,     "/ggData1H.dat",  mFileSystem);
+  mDataLog1D =  new ggDataLog(10,    60*10,    "/ggData1D.dat",  mFileSystem);
+  mDataLog1W =  new ggDataLog(30,    60*30,    "/ggData1W.dat",  mFileSystem);
+  mDataLog1M =  new ggDataLog(60,    60*60,    "/ggData1M.dat",  mFileSystem);
+  mDataLog1Y =  new ggDataLog(60*5,  60*60*5,  "/ggData1Y.dat",  mFileSystem);
+  mDataLogMax = new ggDataLog(60*30, 60*60*30, "/ggDataMax.dat", mFileSystem);
+  */
 }
 
 
@@ -269,6 +278,22 @@ void ConnectComponents()
     mDataLogMax->Write(mTimerNTP.GetTime());
     mDataLogMax->ResetOnNextAddValue();
   });
+
+  // periodically check (and repair) file system
+  mTimerNTP.AddTimer(57, [] (uint32_t aPeriod) {
+    GG_DEBUG();
+    vDebug.PrintF("Checking the file system...\n");
+    vDebug.PrintF("Current NTP time: %s\n", mTimerNTP.GetTime("%d-%m-%Y %H:%M:%S").c_str());
+    unsigned long vMicrosStart = micros();
+//    if (!mFileSystem->check()) {
+//      vDebug.PrintF("check failed\n");
+//    }
+    bool vResultGC = mFileSystem->gc();
+    vDebug.PrintF("GC returned \"%d\"\n", vResultGC);
+    unsigned long vMicrosEnd = micros();
+    float vDuration = 0.001f * (vMicrosEnd - vMicrosStart);
+    vDebug.PrintF("Needed %0.0f ms for checking the file system\n", vDuration);
+  });
 }
 
 
@@ -309,21 +334,19 @@ void setup()
 
   // startup eeprom utility class
   ggValueEEProm::Begin();
-  Serial.printf("Device Name: %s\n", mName.Get().c_str());
+  vDebug.PrintF("Device Name: %s\n", mName.Get().c_str());
 
   // start the file system
   mFileSystem->begin();
 
   // connect to wifi
-  mWifiManager.setDebugOutput(true);
+  mWifiManager.setDebugOutput(false);
   mWifiManager.setAPCallback(WifiManagerConfigPortalStart);
   mWifiManager.setSaveConfigCallback(WifiManagerConfigPortalEnd);
   mWifiManager.setConfigPortalTimeout(60); // 1 minute
   mWifiManager.autoConnect(mHostName.c_str());
-  Serial.print("Connected to: ");
-  Serial.println(WiFi.SSID());
-  Serial.print("IP address: ");
-  Serial.println(WiFi.localIP());
+  vDebug.PrintF("Connected to: %s\n", WiFi.SSID().c_str());
+  vDebug.PrintF("IP address: %s\n", WiFi.localIP().toString().c_str());
   mWiFiConnection.Begin();
 
   // create and connect inputs, outputs, socket-events, ...
@@ -332,25 +355,26 @@ void setup()
 
   // NTP timer
   mTimerNTP.Begin();
+  vDebug.PrintF("Current NTP time: %s\n", mTimerNTP.GetTime("%d-%m-%Y %H:%M:%S").c_str());
 
   // configure and start web-server
   mWebServer.Begin();
-  Serial.println("Web server started");
+  vDebug.PrintF("Web server started\n");
 
   // configure and start web-sockets
   mWebSockets.Begin();
-  Serial.println("Web sockets started");
+  vDebug.PrintF("Web sockets started\n");
 
   // start mdns
   MDNS.begin(mHostName.c_str());
   MDNS.addService("http", "tcp", mWebServerPort);
   MDNS.addService("ws", "tcp", mWebSocketsPort);
-  Serial.println("MDNS responder started");
+  vDebug.PrintF("MDNS responder started\n");
 
   // over the air update
   ArduinoOTA.setHostname(mHostName.c_str());
   ArduinoOTA.begin();
-  Serial.println("OTA service started");
+  vDebug.PrintF("OTA service started\n");
 
   // make sure all status and debug messages are sent before communication gets
   // interrupted, just in case hardware pins are needed for some different use.

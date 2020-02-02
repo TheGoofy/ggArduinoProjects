@@ -30,24 +30,27 @@ public:
 
   // "aTime" must have an incremental value
   bool Write(const TTime& aTime, const TData& aData) {
+    bool vSuccess = false;
     if (OpenFile()) {
       GetIndex();
-      WriteData(aTime, aData);
+      vSuccess = true;
+      vSuccess &= WriteData(aTime, aData);
       CloseFile();
-      return true;
     }
-    return false;
+    return vSuccess;
   }
 
   // reads the newest data block
   bool Read(TTime& aTime, TData& aData) const {
+    bool vSuccess = false;
     if (OpenFile()) {
       GetIndex();
-      ReadData(aTime, aData);
+      vSuccess = true;
+      vSuccess &= ReadData(aTime, aData);
       CloseFile();
       return true;
     }
-    return false;
+    return vSuccess;
   }
 
 private:
@@ -82,6 +85,10 @@ private:
       // the file is empty - no need to "search" index in file
       mIndex = 0;
     }
+    else {
+      GG_DEBUG();
+      vDebug.PrintF("failed to reset file \"%s\"\n", mFileName.c_str());
+    }
   }
 
   bool OpenFile() const {
@@ -96,6 +103,10 @@ private:
       ResetAndOpenFile();
     }
     // hopefully there is now a file open for update
+    if (!mFile) {
+      GG_DEBUG();
+      vDebug.PrintF("failed to open file \"%s\"\n", mFileName.c_str());
+    }
     return mFile;
   }
 
@@ -126,22 +137,28 @@ private:
     mIndex = 0;
   }
 
-  void WriteData(const TTime& aTime, const TData& aData) {
+  bool WriteData(const TTime& aTime, const TData& aData) {
+    bool vSuccess = false;
     size_t vPosition = GetPosition(mIndex++);
     if (mIndex >= mNumberOfDataBlocks) mIndex = 0;
     if (mFile.seek(vPosition)) {
-      Write(mFile, aTime);
-      Write(mFile, aData);
+      vSuccess = true;
+      vSuccess &= Write(mFile, aTime);
+      vSuccess &= Write(mFile, aData);
     }
+    return vSuccess;
   }
 
-  void ReadData(TTime& aTime, TData& aData) const {
+  bool ReadData(TTime& aTime, TData& aData) const {
+    bool vSuccess = false;
     uint32_t vIndex = mIndex > 0 ? mIndex - 1 : mNumberOfDataBlocks - 1;
     size_t vPosition = GetPosition(vIndex);
     if (mFile.seek(vPosition)) {
-      Read(mFile, aTime);
-      Read(mFile, aData);
+      vSuccess = true;
+      vSuccess &= Read(mFile, aTime);
+      vSuccess &= Read(mFile, aData);
     }
+    return vSuccess;
   }
 
   void CloseFile() const {

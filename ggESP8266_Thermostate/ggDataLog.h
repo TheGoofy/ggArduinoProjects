@@ -76,7 +76,13 @@ public:
     // range: 0..1 (full uint16 range: -320..320%, resolution: 0.01%)
     mOutputAVG.AssignSample(vMeasurements.mOutput, 0.0f, 10000.0f, LastSamples().mOutput);
     // write "time" and "measurements" into circular file
-    mCircularFile.Write(aTime, vMeasurements);
+    bool vSuccess = mCircularFile.Write(aTime, vMeasurements);
+    if (!vSuccess) {
+      GG_DEBUG();
+      vDebug.PrintF("aTime = %d\n", aTime);
+      vDebug.PrintF("writing \"%s\"\n", GetFileName().c_str());
+      vDebug.PrintF("failed to write file ... :-(\n");
+    }
   }
 
 private:
