@@ -1,10 +1,12 @@
 #pragma once
 
 #include <FS.h>
+#include <set>
 
 #include "ggWebServerHtmlData.h"
 #include "ggStringStream.h"
 #include "ggDebug.h"
+#include "ggAlgorithm.h"
 
 class ggWebServer {
 
@@ -103,25 +105,54 @@ private:
     HandleFile("/ggIndex.html");
   }
 
+  static String GetNiceByteSize(size_t aSize) {
+    String vNumber(aSize);
+    int vDigits = vNumber.length();
+    String vNumberSep;
+    for (int vIndex = 0; vIndex < vDigits; vIndex++) {
+      vNumberSep += vNumber[vIndex];
+      if ((vIndex + 1 < vDigits) && (vDigits - vIndex - 1) % 3 == 0) {
+        vNumberSep += "'";
+      }
+    }
+    return vNumberSep + " bytes";
+  }
+
+  struct cFile {
+    cFile(const String& aName, size_t aSize)
+    : mName(aName), mSize(aSize) {
+    }
+    String GetHTML() const {
+      return "<a href='" + mName + "'>" + mName + "</a> - " + GetNiceByteSize(mSize) + "<br>\n";
+    }
+    inline bool operator < (const cFile& aOther) const {
+      return mName < aOther.mName;
+    }
+    String mName;
+    size_t mSize;
+  };
+
   void OnFS() {
-    size_t vNumberOfFiles = 0;
     size_t vTotalFileSize = 0;
+    Dir vDir = FileSystem().openDir("");
+    std::set<cFile> vFiles;
+    while (vDir.next()) {
+      vFiles.insert(cFile(vDir.fileName(), vDir.fileSize()));
+      vTotalFileSize += vDir.fileSize();
+    }
     String vContent = "<script>document.title = 'ESP8266 Thermostate Files';</script>\n";
     vContent += "<b style='font-size:larger'>Files</b><br>\n<hr noshade>\n";
-    Dir vDir = FileSystem().openDir("");
-    while (vDir.next()) {
-      vNumberOfFiles++;
-      vTotalFileSize += vDir.fileSize();
-      vContent += "<a href='" + vDir.fileName() + "'>" + vDir.fileName()+ "</a> - " + vDir.fileSize() + " bytes<br>\n";
-    }
-    vContent += String("Total ") + vNumberOfFiles + " files - " + vTotalFileSize + " bytes<br>\n";
+    std::for_each(vFiles.begin(), vFiles.end(), [&] (const cFile& aFile) {
+      vContent += aFile.GetHTML();
+    });
+    vContent += String("Total ") + vFiles.size() + " files - " + GetNiceByteSize(vTotalFileSize) + "<br>\n";
     vContent += "<hr noshade>\n";
     FSInfo vFSInfo;
     FileSystem().info(vFSInfo);
-    vContent += String("FSInfo.totalBytes = ") + vFSInfo.totalBytes + " bytes<br>\n";
-    vContent += String("FSInfo.usedBytes = ") + vFSInfo.usedBytes + " bytes<br>\n";
-    vContent += String("FSInfo.blockSize = ") + vFSInfo.blockSize + " bytes<br>\n";
-    vContent += String("FSInfo.pageSize = ") + vFSInfo.pageSize + " bytes<br>\n";
+    vContent += String("FSInfo.totalBytes = ") + GetNiceByteSize(vFSInfo.totalBytes) + "<br>\n";
+    vContent += String("FSInfo.usedBytes = ") + GetNiceByteSize(vFSInfo.usedBytes) + "<br>\n";
+    vContent += String("FSInfo.blockSize = ") + GetNiceByteSize(vFSInfo.blockSize) + "<br>\n";
+    vContent += String("FSInfo.pageSize = ") + GetNiceByteSize(vFSInfo.pageSize) + "<br>\n";
     vContent += String("FSInfo.maxOpenFiles = ") + vFSInfo.maxOpenFiles + "<br>\n";
     vContent += String("FSInfo.maxPathLength = ") + vFSInfo.maxPathLength + "<br>\n";
     float vPercentUsed = (float)vFSInfo.usedBytes / (float)vFSInfo.totalBytes;
