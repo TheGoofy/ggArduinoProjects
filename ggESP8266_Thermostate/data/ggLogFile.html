@@ -99,6 +99,7 @@
         }
 
         Draw() {
+          if (this.mData.getNumberOfRows() < 2) return;
           var vDateFormatter = new google.visualization.DateFormat({pattern: 'dd.MM.yyyy / HH:mm:ss'});
           vDateFormatter.format(this.mData, 0);
           // this.mChart.draw(this.mData, google.charts.Line.convertOptions(this.mOptions));
