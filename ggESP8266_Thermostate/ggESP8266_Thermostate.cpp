@@ -40,11 +40,10 @@ todo:
 - SW/HW version
 - use "littleFS" instead of "SPIFFS" (sketch data upload: https://github.com/earlephilhower/arduino-esp8266littlefs-plugin)
 - VS-Code: SPIFFS/LittleFS upload, OTA
-- NTP server in eeprom
+- NTP server name in eeprom
 - pin-assignment in eeprom
 - debugging: print number of connected web socket clients
-- live-log discard old samples, 1h-view, no super-sample
-- file-log: export table as csv
+- what's wrong with stddev?
 */
 
 // imoque identification name
