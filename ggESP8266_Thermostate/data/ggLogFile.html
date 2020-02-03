@@ -228,15 +228,11 @@
                 vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 24, 0.0, 0.01, vSep) + '\n';
               }
               let vDataCSVencodedUri = 'data:application/csv;charset=utf-8,' + encodeURIComponent(vDataCSV);
-              let vDownloadCSV = document.getElementById('mDownloadCSV');
+              let vDownloadCSV = document.getElementById('mDownloadCSV_hidden');
               vDownloadCSV.href = vDataCSVencodedUri;
               vDownloadCSV.download = vFileNameCSV;
               vDownloadCSV.target = '_blank';
-              vDownloadCSV.onclick = null;
               vDownloadCSV.click();
-              vDownloadCSV.onclick = DownloadCSV;
-              vDownloadCSV.href = '#';
-              vDownloadCSV.target = '';
             });
           }
         });
@@ -263,6 +259,7 @@
         <button class='cTab' onclick="OnTabClick(this)" value='ggData1Y'>1Y</button>
         <button class='cTab' onclick="OnTabClick(this)" value='ggDataMax'>Max</button>
         <a id='mDownloadCSV' href="#">Download CSV</a>
+        <a id='mDownloadCSV_hidden' hidden></a>
       </div>
       
       <style>
