@@ -26,25 +26,6 @@
 #include "ggDataLog.h"
 
 
-/*
-todo:
-- "wifimanager" should not block controller operation:
-  - option A) wifiManager.setAPCallback(configModeCallback);
-  - option B) own wifimanager ...
-- in AP-mode also run http-server with controller settings
-- scan LAN for connected devices (app for smart-phone)
-- which web-interface belongs to which device? "ping" flashing status LED
-- PID auto-tuning algorithm
-- adjustable PWM cycle time
-- serial stream to rx/tx AND html client console
-- SW/HW version
-- use "littleFS" instead of "SPIFFS" (sketch data upload: https://github.com/earlephilhower/arduino-esp8266littlefs-plugin)
-- VS-Code: SPIFFS/LittleFS upload, OTA
-- NTP server name in eeprom
-- pin-assignment in eeprom
-- debugging: print number of connected web socket clients
-*/
-
 // imoque identification name
 const String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
 
@@ -102,6 +83,19 @@ void CreateComponents()
   mDataLog1Y =  new ggDataLog(60*5,  60*60*5,  "/ggData1Y.dat",  mFileSystem);
   mDataLogMax = new ggDataLog(60*30, 60*60*30, "/ggDataMax.dat", mFileSystem);
   */
+}
+
+
+// wifimanager may be connected before any other comonent (in order to indicate AP-mode)
+void ConnectWifiManager()
+{
+  mWifiManager.setAPCallback([] (WiFiManager* aWiFiManager) {
+    mPeriphery.mStatusLED.Begin();
+    mPeriphery.mStatusLED.SetWarning(true);
+  });
+  mWifiManager.setSaveConfigCallback([] () {
+    mPeriphery.mStatusLED.SetWarning(false);
+  });
 }
 
 
@@ -309,19 +303,6 @@ void Run()
 }
 
 
-void WifiManagerConfigPortalStart(WiFiManager* aWiFiManager)
-{
-  mPeriphery.mStatusLED.Begin();
-  mPeriphery.mStatusLED.SetWarning(true);
-}
-
-
-void WifiManagerConfigPortalEnd()
-{
-  mPeriphery.mStatusLED.SetWarning(false);
-}
-
-
 void setup()
 {
   // serial communication (for debugging)
@@ -338,9 +319,8 @@ void setup()
   mFileSystem->begin();
 
   // connect to wifi
+  ConnectWifiManager();
   mWifiManager.setDebugOutput(false);
-  mWifiManager.setAPCallback(WifiManagerConfigPortalStart);
-  mWifiManager.setSaveConfigCallback(WifiManagerConfigPortalEnd);
   mWifiManager.setConfigPortalTimeout(60); // 1 minute
   mWifiManager.autoConnect(mHostName.c_str());
   vDebug.PrintF("Connected to: %s\n", WiFi.SSID().c_str());
