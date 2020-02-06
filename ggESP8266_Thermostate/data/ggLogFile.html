@@ -78,7 +78,7 @@
           }
         }
 
-        SetRows(aDataView, aIndexBegin, aPositionOffset, aValueOffset, aValueScale) {
+        SetRows(aDataView, aIndexBegin, aPositionOffset, aValueOffset, aValueScale, aValueStdDevScale) {
           this.RemoveRows();
           const vLittleEndian = GetLittleEndian();
           const vBlockSize = GetBlockSize();
@@ -92,7 +92,7 @@
             let vMean = aValueOffset + aValueScale * aDataView.getInt16(vValuePosition, vLittleEndian);
             let vMin = aValueOffset + aValueScale * aDataView.getInt16(vValuePosition + 2, vLittleEndian);
             let vMax = aValueOffset + aValueScale * aDataView.getInt16(vValuePosition + 4, vLittleEndian);
-            let vStdDev = aValueOffset + aValueScale * aDataView.getInt16(vValuePosition + 6, vLittleEndian);
+            let vStdDev = aValueStdDevScale * aDataView.getInt16(vValuePosition + 6, vLittleEndian);
             this.Add(vDate, vMean,  vMin, vMax, false);
           }
           this.Draw();
@@ -127,10 +127,10 @@
       function LoadCharts(aFileName) {
         LoadData(aFileName, function (aDataView) {
           let vIndexBegin = FindIndexBegin(aDataView);
-          mPressureChart.SetRows(aDataView, vIndexBegin, 0, 800.0, 0.01);
-          mTemperatureChart.SetRows(aDataView, vIndexBegin, 8, 0.0, 0.01);
-          mHumidityChart.SetRows(aDataView, vIndexBegin, 16, 0.0, 0.01);
-          mOutputChart.SetRows(aDataView, vIndexBegin, 24, 0.0, 0.01);
+          mPressureChart.SetRows(aDataView, vIndexBegin, 0, 800.0, 0.01, 0.001);
+          mTemperatureChart.SetRows(aDataView, vIndexBegin, 8, 0.0, 0.01, 0.001);
+          mHumidityChart.SetRows(aDataView, vIndexBegin, 16, 0.0, 0.01, 0.001);
+          mOutputChart.SetRows(aDataView, vIndexBegin, 24, 0.0, 0.01, 0.001);
         });
       }
       
@@ -164,7 +164,7 @@
       }
 
       function GetBlockSize() {
-        return 4 + 4 * 4 * 2; // (time) * uint32 + (p,t,h,o) * (mean,min,max,stddev) * int16
+        return 1 * 4 + 4 * 4 * 2; // (time) * uint32 + (p,t,h,o) * (mean,min,max,stddev) * int16
       }
 
       function GetNumberOfBlocks(aDataView) {
@@ -190,12 +190,12 @@
         return 0;
       }
 
-      function GetValuesCSV(aDataView, aPosition, aValueOffset, aValueScale, aSep) {
+      function GetValuesCSV(aDataView, aPosition, aValueOffset, aValueScale, aValueStdDevScale, aSep) {
         const vLittleEndian = GetLittleEndian();
         let vMean = aValueOffset + aValueScale * aDataView.getInt16(aPosition, vLittleEndian);
         let vMin = aValueOffset + aValueScale * aDataView.getInt16(aPosition + 2, vLittleEndian);
         let vMax = aValueOffset + aValueScale * aDataView.getInt16(aPosition + 4, vLittleEndian);
-        let vStdDev = aValueOffset + aValueScale * aDataView.getInt16(aPosition + 6, vLittleEndian);
+        let vStdDev = aValueStdDevScale * aDataView.getInt16(aPosition + 6, vLittleEndian);
         return vMean + aSep + vMin + aSep + vMax + aSep + vStdDev;
       }
 
@@ -206,7 +206,7 @@
             let vFileNameCSV = vTab.value + '.csv';
             let vFileNameDAT = vTab.value + '.dat';
             LoadData(vFileNameDAT, function (aDataView) {
-              const vSep = ';';
+              const vSep = '\t';
               let vDataCSV = "time" + vSep +
                 "p_mean" + vSep + "p_min" + vSep + "p_max" + vSep + "p_stddev" + vSep + 
                 "t_mean" + vSep + "t_min" + vSep + "t_max" + vSep + "t_stddev" + vSep + 
@@ -222,10 +222,10 @@
                 if (vTime == 0) break;
                 let vDate = new Date(1000 * vTime);
                 vDataCSV += vDate.toISOString() + vSep;
-                vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 0, 800.0, 0.01, vSep) + vSep;
-                vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 8, 0.0, 0.01, vSep) + vSep;
-                vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 16, 0.0, 0.01, vSep) + vSep;
-                vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 24, 0.0, 0.01, vSep) + '\n';
+                vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 0, 800.0, 0.01, 0.001, vSep) + vSep;
+                vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 8, 0.0, 0.01, 0.001, vSep) + vSep;
+                vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 16, 0.0, 0.01, 0.001, vSep) + vSep;
+                vDataCSV += GetValuesCSV(aDataView, vPosition + 4 + 24, 0.0, 0.01, 0.001, vSep) + '\n';
               }
               let vDataCSVencodedUri = 'data:application/csv;charset=utf-8,' + encodeURIComponent(vDataCSV);
               let vDownloadCSV = document.getElementById('mDownloadCSV_hidden');

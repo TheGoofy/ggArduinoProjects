@@ -68,13 +68,13 @@ public:
     // https://www.bosch-sensortec.com/media/boschsensortec/downloads/datasheets/bst-bme280-ds002.pdf
     cSamples vMeasurements;
     // common range: 600..1000hPa (full uint16 range: 480..1120hPa, 0.01hPa, see: https://de.wikipedia.org/wiki/Luftdruck)
-    mPressureAVG.AssignSample(vMeasurements.mPressure, -800.0f, 100.0f, LastSamples().mPressure);
+    mPressureAVG.AssignSample(vMeasurements.mPressure, -800.0f, 100.0f, 1000.0f, LastSamples().mPressure);
     // common range: -20..40°C (full uint16 range: -320..320°C, resolution: 0.01°C)
-    mTemperatureAVG.AssignSample(vMeasurements.mTemperature, 0.0f, 100.0f, LastSamples().mTemperature);
+    mTemperatureAVG.AssignSample(vMeasurements.mTemperature, 0.0f, 100.0f, 1000.0f, LastSamples().mTemperature);
     // range: 0..100% (full uint16 range: -320..320%, resolution: 0.01%)
-    mHumidityAVG.AssignSample(vMeasurements.mHumidity, 0.0f, 100.0f, LastSamples().mHumidity);
+    mHumidityAVG.AssignSample(vMeasurements.mHumidity, 0.0f, 100.0f, 1000.0f, LastSamples().mHumidity);
     // range: 0..1 (full uint16 range: -320..320%, resolution: 0.01%)
-    mOutputAVG.AssignSample(vMeasurements.mOutput, 0.0f, 10000.0f, LastSamples().mOutput);
+    mOutputAVG.AssignSample(vMeasurements.mOutput, 0.0f, 10000.0f, 100000.0f, LastSamples().mOutput);
     // write "time" and "measurements" into circular file
     bool vSuccess = mCircularFile.Write(aTime, vMeasurements);
     if (!vSuccess) {
@@ -121,12 +121,12 @@ private:
     void ResetOnNextAddValue() {
       mResetOnNextAddValue = true;
     }
-    void AssignSample(cSample& aSample, float aOffset, float aScale, cSample& aSampleLast) {
+    void AssignSample(cSample& aSample, float aOffset, float aScale, float aScaleStdDev, cSample& aSampleLast) {
       if (mAverages.GetNumberOfSamples() > 0) {
         aSample.mMean = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMean()));
         aSample.mMin = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMin()));
         aSample.mMax = ggRound<int16_t>(aScale * (aOffset + mAverages.GetMax()));
-        aSample.mStdDev = ggRound<int16_t>(aScale * (aOffset + mAverages.GetStdDev()));
+        aSample.mStdDev = ggRound<int16_t>(aScaleStdDev * mAverages.GetStdDev());
         aSampleLast = aSample;
       }
       else {

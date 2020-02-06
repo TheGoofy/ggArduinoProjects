@@ -43,7 +43,6 @@ todo:
 - NTP server name in eeprom
 - pin-assignment in eeprom
 - debugging: print number of connected web socket clients
-- what's wrong with stddev?
 */
 
 // imoque identification name
