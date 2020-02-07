@@ -125,23 +125,31 @@
 
       class ggTimeChart {
 
-        constructor(aContainer, aUnit, aColor) {
-          this.mData = new google.visualization.DataTable();
-          this.mData.addColumn('date', '');
-          this.mData.addColumn('number', aUnit);
+        constructor(aContainer, aTitle, aUnit, aColor) {
+          this.mData = new google.visualization.DataTable({
+            cols: [{type: 'datetime', label: 'Time', pattern: 'HH:mm:ss dd.MM.yyyy'},
+                   {type: 'number', label: aUnit}]
+          });
           this.mOptions = {
+            title: aTitle + ' [' + aUnit + ']',
+            titlePosition: 'in', // 'in', 'out', 'none'
+            titleTextStyle: { color: aColor, },
             legend: { position: 'none' },
-            series: { 0: { color: aColor } },
-            axisTitlesPosition: 'none',
+            series: {
+              0: { color: aColor }
+            },
+            axisTitlesPosition: 'in', // 'in', 'out', 'none'
             chartArea: { width: '98%',  height: '100%' },
             hAxis: {
               textPosition: 'in',
               maxTextLines: 2,
+              textStyle: { fontSize: 12, color: '#888' },
               format: 'HH:mm:ss\ndd.MM.yyyy',
-              gridlines: { count: 3, color: '#eee' },
+              gridlines: { color: '#eee' },
             },
             vAxis: {
               textPosition: 'in',
+              textStyle: { fontSize: 12, color: aColor },
             },
             explorer: {
               axis: 'horizontal',
@@ -200,10 +208,10 @@
       }
 
       function CreateCharts() {
-        mPressureChart = new ggTimeChart(document.getElementById('mPressureChartDiv'), 'hPa', '#fa0');
-        mTemperatureChart = new ggTimeChart(document.getElementById('mTemperatureChartDiv'), '°C', '#08f');
-        mHumidityChart = new ggTimeChart(document.getElementById('mHumidityChartDiv'), '%', '#5b0');
-        mOutputChart = new ggTimeChart(document.getElementById('mOutputChartDiv'), '%', '#f04');
+        mPressureChart = new ggTimeChart(document.getElementById('mPressureChartDiv'), 'Pressure', 'hPa', '#fa0');
+        mTemperatureChart = new ggTimeChart(document.getElementById('mTemperatureChartDiv'), 'Temperature', '°C', '#09f');
+        mHumidityChart = new ggTimeChart(document.getElementById('mHumidityChartDiv'), 'Humidity', '%', '#4a0');
+        mOutputChart = new ggTimeChart(document.getElementById('mOutputChartDiv'), 'Output', '%', '#d05');
         google.charts.setOnLoadCallback(DrawCharts);
       }
       
@@ -215,7 +223,7 @@
   </head>
 
   <body onload='javascript:InitAll()'>
-    <div style='text-align:left;display:inline-block;min-width:340px'>
+    <div style='text-align:left;min-width:340px'>
       <b style="font-size: larger;">Log Live</b><br>
       <hr noshade>
 
@@ -230,19 +238,18 @@
         <label for='mLogTable'>Table with Numbers</label>
       </div>
 
-      <style> .cChartTitle { text-align: center; } </style>
+      <style>
+        .cChartDiv { width: 100%; height: 280px; }
+        @media only screen and (max-width: 600px) { .cChartDiv { height: 180px; } }
+      </style>
       <div id='mCharts' style='padding:3px;background:white'>
-        <div class='cChartTitle'>Pressure [hPa]</div>
-        <div id='mPressureChartDiv' style='width:100%;height:150px'></div>
+        <div class='cChartDiv' id='mTemperatureChartDiv'></div>
         <hr noshade style="border:white">
-        <div class='cChartTitle'>Temperature [°C]</div>
-        <div id='mTemperatureChartDiv' style='width:100%;height:150px'></div>
+        <div class='cChartDiv' id='mHumidityChartDiv'></div>
         <hr noshade style="border:white">
-        <div class='cChartTitle'>Humidity [%]</div>
-        <div id='mHumidityChartDiv' style='width:100%;height:150px'></div>
+        <div class='cChartDiv' id='mPressureChartDiv'></div>
         <hr noshade style="border:white">
-        <div class='cChartTitle'>Output [%]</div>
-        <div id='mOutputChartDiv' style='width:100%;height:150px'></div>
+        <div class='cChartDiv' id='mOutputChartDiv'></div>
       </div>
       
       <div id='mLogTableDiv' hidden>

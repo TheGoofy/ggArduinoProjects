@@ -15,5 +15,4 @@ todo:
 - NTP server name in eeprom
 - pin-assignment in eeprom
 - debugging: print number of connected web socket clients
-- wider layout for desktop browser
 */
