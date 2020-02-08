@@ -198,7 +198,7 @@ void ggController::PrintDebug(const String& aName) const
   ggDebug vDebug("ggController", aName);
   vDebug.PrintF("mMode = %s\n", ToString(mMode.Get()).c_str());
   vDebug.PrintF("mInputValid = %d\n", mInputValid);
-  vDebug.PrintF("mInputMicrosLast = %ul\n", mInputMicrosLast);
+  vDebug.PrintF("mInputMicrosLast = %u\n", mInputMicrosLast);
   vDebug.PrintF("mInputValue = %f\n", mInputValue);
   vDebug.PrintF("mSetPointValue = %f\n", mSetPointValue.Get());
   vDebug.PrintF("mHysteresisValue = %f\n", mHysteresisValue.Get());
@@ -208,7 +208,7 @@ void ggController::PrintDebug(const String& aName) const
   vDebug.PrintF("mOutputValue = %f\n", mOutputValue);
   vDebug.PrintF("mOutputMin = %f\n", mOutputMin);
   vDebug.PrintF("mOutputMax = %f\n", mOutputMax);
-  vDebug.PrintF("mMicrosLast = %ul\n", mMicrosLast);
+  vDebug.PrintF("mMicrosLast = %u\n", mMicrosLast);
   vDebug.PrintF("mErrorLast = %f\n", mErrorLast);
   vDebug.PrintF("mErrorOutputI = %f\n", mErrorOutputI);
 }

@@ -60,9 +60,9 @@ public:
 
   void PrintDebug(const String& aName = "") const {
     ggDebug vDebug("ggSampler", aName);
-    vDebug.PrintF("mMicroSecondsSampleTime = %ul\n", mMicroSecondsSampleTime);
-    vDebug.PrintF("mMicroSecondsLastSample = %ul\n", mMicroSecondsLastSample);
-    vDebug.PrintF("mMicroSecondsDelta = %ul\n", mMicroSecondsDelta);
+    vDebug.PrintF("mMicroSecondsSampleTime = %u\n", mMicroSecondsSampleTime);
+    vDebug.PrintF("mMicroSecondsLastSample = %u\n", mMicroSecondsLastSample);
+    vDebug.PrintF("mMicroSecondsDelta = %u\n", mMicroSecondsDelta);
   }
   
 private:

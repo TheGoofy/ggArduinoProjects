@@ -41,36 +41,35 @@ public:
 
   void Run() {
     unsigned long vMicros = micros();
-    if (vMicros >= mMicrosNext) {
-      unsigned long vMicrosDelta = vMicros - mMicrosNext;
-      if (vMicrosDelta <= 0x80000000) { // handle 32 bit overflow of mMicrosNext
-        if (ggOutput::Get()) {
-          if (mCycleTimeLow > 0) {
-            ggOutput::Set(false);
-            mMicrosNext += mCycleTimeLow;
-            return;
-          }
+    unsigned long vMicrosDelta = vMicros - mMicrosNext;
+    // a "negative" UNSIGNED int32 is larger than 0x80000000 
+    if (vMicrosDelta <= 0x80000000) {
+      if (ggOutput::Get()) {
+        if (mCycleTimeLow > 0) {
+          ggOutput::Set(false);
+          mMicrosNext += mCycleTimeLow;
+          return;
         }
-        else {
-          if (mCycleTimeHigh > 0) {
-            ggOutput::Set(true);
-            mMicrosNext += mCycleTimeHigh;
-            return;
-          }
-        }
-        mMicrosNext += mCycleTime;
       }
+      else {
+        if (mCycleTimeHigh > 0) {
+          ggOutput::Set(true);
+          mMicrosNext += mCycleTimeHigh;
+          return;
+        }
+      }
+      mMicrosNext += mCycleTime;
     }
   }
 
   void PrintDebug(const String& aName = "") const {
     ggDebug vDebug("ggOutputPWM", aName);
     ggOutput::PrintDebug();
-    vDebug.PrintF("mCycleTime = %ul\n", mCycleTime);
-    vDebug.PrintF("mCycleTimeHigh = %ul\n", mCycleTimeHigh);
-    vDebug.PrintF("mCycleTimeLow = %ul\n", mCycleTimeLow);
-    vDebug.PrintF("mMicrosNext = %ul\n", mMicrosNext);
-    vDebug.PrintF("Run() ... micros() = %ul\n", micros());
+    vDebug.PrintF("mCycleTime = %u\n", mCycleTime);
+    vDebug.PrintF("mCycleTimeHigh = %u\n", mCycleTimeHigh);
+    vDebug.PrintF("mCycleTimeLow = %u\n", mCycleTimeLow);
+    vDebug.PrintF("mMicrosNext = %u\n", mMicrosNext);
+    vDebug.PrintF("Run() ... micros() = %u\n", micros());
   }
 
 private:
