@@ -159,7 +159,12 @@ private:
   cSamples& LastSamples() const {
     if (mLastSamples == nullptr) {
       mLastSamples = new cSamples();
-      mCircularFile.Read(mLastTime, *mLastSamples);
+      bool vSuccess = mCircularFile.Read(mLastTime, *mLastSamples);
+      if (!vSuccess) {
+        GG_DEBUG();
+        vDebug.PrintF("reading \"%s\"\n", GetFileName().c_str());
+        vDebug.PrintF("failed to read file ... :-(\n");
+      }
     }
     return *mLastSamples;
   }

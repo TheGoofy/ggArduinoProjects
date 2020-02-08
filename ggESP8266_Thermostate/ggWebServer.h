@@ -55,7 +55,7 @@ public:
 
 private:
 
-  static String GetContentType(const String& aFileName) {
+  static const char* GetContentType(const String& aFileName) {
     if (aFileName.endsWith(".htm")) return "text/html";
     if (aFileName.endsWith(".html")) return "text/html";
     if (aFileName.endsWith(".css")) return "text/css";
@@ -76,12 +76,37 @@ private:
   bool HandleFile(const String& aFileName) {
     GG_DEBUG();
     if (FileSystem().exists(aFileName)) {
-      File vFile = FileSystem().open(aFileName, "r");
+      File vFile = FileSystem().open(aFileName, "r+b");
       if (vFile) {
         unsigned long vMicrosStart = micros();
         mServer.sendHeader("Access-Control-Allow-Origin", "*");
-        const String vContentType = GetContentType(aFileName);
-        size_t sent = mServer.streamFile(vFile, vContentType);
+        const char* vContentType = GetContentType(aFileName);
+        try {
+          /*
+          vDebug.PrintF("setting content length: %d\n", vFile.size());
+          mServer.setContentLength(vFile.size());
+          vDebug.PrintF("sending content type: %s\n", vContentType);
+          mServer.send(200, vContentType, "");
+          const size_t vBufferSize = 256;
+          uint8_t vBuffer[vBufferSize];
+          size_t vBytesSent = 0;
+          if (vFile.seek(0)) {
+            while (size_t vBytesRead = vFile.read(vBuffer, vBufferSize) > 0) {
+              mServer.sendContent((char*)vBuffer, vBytesRead);
+              vBytesSent += vBytesRead;
+            }
+          }
+          else {
+            vDebug.PrintF("failed to seek file begin\n");
+          }
+          vDebug.PrintF("total %d bytes sent\n", vBytesSent);
+          mServer.client().stop();
+          */
+          size_t vBytesSent = mServer.streamFile(vFile, vContentType);
+        }
+        catch (...) {
+          vDebug.PrintF("unknown exception\n");
+        }
         unsigned long vMicrosEnd = micros();
         float vMilliSeconds = (vMicrosEnd - vMicrosStart) / 1000.0f;
         vDebug.PrintF("file \"%s\" transferred in %lf ms\n", aFileName.c_str(), vMilliSeconds);

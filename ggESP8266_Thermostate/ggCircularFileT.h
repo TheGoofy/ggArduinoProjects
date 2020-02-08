@@ -32,8 +32,8 @@ public:
   bool Write(const TTime& aTime, const TData& aData) {
     bool vSuccess = false;
     if (OpenFile()) {
-      GetIndex();
       vSuccess = true;
+      vSuccess &= GetIndex();
       vSuccess &= WriteData(aTime, aData);
       CloseFile();
     }
@@ -44,8 +44,8 @@ public:
   bool Read(TTime& aTime, TData& aData) const {
     bool vSuccess = false;
     if (OpenFile()) {
-      GetIndex();
       vSuccess = true;
+      vSuccess &= GetIndex();
       vSuccess &= ReadData(aTime, aData);
       CloseFile();
       return true;
@@ -110,22 +110,23 @@ private:
     return mFile;
   }
 
-  void GetIndex() const {
+  bool GetIndex() const {
     // index is valid, if smaller than number of blocks
-    if (mIndex < mNumberOfDataBlocks) return;
+    if (mIndex < mNumberOfDataBlocks) return true;
     // invalid index => need to search in file
+    bool vSuccess = true;
     mIndex = 0;
     TTime vTime = 0;
     TTime vLastTime = 0;
     // search whole file when "time" jumps back
-    while (mIndex < mNumberOfDataBlocks) {
+    while (vSuccess && (mIndex < mNumberOfDataBlocks)) {
       size_t vPosition = GetPosition(mIndex);
-      if (mFile.seek(vPosition)) {
+      if ((vSuccess = mFile.seek(vPosition)) == true) {
         if (Read(mFile, vTime)) {
           // found free (unused) block
-          if (vTime == 0) return;
+          if (vTime == 0) return true;
           // found wrap-around block (ring closed)
-          if (vTime < vLastTime) return;
+          if (vTime < vLastTime) return true;
           // remember current time for next check
           vLastTime = vTime;
         }
@@ -135,6 +136,7 @@ private:
     }
     // last block was newest
     mIndex = 0;
+    return vSuccess;
   }
 
   bool WriteData(const TTime& aTime, const TData& aData) {
