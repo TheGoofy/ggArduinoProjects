@@ -10,7 +10,7 @@ body {
   color: #aaa;
   text-align: center;
   font-family: verdana,sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   background: #444;
 }
 
@@ -44,7 +44,18 @@ td {
   padding: 1px;
 }
 
-.r {
+.cMainDiv {
+  text-align: left;
+  min-width: 340px;
+}
+
+.cMainBlockDiv {
+  text-align: left;
+  min-width: 340px;
+  display: inline-block;
+}
+
+.cRoundedCentered {
   border-radius: 2.4rem;
   line-height: 2.4rem;
   font-size: 1.2rem;

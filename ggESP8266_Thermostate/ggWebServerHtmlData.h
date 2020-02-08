@@ -14,7 +14,7 @@ char mWebServerHtmlFront[] PROGMEM = R"=====(
   </head>
 
   <body>
-    <div style='text-align:left;display:inline-block;min-width:340px'>
+    <div class='cMainBlockDiv'>
 )=====";
 
 char mWebServerHtmlBack[] PROGMEM = R"=====(

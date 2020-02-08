@@ -269,135 +269,123 @@
 </head>
 
 <body onload='javascript:InitAll()'>
-  <div style='text-align:left;display:inline-block;min-width:340px'>
-  <table width='100%'>
+  <div class='cMainBlockDiv'>
 
-    <tr>
-      <td colspan='3'>
-        <br>
-        <input id='mName' type='text' value='(na)' style='width:97.5%' class='r' maxlength='30'>
-      </td>
-    </tr>
+    <style>
+      #mName { width: 97.5%; margin-top: 10px; margin-bottom: 10px; }
+    </style>
+    <input id='mName' type='text' value='(na)' class='cRoundedCentered' maxlength='30'>
 
-    <tr><td colspan='3'></td></tr>
+    <style>
+      #mGaugesTable { margin-left:auto; margin-right: auto; border-collapse: collapse; }
+      #mGaugesTable td { text-align: center; }
+      .cGaugeDiv { width: 113px; height: 119px; margin-left: -5px; }
+    </style>
+    <table id='mGaugesTable'>
+      <tr>
+        <td>Pressure</td>
+        <td>Temperature</td>
+        <td>Humidity</td>
+      </tr>
+      <tr>
+        <td><div class='cGaugeDiv' id='mPressureGaugeDiv'></div></td>
+        <td><div class='cGaugeDiv' id='mTemperatureGaugeDiv'></div></td>
+        <td><div class='cGaugeDiv' id='mHumidityGaugeDiv'></div></td>
+      </tr>
+      <tr>
+        <td><span id='mPressure'>(na)</span> hPa</td>
+        <td><span id='mTemperature'>(na)</span> °C</td>
+        <td><span id='mHumidity'>(na)</span> %</td>
+      </tr>
+    </table>
 
-    <tr><td colspan='3'>
-      <style> #mGauges td { text-align: center; } </style>
-      <table id='mGauges' width='100%' style='border-collapse:collapse'>
-        <tr>
-          <td>Pressure</td>
-          <td>Temperature</td>
-          <td>Humidity</td>
-        </tr>
-        <tr>
-          <style> .cGaugeDiv { width: 100px; height: 119px; margin-left: -5px; } </style>
-          <td><div class='cGaugeDiv' id='mPressureGaugeDiv'></div></td>
-          <td><div class='cGaugeDiv' id='mTemperatureGaugeDiv'></div></td>
-          <td><div class='cGaugeDiv' id='mHumidityGaugeDiv'></div></td>
-        </tr>
-        <tr>
-          <td><span id='mPressure'>(na)</span> hPa</td>
-          <td><span id='mTemperature'>(na)</span> °C</td>
-          <td><span id='mHumidity'>(na)</span> %</td>
-        </tr>
-      </table>
-    </td></tr>
+    <hr noshade>
 
-    <tr><td colspan='3'><hr noshade></td></tr>
+    <style>
+      #mParametersTable { margin-left:auto; margin-right: auto; border: none; border-collapse: collapse; }
+      #mParametersTable input { margin-top: 0px; }
+      .cParameterTitle { text-align: right; padding-right: 3px; }
+      .cNumberInput { width: 50px; margin-left: 4px }
+    </style>
+    <table id='mParametersTable'>
 
-    <tr>
-      <td style='text-align:right' valign='top'>Control Mode</td>
-      <td>&nbsp;</td>
-      <td style='text-align:left'><table style='border-collapse:collapse'>
-        <tr><td><input id='mControlModeOff' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOff'> Off<label></td></tr>
-        <tr><td><input id='mControlModeOn' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOn'> On</label></td></tr>
-        <tr><td><input id='mControlModeOnBelow' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOnBelow'> On, if below SP (heater)</label></td></tr>
-        <tr><td><input id='mControlModeOnAbove' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModeOnAbove'> On, if above SP (cooler)</label></td></tr>
-        <tr><td><input id='mControlModePID' type='radio' name='control' style='margin-top:0px'></td><td><label for='mControlModePID'> PID</label></td></tr>
-      </table></td>
-    </tr>
+      <tr>
+        <td class='cParameterTitle' valign='top'>Control Mode</td>
+        <td><table style='border-collapse:collapse'>
+          <tr><td><input id='mControlModeOff' type='radio' name='control'></td><td><label for='mControlModeOff'> Off<label></td></tr>
+          <tr><td><input id='mControlModeOn' type='radio' name='control'></td><td><label for='mControlModeOn'> On</label></td></tr>
+          <tr><td><input id='mControlModeOnBelow' type='radio' name='control'></td><td><label for='mControlModeOnBelow'> On, if below SP (heater)</label></td></tr>
+          <tr><td><input id='mControlModeOnAbove' type='radio' name='control'></td><td><label for='mControlModeOnAbove'> On, if above SP (cooler)</label></td></tr>
+          <tr><td><input id='mControlModePID' type='radio' name='control'></td><td><label for='mControlModePID'> PID</label></td></tr>
+        </table></td>
+      </tr>
 
-    <tr>
-      <td style='text-align:right'>Set Point</td>
-      <td>&nbsp;</td>
-      <td style='text-align:left'><input id='mTemperatureSetPoint' type='number' min='-100' max='100' step='0.1' value='0' style='width:60px;margin-left:4px'> °C</td>
-    </tr>
+      <tr>
+        <td class='cParameterTitle'>Set Point</td>
+        <td><input class='cNumberInput' id='mTemperatureSetPoint' type='number' min='-100' max='100' step='0.1' value='0'> °C</td>
+      </tr>
 
-    <tr>
-      <td style='text-align:right'>Hysteresis</td>
-      <td>&nbsp;</td>
-      <td style='text-align:left'><input id='mHysteresis' type='number' min='0' max='100' step='0.1' value='0' style='width:60px;margin-left:4px'> °C</td>
-    </tr>
+      <tr>
+        <td class='cParameterTitle'>Hysteresis</td>
+        <td><input class='cNumberInput' id='mHysteresis' type='number' min='0' max='100' step='0.1' value='0'> °C</td>
+      </tr>
 
-    <tr>
-      <td style='text-align:right'>PID</td>
-      <td>&nbsp;</td>
-      <td style='text-align:left'>
-        <input id='mControlP' type='number' min='-1000' max='1000' step='0.0001' value='0' style='width:60px;margin-left:4px'>
-        <input id='mControlI' type='number' min='-1000' max='1000' step='0.0001' value='0' style='width:60px;margin-left:0px'>
-        <input id='mControlD' type='number' min='-1000' max='1000' step='0.0001' value='0' style='width:60px;margin-left:0px'>
-      </td>
-    </tr>
+      <tr>
+        <td class='cParameterTitle'>PID</td>
+        <td>
+          <input class='cNumberInput' id='mControlP' type='number' min='-1000' max='1000' step='0.0001' value='0'>
+          <input class='cNumberInput' id='mControlI' type='number' min='-1000' max='1000' step='0.0001' value='0'>
+          <input class='cNumberInput' id='mControlD' type='number' min='-1000' max='1000' step='0.0001' value='0'>
+        </td>
+      </tr>
 
-    <tr>
-      <td style='text-align:right'>Analog Out</td>
-      <td>&nbsp;</td>
-      <td style='text-align:left'><input id='mOutputAnalog' type='checkbox'></td>
-    </tr>
+      <tr>
+        <td class='cParameterTitle'>Analog Out</td>
+        <td><input id='mOutputAnalog' type='checkbox'></td>
+      </tr>
 
-    <tr>
-      <td style='text-align:right'>Output</td>
-      <td>&nbsp;</td>
-      <td style='text-align:left' id='mOutput'>
-        <table cellpadding='0' cellspacing='0' style='border-collapse:collapse;width:100%'>
-          <tr>
-            <td style='text-align:left'><input id='mOutputRange' type='range' name='outputrange' min='0' max='1' step='0.01' value='0' style='width:100%'></td>
-            <td style='width:60px'>&nbsp;<span id='mOutputValue'>(na)</span> %</td>
-          </tr>
-        </table>
-      </td>
-    </tr>
+      <tr>
+        <td class='cParameterTitle'>Output</td>
+        <td id='mOutput'>
+          <table cellpadding='0' cellspacing='0' style='border-collapse:collapse;width:100%'>
+            <tr>
+              <td><input id='mOutputRange' type='range' name='outputrange' min='0' max='1' step='0.01' value='0' style='width:100%'></td>
+              <td style='width:60px'>&nbsp;<span id='mOutputValue'>(na)</span> %</td>
+            </tr>
+          </table>
+        </td>
+      </tr>
 
-    <tr>
-      <td style='text-align:right'>Key</td>
-      <td>&nbsp;</td>
-      <td style='text-align:left' id='mKey'>(na)</td>
-    </tr>
+      <tr>
+        <td class='cParameterTitle'>Key</td>
+        <td id='mKey'>(na)</td>
+      </tr>
 
-    <tr><td colspan='3'><hr noshade></td></tr>
+    </table>
 
-    <tr>
-      <td colspan='3'>
-        Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
-        Temperature Sensor Status: <span id='mSensorStatus'>(na)</span><br>
-      </td>
-    </tr>
+    <hr noshade>
 
-    <tr>
-      <td colspan='3'>
-        <hr noshade>
-        <a href='/'>[home]</a>
-        <a href='/loglive'>[log-live]</a>
-        <a href='/logfile'>[log-file]</a>
-        <a href='/files'>[files]</a>
-        <a href='/debug'>[debug]</a>
-        <a href='/goofy'>[goofy]</a><br>
-        (c) 2020, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
-      </td>
-    </tr>
+    Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
+    Temperature Sensor Status: <span id='mSensorStatus'>(na)</span><br>
 
-    <tr id='mProgressFrame' hidden><td colspan='3'>
-      <table style='border-collapse:collapse;width:100%;'>
-        <tr><td colspan='3'><hr noshade></td></tr>
-        <tr>
-          <td id='mProgressName'>Progress</td>
-          <td>&nbsp;</td>
-          <td style='width:100%'><progress id='mProgressBar' style='width:100%' value='0' max='1'></td>
-        </tr>
-      </table>
-    </td></tr>
+    <hr noshade>
+    <a href='/'>[home]</a>
+    <a href='/loglive'>[log-live]</a>
+    <a href='/logfile'>[log-file]</a>
+    <a href='/files'>[files]</a>
+    <a href='/debug'>[debug]</a>
+    <a href='/goofy'>[goofy]</a><br>
+    (c) 2020, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
 
-  </table>
+    <table id='mProgressFrame' hidden style='border-collapse:collapse;width:100%;'>
+      <tr><td colspan='3'><hr noshade></td></tr>
+      <tr>
+        <td id='mProgressName'>Progress</td>
+        <td>&nbsp;</td>
+        <td style='width:100%'><progress id='mProgressBar' style='width:100%' value='0.7' max='1'></td>
+      </tr>
+    </table>
+
   </div>
 </body>
 

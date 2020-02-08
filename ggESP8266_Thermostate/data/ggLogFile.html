@@ -51,7 +51,7 @@
           this.mOptions = {
             title: aTitle + ' [' + aUnit + ']',
             titlePosition: 'in', // 'in', 'out', 'none'
-            titleTextStyle: { color: aColor, },
+            titleTextStyle: { fontSize: 13, color: aColor, },
             legend: { position: 'in', textStyle: { color: aColor, fontSize: 12 } },
             series: {
               0: { color: aColor, lineDashStyle: [1, 2] },
@@ -257,12 +257,12 @@
   </head>
 
   <body onload='javascript:InitAll()'>
-    <div style='text-align:left;min-width:340px'>
+    <div class='cMainDiv'>
       <b style="font-size: larger;">Log File</b><br>
       <hr noshade>
 
       <style>
-        .cTabs button { cursor: pointer; background-color:#ccc; border:none; outline:none; transition:0.3s; }
+        .cTabs button { font-size: 110%; cursor: pointer; background-color:#ccc; border:none; outline:none; transition:0.3s; }
         .cTabs button.selected { background-color:white; }
         .cTabs button:hover { background-color:#fc0; }
       </style>
