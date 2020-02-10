@@ -130,6 +130,10 @@ public:
     mSetOutputFunc = aSetOutputFunc;
   }
 
+  String GetStatus() const {
+    return String(const_cast<ggWebSockets&>(*this).mServer.connectedClients()) + "/" + String(WEBSOCKETS_SERVER_CLIENT_MAX);
+  }
+
 private:
 
   inline void UpdateClientTXT(String aTXT, int aClientID = -1) {

@@ -17,6 +17,7 @@ public:
     mDebugStreamFunc(nullptr),
     mResetFunc(nullptr),
     mRebootFunc(nullptr),
+    mWifiManagerFunc(nullptr),
     mFileSystem(aFileSystem) {
   }
 
@@ -30,6 +31,7 @@ public:
     mServer.on("/goofy", [&] () { HandleFile("/ggGoofy.html"); });
     mServer.on("/reset", [&] () { OnReset(); });
     mServer.on("/reboot", [&] () { OnReboot(); });
+    mServer.on("/wifimgr", [&] () { OnWifiManager(); });
     mServer.onNotFound([&] () { OnNotFound(); });
     mServer.begin();
   }
@@ -51,6 +53,10 @@ public:
 
   void OnReboot(tFunc aRebootFunc) {
     mRebootFunc = aRebootFunc;
+  }
+
+  void OnWifiManager(tFunc aWifiManagerFunc) {
+    mWifiManagerFunc = aWifiManagerFunc;
   }
 
 private:
@@ -213,6 +219,10 @@ private:
     if (mRebootFunc != nullptr) mRebootFunc();
   }
 
+  void OnWifiManager() {
+    if (mWifiManagerFunc != nullptr) mWifiManagerFunc();
+  }
+
   void SendContent(const String& aHtmlContent) {
     unsigned long vContentLength = 0;
     vContentLength += strlen_P(mWebServerHtmlFront);
@@ -236,6 +246,7 @@ private:
   tStreamFunc mDebugStreamFunc;
   tFunc mResetFunc;
   tFunc mRebootFunc;
+  tFunc mWifiManagerFunc;
 
   FS* mFileSystem;
 };

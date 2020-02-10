@@ -1,4 +1,8 @@
 #include <Arduino.h>
+
+// override max number of socket clients (see "WebSocketsServer.h")
+#define WEBSOCKETS_SERVER_CLIENT_MAX (10)
+
 #include <ESP8266WebServer.h> // https://github.com/esp8266/Arduino
 #include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets (by Markus Sattler)
 #include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager (by Tzapu)
@@ -24,6 +28,7 @@
 #include "ggStreams.h"
 #include "ggTimerNTP.h"
 #include "ggDataLog.h"
+#include "ggDisplay.h"
 
 
 // imoque identification name
@@ -49,6 +54,9 @@ ggPeriphery mPeriphery;
 
 // controls an output based on input and reference value
 ggController mTemperatureController;
+
+// display
+ggDisplay mDisplay;
 
 // device name
 ggValueEEPromString<> mName(mHostName);
@@ -86,14 +94,33 @@ void CreateComponents()
 }
 
 
+void UpdateDisplay()
+{
+  mDisplay.Clear();
+  mDisplay.SetTitle(mName.Get());
+  mDisplay.SetText(0, String("SSID: ") + WiFi.SSID());
+  mDisplay.SetText(1, String("IP: ") + WiFi.localIP().toString());
+  mDisplay.SetText(2, String("Sensor: ") + mPeriphery.mSensor.GetStatus());
+  mDisplay.SetText(3, String("Web Sockets: ") + mWebSockets.GetStatus());
+}
+
+
 // wifimanager may be connected before any other comonent (in order to indicate AP-mode)
 void ConnectWifiManager()
 {
   mWifiManager.setAPCallback([] (WiFiManager* aWiFiManager) {
     mPeriphery.mStatusLED.Begin();
     mPeriphery.mStatusLED.SetWarning(true);
+    mDisplay.SetTitle(mWifiManager.getConfigPortalSSID());
+    mDisplay.SetText(0, String("IP: ") + WiFi.softAPIP().toString());
+    mDisplay.SetText(1, "Access Point for");
+    mDisplay.SetText(2, "WiFi configuration");
+    mDisplay.SetText(3, "is waiting for you...");
+    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
   });
   mWifiManager.setSaveConfigCallback([] () {
+    mDisplay.SetText(3, "Config saved!");
+    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
     mPeriphery.mStatusLED.SetWarning(false);
   });
 }
@@ -101,6 +128,13 @@ void ConnectWifiManager()
 
 void ConnectComponents()
 {
+  // display
+  mDisplay.OnConnection([] (bool aConnected) {
+    // Maybe update web-sockets? (no need to display this event on the display)
+    ggDebug vDebug("mDisplay.OnConnection(...)");
+    vDebug.PrintF("aConnected = %d\n", aConnected);
+  });
+
   // when a new client is conneted, it needs a complete update
   mWebSockets.OnClientConnect([&] (int aClientID) {
     ggDebug vDebug("mWebSockets.OnClientConnect(...)");
@@ -117,10 +151,12 @@ void ConnectComponents()
     mWebSockets.UpdateOutputAnalog(mTemperatureController.GetOutputAnalog(), aClientID);
     mWebSockets.UpdateOutput(mTemperatureController.GetOutput(), aClientID);
     mWebSockets.UpdateKey(mPeriphery.mKey.GetPressed(), aClientID);
+    UpdateDisplay();
   });
   mWebSockets.OnClientDisconnect([&] (int aClientID) {
     ggDebug vDebug("mWebSockets.OnClientDisonnect(...)");
     vDebug.PrintF("aClientID = %d\n", aClientID);
+    UpdateDisplay();
   });
 
   // controller event: when output changes, the SSR needs to be switched
@@ -143,8 +179,11 @@ void ConnectComponents()
   });
   mPeriphery.mKey.OnReleased([&] () {
     if (mPeriphery.mKey.GetMillisDelta() > 5000) {
+      mName.Set(mHostName);
       mTemperatureController.ResetSettings();
       mWifiManager.resetSettings();
+      mDisplay.SetText(3, String("Factory reset..."));
+      mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
       ESP.restart();
     }
   });
@@ -156,6 +195,7 @@ void ConnectComponents()
     mTemperatureController.SetInputValid(mPeriphery.mSensor.StatusOK());
     mPeriphery.mStatusLED.SetError(!mPeriphery.mSensor.StatusOK());
     mWebSockets.UpdateSensorStatus(aStatus);
+    UpdateDisplay();
   });
   mPeriphery.mSensor.OnPressureChanged([&] (float aPressure) {
     mWebSockets.UpdatePressure(aPressure);
@@ -172,28 +212,35 @@ void ConnectComponents()
   });
 
   // wifi events
-  mWiFiConnection.OnConnect([&] () {
-    ggDebug vDebug("mWiFiConnection.OnConnect");
-    mPeriphery.mStatusLED.SetWarning(false);
-  });
-  mWiFiConnection.OnDisconnect([&] () {
-    ggDebug vDebug("mWiFiConnection.OnDisconnect");
-    mPeriphery.mStatusLED.SetWarning(true);
+  mWiFiConnection.OnConnection([&] (bool aConnected) {
+    ggDebug vDebug("mWiFiConnection.OnConnection");
+    vDebug.PrintF("aConnected = %d\n", aConnected);
+    mPeriphery.mStatusLED.SetWarning(!aConnected);
+    UpdateDisplay();
   });
 
   // OTA events
   ArduinoOTA.onStart([] () {
-    mPeriphery.mStatusLED.SetOTA(true); // indicate "upload"
     mPeriphery.mOutputPWM.Set(false); // switch off output (in case OTA fails)
+    mPeriphery.mStatusLED.SetOTA(true); // indicate "upload"
+    mDisplay.SetText(3, String("OTA update: start"));
+    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
+  });
+  ArduinoOTA.onProgress([] (unsigned int aStep, unsigned int aNumberOfSteps) {
+    mDisplay.SetText(3, String("OTA update: ") + (aStep / (aNumberOfSteps / 100)) + "%");
+    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
   });
   ArduinoOTA.onEnd([] () {
     mPeriphery.mStatusLED.SetOTA(false);
+    mDisplay.SetText(3, String("OTA update: finish"));
+    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
   });
 
   // events from client: control mode, reference temperature, ...
   mWebSockets.OnSetName([&] (const String& aName) {
     mName.Set(aName);
     mWebSockets.UpdateName(mName.Get());
+    mDisplay.SetTitle(aName);
   });
   mWebSockets.OnSetControlMode([&] (int aControlMode) {
     mTemperatureController.SetMode(static_cast<ggController::tMode>(aControlMode));
@@ -228,15 +275,28 @@ void ConnectComponents()
     vStreams.push_back(&Serial);
     ggDebug::SetStream(vStreams);
     ggDebug vDebug("mWebServer.OnDebugStream(...)");
+    vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
     mPeriphery.PrintDebug("mPeriphery");
     mTemperatureController.PrintDebug("mTemperatureController");
     ggDebug::SetStream(Serial);
   });
   mWebServer.OnReset([] () {
+    mName.Set(mHostName);
     mTemperatureController.ResetSettings();
     mWifiManager.resetSettings();
+    mDisplay.SetText(3, String("Factory reset..."));
+    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
+    ESP.restart();
   });
   mWebServer.OnReboot([] () {
+    mDisplay.SetText(3, String("Rebooting..."));
+    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
+    ESP.restart();
+  });
+  mWebServer.OnWifiManager([] () {
+    mWifiManager.resetSettings();
+    mDisplay.SetText(3, String("WiFi reset..."));
+    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
     ESP.restart();
   });
 
@@ -277,7 +337,8 @@ void ConnectComponents()
     vDebug.PrintF("Checking the file system...\n");
     vDebug.PrintF("Current NTP time: %s\n", mTimerNTP.GetTime("%d-%m-%Y %H:%M:%S").c_str());
     unsigned long vMicrosStart = micros();
-//    if (!mFileSystem->check()) {
+//    for some reason this crashes :-()
+//    if (!mFileSystem->check()) { 
 //      vDebug.PrintF("check failed\n");
 //    }
     bool vResultGC = mFileSystem->gc();
@@ -291,6 +352,7 @@ void ConnectComponents()
 
 void Run()
 {
+  mDisplay.Run();
   mPeriphery.Run();
   mTemperatureController.Run();
   mWebServer.Run();
@@ -311,12 +373,15 @@ void setup()
   
   GG_DEBUG();
 
-  // startup eeprom utility class
+  // initialize eeprom handler
   ggValueEEProm::Begin();
   vDebug.PrintF("Device Name: %s\n", mName.Get().c_str());
 
   // start the file system
   mFileSystem->begin();
+
+  // init display (for debugging- or user-info)
+  mDisplay.Begin();
 
   // connect to wifi
   ConnectWifiManager();

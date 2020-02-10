@@ -75,9 +75,9 @@ public:
   const char* GetStatus() const {
     switch (mStatus) {
       case eStatusSensorOK: return "Status OK";
-      case eStatusSensorNotFound: return "Sensor not found";
-      case eStatusSensorModelUnknown: return "Sensor model unknown";
-      case eStatusSensorReadFailed: return "Read value failed";
+      case eStatusSensorNotFound: return "Not found";
+      case eStatusSensorModelUnknown: return "Model unknown";
+      case eStatusSensorReadFailed: return "Read failed";
       default: return "Status unknown";
     }
   }

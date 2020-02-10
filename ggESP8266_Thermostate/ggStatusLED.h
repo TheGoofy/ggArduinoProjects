@@ -28,6 +28,10 @@ public:
     }
   }
 
+  bool GetOTA() const {
+    return mOTA;
+  }
+
   void SetWarning(bool aWarning) {
     if (mWarning != aWarning) {
       mWarning = aWarning;
@@ -35,11 +39,19 @@ public:
     }
   }
 
+  bool GetWarning() const {
+    return mWarning;
+  }
+
   void SetError(bool aError) {
     if (mError != aError) {
       mError = aError;
       UpdateTicker();
     }
+  }
+
+  bool GetError() const {
+    return mError;
   }
 
   void Begin() {
