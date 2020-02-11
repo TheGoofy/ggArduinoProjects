@@ -15,9 +15,9 @@ public:
   ggWebServer(int aPort, FS* aFileSystem)
   : mServer(aPort),
     mDebugStreamFunc(nullptr),
-    mResetFunc(nullptr),
+    mResetAllFunc(nullptr),
     mRebootFunc(nullptr),
-    mWifiManagerFunc(nullptr),
+    mResetWifiFunc(nullptr),
     mFileSystem(aFileSystem) {
   }
 
@@ -29,9 +29,9 @@ public:
     mServer.on("/files", [&] () { OnFS(); });
     mServer.on("/debug", [&] () { OnDebug(); });
     mServer.on("/goofy", [&] () { HandleFile("/ggGoofy.html"); });
-    mServer.on("/reset", [&] () { OnReset(); });
+    mServer.on("/resetall", [&] () { OnResetAll(); });
+    mServer.on("/resetwifi", [&] () { OnResetWifi(); });
     mServer.on("/reboot", [&] () { OnReboot(); });
-    mServer.on("/wifimgr", [&] () { OnWifiManager(); });
     mServer.onNotFound([&] () { OnNotFound(); });
     mServer.begin();
   }
@@ -47,16 +47,16 @@ public:
     mDebugStreamFunc = aStreamFunc;
   }
   
-  void OnReset(tFunc aResetFunc) {
-    mResetFunc = aResetFunc;
+  void OnResetAll(tFunc aResetAllFunc) {
+    mResetAllFunc = aResetAllFunc;
+  }
+
+  void OnResetWifi(tFunc aResetWifiFunc) {
+    mResetWifiFunc = aResetWifiFunc;
   }
 
   void OnReboot(tFunc aRebootFunc) {
     mRebootFunc = aRebootFunc;
-  }
-
-  void OnWifiManager(tFunc aWifiManagerFunc) {
-    mWifiManagerFunc = aWifiManagerFunc;
   }
 
 private:
@@ -194,8 +194,9 @@ private:
   void OnDebug() {
     String vContent = "<script>document.title = 'ESP8266 Thermostate Debug';</script>\n";
     vContent += "<b style='font-size:larger'>Debug</b><br>\n<hr noshade>\n";
-    vContent += "<a href='reset'>[reset]</a>\n";
-    vContent += "<a href='reboot'>[reboot]</a>\n";
+    vContent += "<a href='resetall' onclick='return confirm(\"Reset ALL settings and log data?\")'>[reset all]</a>\n";
+    vContent += "<a href='resetwifi' onclick='return confirm(\"Reset WiFi settings?\")'>[reset wifi]</a>\n";
+    vContent += "<a href='reboot' onclick='return confirm(\"Reboot?\")'>[reboot]</a>\n";
     if (mDebugStreamFunc != nullptr) {
       vContent += "<hr noshade>\n";
       vContent += "<textarea readonly style='width:100%;min-height:450px;'>\n";
@@ -206,21 +207,28 @@ private:
     SendContent(vContent);
   }
 
-  void OnReset() {
-    if (mResetFunc != nullptr) mResetFunc();
-    mServer.sendHeader("Location", String("/"), true);
-    mServer.send(302, "text/plain", "");
+  void OnResetAll() {
+    if (mResetAllFunc != nullptr) {
+      mServer.sendHeader("Location", String("/home"), true);
+      mServer.send(302, "text/plain", "reboot...");
+      mResetAllFunc();
+    }
+  }
+
+  void OnResetWifi() {
+    if (mResetWifiFunc != nullptr) {
+      mServer.sendHeader("Location", String("/home"), true);
+      mServer.send(302, "text/plain", "reboot...");
+      mResetWifiFunc();
+    }
   }
 
   void OnReboot() {
-    mServer.sendHeader("Location", String("/"), true);
-    mServer.send(302, "text/plain", "reboot...");
-    delay(1000);
-    if (mRebootFunc != nullptr) mRebootFunc();
-  }
-
-  void OnWifiManager() {
-    if (mWifiManagerFunc != nullptr) mWifiManagerFunc();
+    if (mRebootFunc != nullptr) {
+      mServer.sendHeader("Location", String("/home"), true);
+      mServer.send(302, "text/plain", "reboot...");
+      mRebootFunc();
+    }
   }
 
   void SendContent(const String& aHtmlContent) {
@@ -244,9 +252,9 @@ private:
   ESP8266WebServer mServer;
 
   tStreamFunc mDebugStreamFunc;
-  tFunc mResetFunc;
+  tFunc mResetAllFunc;
   tFunc mRebootFunc;
-  tFunc mWifiManagerFunc;
+  tFunc mResetWifiFunc;
 
   FS* mFileSystem;
 };

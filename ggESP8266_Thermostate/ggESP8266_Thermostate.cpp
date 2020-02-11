@@ -105,6 +105,22 @@ void UpdateDisplay()
 }
 
 
+void ResetAll()
+{
+  mDisplay.SetText(3, String("Reset all..."));
+  mDisplay.Run(); // main "loop" is not running
+  mName.Set(mHostName);
+  mDataLog1H->ResetAll();
+  mDataLog1D->ResetAll();
+  mDataLog1W->ResetAll();
+  mDataLog1M->ResetAll();
+  mDataLog1Y->ResetAll();
+  mDataLogMax->ResetAll();
+  mTemperatureController.ResetSettings();
+  mWifiManager.resetSettings();
+}
+
+
 // wifimanager may be connected before any other comonent (in order to indicate AP-mode)
 void ConnectWifiManager()
 {
@@ -179,11 +195,8 @@ void ConnectComponents()
   });
   mPeriphery.mKey.OnReleased([&] () {
     if (mPeriphery.mKey.GetMillisDelta() > 5000) {
-      mName.Set(mHostName);
-      mTemperatureController.ResetSettings();
-      mWifiManager.resetSettings();
-      mDisplay.SetText(3, String("Factory reset..."));
-      mDisplay.Run(); // main "loop" is not running
+      ResetAll();
+      delay(1000);
       ESP.restart();
     }
   });
@@ -232,7 +245,7 @@ void ConnectComponents()
   });
   ArduinoOTA.onEnd([] () {
     mPeriphery.mStatusLED.SetOTA(false);
-    mDisplay.SetText(3, String("OTA update: finish"));
+    mDisplay.SetText(3, String("OTA update: done"));
     mDisplay.Run(); // main "loop" is not running
   });
 
@@ -280,23 +293,22 @@ void ConnectComponents()
     mTemperatureController.PrintDebug("mTemperatureController");
     ggDebug::SetStream(Serial);
   });
-  mWebServer.OnReset([] () {
-    mName.Set(mHostName);
-    mTemperatureController.ResetSettings();
-    mWifiManager.resetSettings();
-    mDisplay.SetText(3, String("Factory reset..."));
+  mWebServer.OnResetAll([] () {
+    ResetAll();
+    delay(1000);
+    ESP.restart();
+  });
+  mWebServer.OnResetWifi([] () {
+    mDisplay.SetText(3, String("Reset WiFi..."));
     mDisplay.Run(); // main "loop" is not running
+    mWifiManager.resetSettings();
+    delay(1000);
     ESP.restart();
   });
   mWebServer.OnReboot([] () {
     mDisplay.SetText(3, String("Rebooting..."));
     mDisplay.Run(); // main "loop" is not running
-    ESP.restart();
-  });
-  mWebServer.OnWifiManager([] () {
-    mWifiManager.resetSettings();
-    mDisplay.SetText(3, String("WiFi reset..."));
-    mDisplay.Run(); // main "loop" is not running
+    delay(1000);
     ESP.restart();
   });
 
@@ -304,31 +316,31 @@ void ConnectComponents()
   mTimerNTP.AddTimer(mDataLog1H->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLog1H->Write(mTimerNTP.GetTime());
     mDataLog1D->AddValues(*mDataLog1H);
-    mDataLog1H->ResetOnNextAddValue();
+    mDataLog1H->ResetAveragesOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLog1D->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLog1D->Write(mTimerNTP.GetTime());
     mDataLog1W->AddValues(*mDataLog1D);
-    mDataLog1D->ResetOnNextAddValue();
+    mDataLog1D->ResetAveragesOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLog1W->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLog1W->Write(mTimerNTP.GetTime());
     mDataLog1M->AddValues(*mDataLog1W);
-    mDataLog1W->ResetOnNextAddValue();
+    mDataLog1W->ResetAveragesOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLog1M->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLog1M->Write(mTimerNTP.GetTime());
     mDataLog1Y->AddValues(*mDataLog1M);
-    mDataLog1M->ResetOnNextAddValue();
+    mDataLog1M->ResetAveragesOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLog1Y->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLog1Y->Write(mTimerNTP.GetTime());
     mDataLogMax->AddValues(*mDataLog1Y);
-    mDataLog1Y->ResetOnNextAddValue();
+    mDataLog1Y->ResetAveragesOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLogMax->GetPeriod(), [] (uint32_t aPeriod) {
     mDataLogMax->Write(mTimerNTP.GetTime());
-    mDataLogMax->ResetOnNextAddValue();
+    mDataLogMax->ResetAveragesOnNextAddValue();
   });
 
   // periodically check (and repair) file system

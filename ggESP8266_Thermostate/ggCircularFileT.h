@@ -53,6 +53,13 @@ public:
     return vSuccess;
   }
 
+  // ultimately clean up
+  void Reset() {
+    mFile.close();
+    FileSystem().remove(mFileName.c_str());
+    mIndex = 0;
+  }
+
 private:
 
   FS& FileSystem() const {
@@ -68,10 +75,9 @@ private:
   }
 
   // allocates a complete new file and opens it for update
-  void ResetAndOpenFile() const {
+  void ResetAndOpenFile() {
     // ultimately clean up
-    mFile.close();
-    FileSystem().remove(mFileName.c_str());
+    Reset();
     // create a new empty file for writing
     mFile = FileSystem().open(mFileName.c_str(), "w");
     if (mFile) {
@@ -94,13 +100,10 @@ private:
   bool OpenFile() const {
     // open an existing file for update
     mFile = FileSystem().open(mFileName.c_str(), "r+b");
-    // if file can't be opened, it probably doesn't exist
-    if (!mFile) {
-      ResetAndOpenFile();
-    }
+    // if file can't be opened (because it does not yet exists), or
     // if the filesize does not match, we're resetting the file
-    if (mFile && (mFile.size() != GetFileSize())) {
-      ResetAndOpenFile();
+    if (!mFile || ((mFile.size() != GetFileSize()))) {
+      const_cast<ggCircularFileT&>(*this).ResetAndOpenFile();
     }
     // hopefully there is now a file open for update
     if (!mFile) {

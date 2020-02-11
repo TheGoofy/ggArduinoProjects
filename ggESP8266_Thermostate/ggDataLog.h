@@ -33,6 +33,14 @@ public:
     return mCircularFile.GetFileName();
   }
 
+  void ResetAll() {
+    mCircularFile.Reset();
+    mPressureAVG.mAverages.Reset();
+    mTemperatureAVG.mAverages.Reset();
+    mHumidityAVG.mAverages.Reset();
+    mOutputAVG.mAverages.Reset();
+  }
+
   void AddPressureValue(float aPressure) {
     mPressureAVG.AddValue(aPressure);
   }
@@ -56,7 +64,7 @@ public:
     mOutputAVG.AddValues(aDataLogSrc.mOutputAVG);
   }
 
-  void ResetOnNextAddValue() {
+  void ResetAveragesOnNextAddValue() {
     mPressureAVG.ResetOnNextAddValue();
     mTemperatureAVG.ResetOnNextAddValue();
     mHumidityAVG.ResetOnNextAddValue();
@@ -105,7 +113,7 @@ private:
   // helper sub-class for averages
   class cAverages {
   public:
-    typedef ggAveragesT<float, float> tBaseClass;
+    friend class ggDataLog;
     cAverages()
     : mAverages(),
       mResetOnNextAddValue(false) {
