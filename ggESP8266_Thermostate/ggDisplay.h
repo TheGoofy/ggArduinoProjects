@@ -54,11 +54,6 @@ public:
     mUpdate = true;
   }
 
-  void RefreshNow() {
-    mUpdate = true;
-    Update();
-  }
-
   bool IsConnected() const {
     return mConnected;
   }

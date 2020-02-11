@@ -1,7 +1,7 @@
 #include <Arduino.h>
 
 // override max number of socket clients (see "WebSocketsServer.h")
-#define WEBSOCKETS_SERVER_CLIENT_MAX (10)
+// #define WEBSOCKETS_SERVER_CLIENT_MAX (10) // this seems not to work :-( ...
 
 #include <ESP8266WebServer.h> // https://github.com/esp8266/Arduino
 #include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets (by Markus Sattler)
@@ -116,11 +116,11 @@ void ConnectWifiManager()
     mDisplay.SetText(1, "Access Point for");
     mDisplay.SetText(2, "WiFi configuration");
     mDisplay.SetText(3, "is waiting for you...");
-    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
+    mDisplay.Run(); // main "loop" is not running
   });
   mWifiManager.setSaveConfigCallback([] () {
     mDisplay.SetText(3, "Config saved!");
-    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
+    mDisplay.Run(); // main "loop" is not running
     mPeriphery.mStatusLED.SetWarning(false);
   });
 }
@@ -183,7 +183,7 @@ void ConnectComponents()
       mTemperatureController.ResetSettings();
       mWifiManager.resetSettings();
       mDisplay.SetText(3, String("Factory reset..."));
-      mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
+      mDisplay.Run(); // main "loop" is not running
       ESP.restart();
     }
   });
@@ -224,16 +224,16 @@ void ConnectComponents()
     mPeriphery.mOutputPWM.Set(false); // switch off output (in case OTA fails)
     mPeriphery.mStatusLED.SetOTA(true); // indicate "upload"
     mDisplay.SetText(3, String("OTA update: start"));
-    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
+    mDisplay.Run(); // main "loop" is not running
   });
   ArduinoOTA.onProgress([] (unsigned int aStep, unsigned int aNumberOfSteps) {
     mDisplay.SetText(3, String("OTA update: ") + (aStep / (aNumberOfSteps / 100)) + "%");
-    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
+    mDisplay.Run(); // main "loop" is not running
   });
   ArduinoOTA.onEnd([] () {
     mPeriphery.mStatusLED.SetOTA(false);
     mDisplay.SetText(3, String("OTA update: finish"));
-    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
+    mDisplay.Run(); // main "loop" is not running
   });
 
   // events from client: control mode, reference temperature, ...
@@ -285,18 +285,18 @@ void ConnectComponents()
     mTemperatureController.ResetSettings();
     mWifiManager.resetSettings();
     mDisplay.SetText(3, String("Factory reset..."));
-    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
+    mDisplay.Run(); // main "loop" is not running
     ESP.restart();
   });
   mWebServer.OnReboot([] () {
     mDisplay.SetText(3, String("Rebooting..."));
-    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
+    mDisplay.Run(); // main "loop" is not running
     ESP.restart();
   });
   mWebServer.OnWifiManager([] () {
     mWifiManager.resetSettings();
     mDisplay.SetText(3, String("WiFi reset..."));
-    mDisplay.RefreshNow(); // because "mDisplay.Run()" is not executed
+    mDisplay.Run(); // main "loop" is not running
     ESP.restart();
   });
 
