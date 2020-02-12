@@ -6,6 +6,9 @@
 #include <vector>
 #include <functional>
 
+#include "ggStringConvertT.h"
+#include "ggDebug.h"
+
 class ggDisplay {
 
 public:
@@ -29,19 +32,21 @@ public:
     Update();
   }
 
-  enum tAlign {
-    eAlignLeft,
-    eAlignCenter,
-    eAlignRight
+  struct cAlign {
+    enum tEnum {
+      eLeft,
+      eCenter,
+      eRight
+    };
   };
 
-  void SetTitle(const String& aTitle, tAlign aAlign = eAlignLeft) {
+  void SetTitle(const String& aTitle, cAlign::tEnum aAlign = cAlign::eLeft) {
     mTitle.mString = aTitle;
     mTitle.mAlign = aAlign;
     mUpdate = true;
   }
 
-  void SetText(int aLine, const String& aText, tAlign aAlign = eAlignLeft) {
+  void SetText(int aLine, const String& aText, cAlign::tEnum aAlign = cAlign::eLeft) {
     mText.resize(std::max<size_t>(aLine + 1, mText.size()));
     mText[aLine].mString = aText;
     mText[aLine].mAlign = aAlign;
@@ -63,11 +68,14 @@ public:
     mConnectFunc = aConnectFunc;
   }
 
+  void PrintDebug(const String& aName = "") const;
+
 private:
 
   struct cText {
     String mString;
-    tAlign mAlign;
+    cAlign::tEnum mAlign;
+    void PrintDebug(const String& aName = "") const;
   };
 
   void SetTitleFont() {
@@ -99,9 +107,9 @@ private:
 
   int GetX(const cText& aText) const {
     switch (aText.mAlign) {
-      case eAlignLeft: return 0;
-      case eAlignCenter: return (GetWidth() - GetTextWidth(aText)) / 2;
-      case eAlignRight: return GetWidth() - GetTextWidth(aText);
+      case cAlign::eLeft: return 0;
+      case cAlign::eCenter: return (GetWidth() - GetTextWidth(aText)) / 2;
+      case cAlign::eRight: return GetWidth() - GetTextWidth(aText);
       default: return 0;
     }
   }
@@ -135,9 +143,12 @@ private:
     mU8G2.sendBuffer();
   }
 
+  uint8_t GetAddressI2C() const {
+    return mU8G2.getU8x8()->i2c_address >> 1; // expecting "0x3C" ...
+  }
+
   void Connect() {
-    const uint8_t vAddressI2C = mU8G2.getU8x8()->i2c_address >> 1; // expecting "0x3C" ...
-    Wire.beginTransmission(vAddressI2C);
+    Wire.beginTransmission(GetAddressI2C());
     bool vConnected = Wire.endTransmission() == 0;
     if (mConnected) {
       mConnected = vConnected;
@@ -180,3 +191,9 @@ private:
   std::vector<cText> mText;
   
 };
+
+template <>
+String ToString(const ggDisplay::cAlign::tEnum& aAlign);
+
+template <>
+ggDisplay::cAlign::tEnum FromString(const String& aString);

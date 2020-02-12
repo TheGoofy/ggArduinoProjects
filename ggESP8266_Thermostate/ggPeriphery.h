@@ -4,6 +4,7 @@
 #include "ggStatusLED.h"
 #include "ggOutputPWM.h"
 #include "ggSensor.h"
+#include "ggDisplay.h"
 
 #if defined(M_PCB_VERSION_V1)
   #define M_PIN_KEY 0
@@ -41,12 +42,14 @@ struct ggPeriphery {
   ggOutputPWM mOutputPWM;
   ggStatusLED mStatusLED;
   ggSensor mSensor;
+  ggDisplay mDisplay;
 
   ggPeriphery()
   : mKey(M_PIN_KEY, true), // key, inverted (low if pressed)
     mOutputPWM(M_PIN_SSR, true, 1.0f), // SSR switch (optocpupler), inverted, 1Hz PWM (200 half-waves per sec => 200 pwm steps)
     mStatusLED(M_PIN_LED, true), // green status led, inverted
-    mSensor(M_PIN_SDA, M_PIN_SCL) { // temperature sensor
+    mSensor(M_PIN_SDA, M_PIN_SCL), // temperature sensor
+    mDisplay() { // uses HW I2C on pins 4 and 5
   }
 
   void Begin() {
@@ -54,12 +57,14 @@ struct ggPeriphery {
     mOutputPWM.Begin(0.0f); // set initial state to "off"
     mStatusLED.Begin();
     mSensor.Begin();
+    mDisplay.Begin();
   }
 
   void Run() {
     mKey.Run();
     mOutputPWM.Run();
     mSensor.Run();
+    mDisplay.Run();
   }
 
   void PrintDebug(const String& aName = "") const {
@@ -68,6 +73,7 @@ struct ggPeriphery {
     mOutputPWM.PrintDebug("mOutputPWM");
     mStatusLED.PrintDebug("mStatusLED");
     mSensor.PrintDebug("mSensor");
+    mDisplay.PrintDebug("mDisplay");
   }
 
 };
