@@ -108,6 +108,11 @@ public:
     return mMax;
   }
 
+  // returns the difference between min and max
+  inline TValue GetRange() const {
+    return mMax - mMin;
+  }
+  
   // returns the mean value
   inline TValueS GetMean() const {
     if (mCount > 0.0) {
