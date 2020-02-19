@@ -75,7 +75,7 @@ public:
   }
 
   void UpdateControlPID(float aP, float aI, float aD, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateControlPID(") + String(aP, 3) + "," + String(aI, 3) + "," + String(aD, 3) + ")", aClientID);
+    UpdateClientTXT(String("UpdateControlPID(") + String(aP, 4) + "," + String(aI, 4) + "," + String(aD, 4) + ")", aClientID);
   }
 
   void UpdateOutputAnalog(bool aOutputAnalog, int aClientID = -1) {
