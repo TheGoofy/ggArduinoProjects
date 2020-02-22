@@ -13,7 +13,7 @@ ggController::ggController()
   mInputMicrosLast(0),
   mInputValue(0.0f),
   mOutputValue(0.0f),
-  mSamplerPID(0.2f), // 0.2Hz (5s sampling time)
+  mSamplerPID(0.1f), // 0.1Hz (10s sampling time)
   mControlP(0.4f),
   mControlI(0.004f),
   mControlD(12.0f),
