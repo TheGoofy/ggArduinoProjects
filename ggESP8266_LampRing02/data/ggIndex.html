@@ -1,0 +1,205 @@
+﻿<!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01//EN' 'http://www.w3.org/TR/html4/strict.dtd'>
+<html>
+
+<head>
+  <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+  <meta http-equiv='Content-Style-Type' content='text/css'/>
+  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
+  <title>ESP8266 Lamp</title>
+  <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
+  <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
+  <script language='javascript' type='text/javascript'>
+
+    var mWebSocket;
+    var mWebSocketReConnectTimerID = 0;
+
+    function initAll() {
+      initHtmlElements();
+      initWebSocket();
+    }
+  
+    function initWebSocket() {
+      // init web socket client
+      mWebSocket = new WebSocket('ws://' + window.location.hostname + ':81/', ['arduino']);
+      mWebSocket.onopen = onWebSocketOpen;
+      mWebSocket.onclose = onWebSocketClose;
+      mWebSocket.onerror = onWebSocketError;
+      mWebSocket.onmessage = onWebSocketMessage;
+    }
+
+    function onWebSocketOpen(aEvent) {
+      console.log(aEvent.data);
+      mWebSocketStatus.innerHTML = 'connected';
+      if (mWebSocketReConnectTimerID) {
+        window.clearInterval(mWebSocketReConnectTimerID);
+        mWebSocketReConnectTimerID = 0;
+      }
+    }
+
+    function onWebSocketClose(aEvent) {
+      console.log(aEvent.data);
+      mWebSocketStatus.innerHTML = 'disconnected';
+      if (!mWebSocketReConnectTimerID) {
+        mWebSocketReConnectTimerID = window.setInterval(initWebSocket, 5000);
+      }
+    }
+
+    function onWebSocketError(aEvent) {
+      mWebSocketStatus.innerHTML = aEvent.data;
+    }
+
+    function onWebSocketMessage(aEvent) {
+      // server sends actual function names, which can directly be executed by the client
+      eval(aEvent.data);
+    }
+
+    function WebSocketSendSetRingColorHSV() {
+      mWebSocket.send('SetRingColorHSV('
+        + mRingColorRangeH.value + ','
+        + mRingColorRangeS.value + ','
+        + mRingColorRangeV.value + ')');
+    }
+
+    function initHtmlElements() {
+      mName.onchange = function() {
+        mWebSocket.send('SetName(' + mName.value + ')');
+      }
+      mOn.onchange = function() {
+        mWebSocket.send('SetOn(' + mOn.checked + ')');
+      }
+      mCenterBrightnessRange.onchange = function() {
+        mWebSocket.send('SetCenterBrightness(' + mCenterBrightnessRange.value + ')');
+      }
+      mRingColorRangeH.onchange = function() {
+        WebSocketSendSetRingColorHSV();
+      }
+      mRingColorRangeS.onchange = function() {
+        WebSocketSendSetRingColorHSV();
+      }
+      mRingColorRangeV.onchange = function() {
+        WebSocketSendSetRingColorHSV();
+      }
+    }
+
+    function ToHex(aValue) {
+      var vHex = Number(aValue).toString(16);
+      if (vHex.length < 2) vHex = '0' + vHex;
+      return vHex;
+    }    
+
+    function HSVtoRGB(aH, aS, aV) {
+      var vR = vG = vB = aV;
+      if (aS != 0) {
+        aH /= 42.501; // scale to 0..6
+        aS /= 255; // scale to 0..1
+        aV /= 255; // scale to 0..1
+        var vI = Math.floor(aH); // interval (region)
+        var vF = aH - vI; // factorial part of h
+        var vP = aV * (1 - aS           );
+        var vQ = aV * (1 - aS * (    vF));
+        var vT = aV * (1 - aS * (1 - vF));
+        switch (vI) {
+          case 0:  vR = aV; vG = vT; vB = vP; break;
+          case 1:  vR = vQ; vG = aV; vB = vP; break;
+          case 2:  vR = vP; vG = aV; vB = vT; break;
+          case 3:  vR = vP; vG = vQ; vB = aV; break;
+          case 4:  vR = vT; vG = vP; vB = aV; break;
+          default: vR = aV; vG = vP; vB = vQ; break; // case 5 or 6
+        }
+        vR = Math.round(255 * vR);
+        vG = Math.round(255 * vG);
+        vB = Math.round(255 * vB);
+      }
+      return '#' + ToHex(vR) + ToHex(vG) + ToHex(vB);
+    }
+
+    function UpdateName(aName) {
+      mName.value = aName;
+    }
+
+    function UpdateOn(aOn) {
+      mOnValue.innerHTML = aOn ? 'On' : 'Off';
+      mOn.checked = aOn;
+      mCenterBrightnessRange.disabled = !aOn;
+      mRingColorRangeH.disabled = !aOn;
+      mRingColorRangeS.disabled = !aOn;
+      mRingColorRangeV.disabled = !aOn;
+    }
+
+    function UpdateCenterBrightness(aBrightness) {
+      mCenterBrightnessValue.innerHTML = Math.round(100.0 * aBrightness) + '%';
+      mCenterBrightnessRange.value = aBrightness;
+      mCenterBrightnessRange.style.backgroundImage = 'linear-gradient(to right, #000 05%, #f90 95%)';
+    }
+
+    function UpdateRingColorHSV(aH, aS, aV) {
+      mRingColorValueHSV.innerHTML = aH + '/' + aS + '/' + aV;
+      mRingColorRangeH.value = aH;
+      mRingColorRangeS.value = aS;
+      mRingColorRangeV.value = aV;
+      mRingColorRangeH.style.backgroundImage = 'linear-gradient(to right, '
+        + HSVtoRGB(  0.0,aS,aV) + ' 5%, '
+        + HSVtoRGB( 43.5,aS,aV) + ', '
+        + HSVtoRGB( 85.0,aS,aV) + ', '
+        + HSVtoRGB(127.5,aS,aV) + ', '
+        + HSVtoRGB(170.0,aS,aV) + ', '
+        + HSVtoRGB(221.5,aS,aV) + ', '
+        + HSVtoRGB(255.0,aS,aV) + ' 95%)';
+      mRingColorRangeS.style.backgroundImage = 'linear-gradient(to right, '
+        + HSVtoRGB(aH,0,aV) + ' 5%, '
+        + HSVtoRGB(aH,255,aV) + ' 95%)';
+      mRingColorRangeV.style.backgroundImage = 'linear-gradient(to right, '
+        + HSVtoRGB(aH,aS,0) + ' 5%, '
+        + HSVtoRGB(aH,aS,255) + ' 95%)';
+    }
+
+  </script>
+</head>
+
+<body onload='javascript:initAll()'>
+  <div style="text-align:left;display:inline-block;min-width:340px;">
+  <table border='0' cellspacing='3' cellpadding='0'width='100%' class='selectnone'>
+
+    <tr><td>
+      <br>
+      <input id='mName' type='text' value='(na)' style='width:100%' class='r' maxlength='30'>
+    </td></tr>
+
+    <tr><td>
+      <br>Power: <span id='mOnValue'>(na)</span>
+    </td></tr>
+    <tr><td>
+      <label class='switch'><input id='mOn' type='checkbox'><span class='switch_slider round'></span></label>
+    </td></tr>
+
+    <tr><td>
+      <br>Center Brightness: <span id='mCenterBrightnessValue'>(na)</span>
+    </td></tr>
+    <tr><td>
+      <input id='mCenterBrightnessRange' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled>
+    </td></tr>
+
+    <tr><td>
+      <br>Ring Color: <span id='mRingColorValueHSV'>(na)</span>
+    </td></tr>
+    <tr><td>
+      <input id='mRingColorRangeH' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled>
+    </td></tr>
+    <tr><td>
+      <input id='mRingColorRangeS' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled>
+    </td></tr>
+    <tr><td>
+      <input id='mRingColorRangeV' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled>
+    </td></tr>
+
+    <tr><td>
+      <br><hr noshade>
+      Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
+      (c) 2019, <a href='ggGoofy.html'>Christoph Laimer</a>
+    </td></tr>
+
+  </table>
+  </div>
+</body>
+
+</html>
