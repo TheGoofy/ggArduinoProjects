@@ -181,14 +181,6 @@ void ConnectComponents()
     if (aConnected) UpdateDisplay();
   });
 
-  // switch off pwm during ws2811 serial communication (timing scrambled)
-  Periphery().mLEDRing.OnShowStart([&] () {
-    Periphery().mLEDCenter.Stop();
-  });
-  Periphery().mLEDRing.OnShowFinish([&] () {
-    Periphery().mLEDCenter.Resume();
-  });
-
   // switch back to normal after a while of no user inputs
   Timer().OnTimeOut([&] () {
     if (vMode != ggMode::eCenter) {

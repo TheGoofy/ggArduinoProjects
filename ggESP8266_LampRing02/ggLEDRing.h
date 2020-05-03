@@ -2,13 +2,14 @@
 #include "ggColor.h"
 
 
-template <int TPin, int TNumLEDs = 64>
+template <int TNumLEDs = 64>
 class ggLEDRing {
 
 public:
 
-  ggLEDRing()
-  : mLEDs(TNumLEDs, TPin, NEO_BGR + NEO_KHZ800),
+  ggLEDRing(int aPinA, int aPinB)
+  : mLEDsA(TNumLEDs, aPinA, NEO_BGR + NEO_KHZ800),
+    mLEDsB(TNumLEDs, aPinB, NEO_BGR + NEO_KHZ800),
     mFuncShowStart(nullptr),
     mFuncShowFinish(nullptr),
     mOn(false),
@@ -17,10 +18,8 @@ public:
 
   void Begin() {
     // Print(Serial);
-    mLEDs.begin();
-    // FastLED.setCorrection(CRGB(150, 255, 180)); // no cover (red and blue are dominant, need to be reduced)
-    // FastLED.setCorrection(CRGB(255, 190, 170)); // blue-greenish glass cover (blue and green are too dominant)
-    // FastLED.setBrightness(255);
+    mLEDsA.begin();
+    mLEDsB.begin();
     UpdateOutput();
   }
 
@@ -80,15 +79,18 @@ public:
     if ((aChannel != 2) && (vHSV.mV < 128)) vHSV.mV = 128;
     for (int vIndex = 0; vIndex < TNumLEDs; vIndex++) {
       vHSV.mChannels[aChannel] = 256 * (vIndex + 1) / TNumLEDs - 1;
-      mLEDs.setPixelColor((vIndex + 0 * TNumLEDs / 4) % TNumLEDs, ggColor::ToRGB(vHSV));
+      mLEDsA.setPixelColor((vIndex + 0 * TNumLEDs / 4) % TNumLEDs, ggColor::ToRGB(vHSV));
+      mLEDsB.setPixelColor((vIndex + 0 * TNumLEDs / 4) % TNumLEDs, ggColor::ToRGB(vHSV));
     }
     Show();
   }
 
   void DisplayProgress(float aProgress, const ggColor::cRGB& aColor, const ggColor::cRGB& aBackground) {
     int vProgress = TNumLEDs * aProgress + 0.5f;
-    mLEDs.fill(aColor, 0, vProgress);
-    mLEDs.fill(aBackground, vProgress, TNumLEDs - vProgress);
+    mLEDsA.fill(aColor, 0, vProgress);
+    mLEDsA.fill(aBackground, vProgress, TNumLEDs - vProgress);
+    mLEDsB.fill(aColor, 0, vProgress);
+    mLEDsB.fill(aBackground, vProgress, TNumLEDs - vProgress);
     Show();
   }
 
@@ -112,8 +114,8 @@ private:
   void Print(TStream& aStream) {
     aStream.printf("%s - mOn=%d mHSV=%d/%d/%d\n", __PRETTY_FUNCTION__, mOn, mHSV.Get().mH, mHSV.Get().mS, mHSV.Get().mV);
     for (int vIndex = 0; vIndex < TNumLEDs; vIndex++) {
-      ggColor::cRGB vRGB(mLEDs.getPixelColor(vIndex));
-      aStream.printf("mLEDs[%d]=%d/%d/%d ", vIndex, vRGB.mR, vRGB.mG, vRGB.mB);
+      ggColor::cRGB vRGB(mLEDsA.getPixelColor(vIndex));
+      aStream.printf("mLEDsA[%d]=%d/%d/%d ", vIndex, vRGB.mR, vRGB.mG, vRGB.mB);
       if (vIndex % 6 == 5) aStream.println();
     }
     aStream.flush();
@@ -121,23 +123,27 @@ private:
    
   void Show() {
     if (mFuncShowStart != nullptr) mFuncShowStart();
-    mLEDs.show();
+    mLEDsA.show();
+    mLEDsB.show();
     if (mFuncShowFinish != nullptr) mFuncShowFinish();
   }
 
   void UpdateOutput() {
     // Print(Serial);
     if (GetOn()) {
-      mLEDs.fill(ggColor::ToRGB(mHSV.Get()));
+      mLEDsA.fill(ggColor::ToRGB(mHSV.Get()));
+      mLEDsB.fill(ggColor::ToRGB(mHSV.Get()));
     }
     else {
-      mLEDs.fill(ggColor::cRGB::Black());
+      mLEDsA.fill(ggColor::cRGB::Black());
+      mLEDsB.fill(ggColor::cRGB::Black());
     }
     Show();
   }
 
   // basic setup
-  Adafruit_NeoPixel mLEDs;
+  Adafruit_NeoPixel mLEDsA;
+  Adafruit_NeoPixel mLEDsB;
   tFunc mFuncShowStart;
   tFunc mFuncShowFinish;
   bool mOn;

@@ -10,8 +10,8 @@
 #define M_PIN_BUTTON 3
 #define M_PIN_ENCODER_A 12
 #define M_PIN_ENCODER_B 13
-#define M_PIN_LED1_DATA 0
-#define M_PIN_LED2_DATA 2
+#define M_PIN_LED_A_DATA 0
+#define M_PIN_LED_B_DATA 2
 #define M_PIN_STATUS_LED 1 // onboard
 
 struct ggPeriphery {
@@ -21,15 +21,15 @@ struct ggPeriphery {
   ggButton mButton;
   ggRotaryEncoder mEncoder;
   ggLEDCenter mLEDCenter;
-  ggLEDRing<M_PIN_LED1_DATA, 64> mLEDRing;
+  ggLEDRing<64> mLEDRing;
   ggStatusLED mStatusLED;
   ggDisplay mDisplay;
 
   ggPeriphery()
   : mButton(M_PIN_BUTTON, true, true), // button, inverted (input signal low if pressed)
     mEncoder(M_PIN_ENCODER_A, M_PIN_ENCODER_B), // rotary encoder
-    mLEDRing(),
-    mLEDCenter(),
+    mLEDRing(M_PIN_LED_A_DATA, M_PIN_LED_B_DATA),
+    mLEDCenter(), // uses HW I2C on pins 4 and 5
     mStatusLED(M_PIN_STATUS_LED, true), // status led, inverted
     mDisplay() // uses HW I2C on pins 4 and 5
   {
