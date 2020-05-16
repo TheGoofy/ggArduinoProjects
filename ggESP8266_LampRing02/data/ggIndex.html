@@ -2,25 +2,28 @@
 <html>
 
 <head>
+  <title>ESP8266 Lamp Home</title>
   <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
   <meta http-equiv='Content-Style-Type' content='text/css'/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-  <title>ESP8266 Lamp</title>
+  <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
   <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
   <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
   <script language='javascript' type='text/javascript'>
 
-    var mWebSocket;
+    var mWebSocket = null;
+    var mWebSocketServer = window.location.hostname;
     var mWebSocketReConnectTimerID = 0;
 
-    function initAll() {
-      initHtmlElements();
-      initWebSocket();
+    function InitAll() {
+      InitHtmlElements();
+      InitWebSocket();
     }
   
-    function initWebSocket() {
-      // init web socket client
-      mWebSocket = new WebSocket('ws://' + window.location.hostname + ':81/', ['arduino']);
+    function InitWebSocket() {
+      if (mWebSocketServer == '') {
+        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.54");
+      }
+      mWebSocket = new WebSocket('ws://' + mWebSocketServer +':81/', ['arduino']);
       mWebSocket.onopen = onWebSocketOpen;
       mWebSocket.onclose = onWebSocketClose;
       mWebSocket.onerror = onWebSocketError;
@@ -28,7 +31,6 @@
     }
 
     function onWebSocketOpen(aEvent) {
-      console.log(aEvent.data);
       mWebSocketStatus.innerHTML = 'connected';
       if (mWebSocketReConnectTimerID) {
         window.clearInterval(mWebSocketReConnectTimerID);
@@ -37,10 +39,9 @@
     }
 
     function onWebSocketClose(aEvent) {
-      console.log(aEvent.data);
       mWebSocketStatus.innerHTML = 'disconnected';
       if (!mWebSocketReConnectTimerID) {
-        mWebSocketReConnectTimerID = window.setInterval(initWebSocket, 5000);
+        mWebSocketReConnectTimerID = window.setInterval(InitWebSocket, 5000);
       }
     }
 
@@ -49,8 +50,13 @@
     }
 
     function onWebSocketMessage(aEvent) {
-      // server sends actual function names, which can directly be executed by the client
-      eval(aEvent.data);
+      try {
+        // server sends actual function names, which can directly be executed by the client
+        eval(aEvent.data);
+      }
+      catch (vError) {
+        console.log('unable to evaluate: ' + aEvent.data);
+      }
     }
 
     function WebSocketSendSetRingColorHSV() {
@@ -60,7 +66,7 @@
         + mRingColorRangeV.value + ')');
     }
 
-    function initHtmlElements() {
+    function InitHtmlElements() {
       mName.onchange = function() {
         mWebSocket.send('SetName(' + mName.value + ')');
       }
@@ -156,49 +162,44 @@
   </script>
 </head>
 
-<body onload='javascript:initAll()'>
-  <div style="text-align:left;display:inline-block;min-width:340px;">
-  <table border='0' cellspacing='3' cellpadding='0'width='100%' class='selectnone'>
+<body onload='javascript:InitAll()'>
+  <div class='cMainBlockDiv'>
 
-    <tr><td>
-      <br>
-      <input id='mName' type='text' value='(na)' style='width:100%' class='r' maxlength='30'>
-    </td></tr>
+    <style>
+      #mName { width: 97.5%; margin-top: 10px; margin-bottom: 10px; }
+    </style>  
+    <input id='mName' type='text' value='(na)' style='width:100%' class='cRoundedCentered' maxlength='30'>
 
-    <tr><td>
-      <br>Power: <span id='mOnValue'>(na)</span>
-    </td></tr>
-    <tr><td>
-      <label class='switch'><input id='mOn' type='checkbox'><span class='switch_slider round'></span></label>
-    </td></tr>
+    <style>
+      .cTitleDiv { text-align: center; }
+    </style>
 
-    <tr><td>
-      <br>Center Brightness: <span id='mCenterBrightnessValue'>(na)</span>
-    </td></tr>
-    <tr><td>
-      <input id='mCenterBrightnessRange' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled>
-    </td></tr>
+    <div class='cTitleDiv'>Power: <span id='mOnValue'>(na)</span></div>
+    <label class='switch'><input id='mOn' type='checkbox'><span class='switch_slider round'></span></label><br>
 
-    <tr><td>
-      <br>Ring Color: <span id='mRingColorValueHSV'>(na)</span>
-    </td></tr>
-    <tr><td>
-      <input id='mRingColorRangeH' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled>
-    </td></tr>
-    <tr><td>
-      <input id='mRingColorRangeS' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled>
-    </td></tr>
-    <tr><td>
-      <input id='mRingColorRangeV' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled>
-    </td></tr>
+    <br>
 
-    <tr><td>
-      <br><hr noshade>
-      Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
-      (c) 2019, <a href='ggGoofy.html'>Christoph Laimer</a>
-    </td></tr>
+    <div class='cTitleDiv'>Center Brightness: <span id='mCenterBrightnessValue'>(na)</span></div>
+    <input id='mCenterBrightnessRange' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
 
-  </table>
+    <br>
+
+    <div class='cTitleDiv'>Ring Color: <span id='mRingColorValueHSV'>(na)</span></div>
+    <input id='mRingColorRangeH' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled><br>
+    <input id='mRingColorRangeS' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled><br>
+    <input id='mRingColorRangeV' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled><br>
+
+    <br>
+    <hr noshade>
+
+    Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
+    <hr noshade>
+    <a href='/'>[home]</a>
+    <a href='/files'>[files]</a>
+    <a href='/debug'>[debug]</a>
+    <br>
+    (c) 2020, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
+
   </div>
 </body>
 

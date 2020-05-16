@@ -1,5 +1,6 @@
 #pragma once
 
+#include "ggNumerics.h"
 
 namespace ggColor {
 

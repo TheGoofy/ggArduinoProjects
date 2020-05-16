@@ -5,17 +5,42 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
-#include "ggPeriphery.h"
-#include "ggTimer.h"
-#include "ggWiFiConnection.h"
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
-#include "ggDebug.h"
+#include "ggWiFiConnection.h"
+#include "ggPeriphery.h"
 #include "ggValueEEPromString.h"
+#include "ggStreams.h"
+#include "ggTimer.h"
 
 
+// unique identification name
 const String mHostName = "ESP-Lamp-" + String(ESP.getChipId(), HEX);
 
+
+// file system to use (for webserver and datalogger)
+FS* mFileSystem = &SPIFFS; // &LittleFS or &SPIFFS;
+
+
+// ports
+const int mWebServerPort = 80;
+const int mWebSocketsPort = 81;
+
+
+WiFiManager& WiFiMgr()
+{
+  static WiFiManager* vWifiManager = nullptr;
+  if (vWifiManager == nullptr) vWifiManager = new WiFiManager();
+  return *vWifiManager;
+}
+
+
+ggWebSockets& WebSockets()
+{
+  static ggWebSockets* vWebSockets = nullptr;
+  if (vWebSockets == nullptr) vWebSockets = new ggWebSockets(mWebSocketsPort);
+  return *vWebSockets;
+}
 
 ggPeriphery& Periphery()
 {
@@ -33,14 +58,6 @@ ggTimer& Timer()
 }
 
 
-WiFiManager& WiFiMgr()
-{
-  static WiFiManager* vWifiManager = nullptr;
-  if (vWifiManager == nullptr) vWifiManager = new WiFiManager();
-  return *vWifiManager;
-}
-
-
 ggWiFiConnection& WiFiConnection()
 {
   static ggWiFiConnection* vWiFiConnection = nullptr;
@@ -52,16 +69,8 @@ ggWiFiConnection& WiFiConnection()
 ggWebServer& WebServer()
 {
   static ggWebServer* vWebServer = nullptr;
-  if (vWebServer == nullptr) vWebServer = new ggWebServer(80); // port 80
+  if (vWebServer == nullptr) vWebServer = new ggWebServer(mWebServerPort, mFileSystem);
   return *vWebServer;
-}
-
-
-ggWebSockets& WebSockets()
-{
-  static ggWebSockets* vWebSockets = nullptr;
-  if (vWebSockets == nullptr) vWebSockets = new ggWebSockets(81); // port 81
-  return *vWebSockets;
 }
 
 
@@ -73,6 +82,16 @@ void UpdateDisplay()
   Periphery().mDisplay.Clear();
   Periphery().mDisplay.SetTitle(mName.Get());
   Periphery().mDisplay.SetText(0, WiFi.localIP().toString());
+}
+
+
+void ResetAll()
+{
+  Periphery().mDisplay.SetText(0, String("Reset all..."));
+  Periphery().mDisplay.Run(); // main "loop" is not running
+  mName.Set(mHostName);
+  Periphery().ResetSettings();
+  WiFiMgr().resetSettings();
 }
 
 
@@ -190,14 +209,10 @@ void ConnectComponents()
   });
 
   // wifi events
-  WiFiConnection().OnConnect([&] () {
-    ggDebug vDebug("WiFiConnection().OnConnect()");
-    Periphery().mStatusLED.SetWarning(false);
-    UpdateDisplay();
-  });
-  WiFiConnection().OnDisconnect([&] () {
-    ggDebug vDebug("WiFiConnection().OnDisconnect()");
-    Periphery().mStatusLED.SetWarning(true);
+  WiFiConnection().OnConnection([&] (bool aConnected) {
+    ggDebug vDebug("WiFiConnection().OnConnection()");
+    vDebug.PrintF("aConnected = %d\n", aConnected);
+    Periphery().mStatusLED.SetWarning(!aConnected);
     UpdateDisplay();
   });
 
@@ -234,6 +249,36 @@ void ConnectComponents()
     Periphery().mLEDRing.SetColor(ggColor::cHSV(aH, aS, aV));
     WebSockets().UpdateRingColorHSV(aH, aS, aV);
   });
+  
+  // web server
+  WebServer().OnDebugStream([] (Stream& aStream) {
+    ggStreams vStreams;
+    vStreams.push_back(&aStream);
+    vStreams.push_back(&Serial);
+    ggDebug::SetStream(vStreams);
+    ggDebug vDebug("mWebServer.OnDebugStream(...)");
+    vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
+    Periphery().PrintDebug("mPeriphery");
+    ggDebug::SetStream(Serial);
+  });
+  WebServer().OnResetAll([] () {
+    ResetAll();
+    delay(1000);
+    ESP.restart();
+  });
+  WebServer().OnResetWifi([] () {
+    Periphery().mDisplay.SetText(0, String("Reset WiFi..."));
+    Periphery().mDisplay.Run(); // main "loop" is not running
+    WiFiMgr().resetSettings();
+    delay(1000);
+    ESP.restart();
+  });
+  WebServer().OnReboot([] () {
+    Periphery().mDisplay.SetText(0, String("Rebooting..."));
+    Periphery().mDisplay.Run(); // main "loop" is not running
+    delay(1000);
+    ESP.restart();
+  });
 
   // OTA status display
   static ggColor::cRGB vColorProgress(200,0,150);
@@ -257,17 +302,40 @@ void ConnectComponents()
 }
 
 
+void Run()
+{
+  Periphery().Run();
+  WebServer().Run();
+  WebSockets().Run();
+  WiFiConnection().Run();
+  MDNS.update();
+  ArduinoOTA.handle();
+  yield();
+}
+
+
 void setup()
 {
-  // setup serial communication (for debugging)
+  // serial communication (for debugging)
   Serial.begin(115200);
   Serial.println();
+
   GG_DEBUG();
+
+  // initialize eeprom handler
+  ggValueEEProm::Begin();
+  vDebug.PrintF("Lamp Name: %s\n", mName.Get().c_str());
+
+  // start the file system
+  mFileSystem->begin();
+
+  // early init display (for debugging- or user-info)
+  Periphery().mDisplay.Begin();
 
   // connect to wifi
   ConnectWifiManager();
   WiFiMgr().setDebugOutput(false);
-  WiFiMgr().setConfigPortalTimeout(60); // seconds
+  WiFiMgr().setConfigPortalTimeout(60); // 1 minute
   WiFiMgr().autoConnect(mHostName.c_str());
   vDebug.PrintF("Connected to: %s\n", WiFi.SSID().c_str());
   vDebug.PrintF("IP address: %s\n", WiFi.localIP().toString().c_str());
@@ -276,10 +344,6 @@ void setup()
   // connect inputs, outputs, socket-events, ...
   ConnectComponents();
 
-  // startup eeprom utility class
-  ggValueEEProm::Begin();
-  vDebug.PrintF("Lamp Name: %s\n", mName.Get().c_str());
-
   // configure and start web-server
   WebServer().Begin();
   vDebug.PrintF("Web server started\n");
@@ -287,11 +351,11 @@ void setup()
   // configure and start web-sockets
   WebSockets().Begin();
   vDebug.PrintF("Web sockets started\n");
-  
+
   // start mdns
   MDNS.begin(mHostName.c_str());
-  MDNS.addService("http", "tcp", 80);
-  MDNS.addService("ws", "tcp", 81);
+  MDNS.addService("http", "tcp", mWebServerPort);
+  MDNS.addService("ws", "tcp", mWebSocketsPort);
   vDebug.PrintF("MDNS responder started\n");
 
   // over the air update
@@ -302,19 +366,13 @@ void setup()
   // make sure all status and debug messages are sent before communication gets
   // interrupted, just in case hardware pins are needed for some different use.
   Serial.flush();
-  
-  // initialize connected hardware
+
+  // setup connected hardware
   Periphery().Begin();
 }
 
 
 void loop()
 {
-  Periphery().Run();
-  WebServer().Run();
-  WebSockets().Run();
-  WiFiConnection().Run();
-  ArduinoOTA.handle();
-  MDNS.update();
-  yield();
+  Run();
 }

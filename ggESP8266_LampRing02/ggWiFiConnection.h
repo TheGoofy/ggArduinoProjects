@@ -6,20 +6,15 @@ class ggWiFiConnection {
 
 public:
 
-  typedef std::function<void()> tFunc;
+  typedef std::function<void(bool aConnected)> tConnectionFunc;
 
   ggWiFiConnection()
   : mConnected(false),
-    mConnectFunc(nullptr),
-    mDisconnectFunc(nullptr) {
+    mConnectionFunc(nullptr) {
   }
 
-  void OnConnect(tFunc aConnectFunc) {
-    mConnectFunc = aConnectFunc;
-  }
-
-  void OnDisconnect(tFunc aDisconnectFunc) {
-    mDisconnectFunc = aDisconnectFunc;
+  void OnConnection(tConnectionFunc aConnectionFunc) {
+    mConnectionFunc = aConnectionFunc;
   }
 
   void Begin() {
@@ -31,8 +26,9 @@ public:
     bool vConnected = (WiFi.status() == WL_CONNECTED);
     if (mConnected != vConnected) {
       mConnected = vConnected;
-      if (mConnected && mConnectFunc != nullptr) mConnectFunc();
-      if (!mConnected && mDisconnectFunc != nullptr) mDisconnectFunc();
+      if (mConnectionFunc != nullptr) {
+        mConnectionFunc(mConnected);
+      }
     }
   }
 
@@ -47,7 +43,6 @@ private:
 
   bool mConnected;
 
-  tFunc mConnectFunc;
-  tFunc mDisconnectFunc;
+  tConnectionFunc mConnectionFunc;
 
 };

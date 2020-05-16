@@ -25,7 +25,6 @@ public:
   }
 
   void Begin() {
-    Wire.begin(4, 5);
     Connect();
   }
 

@@ -23,6 +23,10 @@ public:
     UpdateOutput();
   }
 
+  void ResetSettings() {
+    SetColor(ggColor::cHSV(10,255,100));
+  }
+
   bool GetOn() const {
     return mOn;
   }
