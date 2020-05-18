@@ -19,7 +19,7 @@ public:
   void Begin() {
     mModulePWM.begin();
     mModulePWM.setOscillatorFrequency(28000000);  // The int.osc. is closer to 27MHz
-    mModulePWM.setPWMFreq(800);  // 200 worls "silent", 1600 is the maximum PWM frequency
+    mModulePWM.setPWMFreq(300);  // 200 worls "silent", 1600 is the maximum PWM frequency
     for (int vChannel = 0; vChannel < 16; vChannel++) AnalogWrite(vChannel, 0);
     UpdateOutput();
   }
