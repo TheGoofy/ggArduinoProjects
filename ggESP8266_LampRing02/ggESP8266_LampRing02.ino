@@ -5,6 +5,8 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
+// #define M_PRESERVE_SERIAL_PINS_FOR_DEBUGGING
+
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
 #include "ggWiFiConnection.h"
@@ -233,6 +235,8 @@ void ConnectComponents()
     vDebug.PrintF("aClientID = %d\n", aClientID);
   });
   WebSockets().OnSetName([&] (const String& aName) {
+    ggDebug vDebug("WebSockets().OnSetName(...)");
+    vDebug.PrintF("aName = %s\n", aName.c_str());
     mName.Set(aName);
     WebSockets().UpdateName(mName.Get());
     Periphery().mDisplay.SetTitle(aName);
@@ -322,10 +326,6 @@ void setup()
 
   GG_DEBUG();
 
-  // initialize eeprom handler
-  ggValueEEProm::Begin();
-  vDebug.PrintF("Lamp Name: %s\n", mName.Get().c_str());
-
   // start the file system
   mFileSystem->begin();
 
@@ -343,6 +343,10 @@ void setup()
 
   // connect inputs, outputs, socket-events, ...
   ConnectComponents();
+
+  // initialize eeprom handler
+  ggValueEEProm::Begin();
+  vDebug.PrintF("Lamp Name: %s\n", mName.Get().c_str());
 
   // configure and start web-server
   WebServer().Begin();
