@@ -20,14 +20,27 @@
 #define M_PIN_GPIO_ADC0     A0 // analog input (inefficient for digital IO)
 
 // pins for periphery
-#define M_PIN_STATUS_LED M_PIN_GPIO_01_TX
-#define M_PIN_BUTTON     M_PIN_GPIO_03_RX
-#define M_PIN_ENCODER_A  M_PIN_GPIO_12
-#define M_PIN_ENCODER_B  M_PIN_GPIO_13
-#define M_PIN_LED_A_DATA M_PIN_GPIO_00_FLASH
-#define M_PIN_LED_B_DATA M_PIN_GPIO_02_BOOT
-#define M_PIN_I2C_SDA    M_PIN_GPIO_04_SDA
-#define M_PIN_I2C_SCL    M_PIN_GPIO_05_SCL
+#ifndef M_PRESERVE_SERIAL_PINS_FOR_DEBUGGING
+  #define M_PIN_STATUS_LED M_PIN_GPIO_01_TX
+  #define M_PIN_BUTTON     M_PIN_GPIO_03_RX
+  #define M_PIN_ENCODER_A  M_PIN_GPIO_12
+  #define M_PIN_ENCODER_B  M_PIN_GPIO_13
+  #define M_PIN_SWITCH_PSU M_PIN_GPIO_14
+  #define M_PIN_LED_A_DATA M_PIN_GPIO_00_FLASH
+  #define M_PIN_LED_B_DATA M_PIN_GPIO_02_ENBOOT
+  #define M_PIN_I2C_SDA    M_PIN_GPIO_04_SDA
+  #define M_PIN_I2C_SCL    M_PIN_GPIO_05_SCL
+#else
+  #define M_PIN_STATUS_LED M_PIN_GPIO_ADC0 // status-led will not work ...
+  #define M_PIN_BUTTON     M_PIN_GPIO_02_ENBOOT // conflict with led-strip B ...
+  #define M_PIN_ENCODER_A  M_PIN_GPIO_12
+  #define M_PIN_ENCODER_B  M_PIN_GPIO_13
+  #define M_PIN_SWITCH_PSU M_PIN_GPIO_14
+  #define M_PIN_LED_A_DATA M_PIN_GPIO_00_FLASH
+  #define M_PIN_LED_B_DATA M_PIN_GPIO_02_ENBOOT
+  #define M_PIN_I2C_SDA    M_PIN_GPIO_04_SDA
+  #define M_PIN_I2C_SCL    M_PIN_GPIO_05_SCL
+#endif
 
 struct ggPeriphery {
 
