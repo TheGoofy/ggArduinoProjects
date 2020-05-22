@@ -22,6 +22,7 @@ public:
     mConnected(false),
     mUpdate(false),
     mCursorY(0) {
+    mLCD.configureBacklightPin(3);
   }
 
   void Begin() {
@@ -42,8 +43,8 @@ public:
   };
 
   void SetOn(bool aOn) {
-    if (aOn) mLCD.backlight();
-    else mLCD.noBacklight();
+    mLCD.setBacklight(aOn);
+    aOn ? mLCD.display() : mLCD.noDisplay();
   }
 
   void SetTitle(const String& aTitle, cAlign::tEnum aAlign = cAlign::eLeft) {
@@ -136,8 +137,7 @@ private:
     else {
       mConnected = vConnected;
       if (mConnected) {
-        mLCD.configureBacklightPin(3);
-        mLCD.backlight();
+        mLCD.setBacklight(1);
         mLCD.begin(GetWidth(), 2);
         if (mConnectFunc != nullptr) {
           mConnectFunc(mConnected);
