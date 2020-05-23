@@ -61,18 +61,25 @@ public:
 
 private:
 
+#define CHANNEL_R_WHITE_COLD  0
+#define CHANNEL_R_ORANGE      2
+#define CHANNEL_R_WHITE_WARM  4
+#define CHANNEL_L_WHITE_COLD  6
+#define CHANNEL_L_ORANGE      8
+#define CHANNEL_L_WHITE_WARM 10
+
   void AnalogWrite(int aChannel, int aValue) {
     mModulePWM.setPin(aChannel, aValue);
   }
 
   void UpdateOutput() {
     mOutput = GetOn() ? mLogTable.Get(mBrightness.Get()) : 0;
-    AnalogWrite( 0, mOutput);
-    AnalogWrite( 2, mOutput);
-    AnalogWrite( 4, mOutput);
-    AnalogWrite( 6, mOutput);
-    AnalogWrite( 8, mOutput);
-    AnalogWrite(10, mOutput);
+    AnalogWrite(CHANNEL_L_WHITE_COLD, mOutput / 2);
+    AnalogWrite(CHANNEL_L_WHITE_WARM, mOutput);
+    AnalogWrite(CHANNEL_L_ORANGE, 0);
+    AnalogWrite(CHANNEL_R_WHITE_COLD, mOutput);
+    AnalogWrite(CHANNEL_R_WHITE_WARM, mOutput / 2);
+    AnalogWrite(CHANNEL_R_ORANGE, 0);
   }
 
   // basic setup
