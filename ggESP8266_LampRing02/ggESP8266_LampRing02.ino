@@ -123,8 +123,6 @@ struct ggMode {
 void ConnectWifiManager()
 {
   WiFiMgr().setAPCallback([] (WiFiManager* aWiFiManager) {
-    Periphery().mStatusLED.Begin();
-    Periphery().mStatusLED.SetWarning(true);
     Periphery().mDisplay.Begin();
     Periphery().mDisplay.SetTitle(WiFiMgr().getConfigPortalSSID());
     Periphery().mDisplay.SetText(0, "WiFi config...");
@@ -133,7 +131,6 @@ void ConnectWifiManager()
   WiFiMgr().setSaveConfigCallback([] () {
     Periphery().mDisplay.SetText(0, "Config saved!");
     Periphery().mDisplay.Run(); // main "loop" is not running
-    Periphery().mStatusLED.SetWarning(false);
   });
 }
 
@@ -214,7 +211,6 @@ void ConnectComponents()
   WiFiConnection().OnConnection([&] (bool aConnected) {
     ggDebug vDebug("WiFiConnection().OnConnection()");
     vDebug.PrintF("aConnected = %d\n", aConnected);
-    Periphery().mStatusLED.SetWarning(!aConnected);
     UpdateDisplay();
   });
 

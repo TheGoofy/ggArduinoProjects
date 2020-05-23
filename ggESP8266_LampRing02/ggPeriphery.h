@@ -4,17 +4,17 @@
 #include "ggRotaryEncoder.h"
 #include "ggLEDCenter.h"
 #include "ggLEDRing.h"
-#include "ggStatusLED.h"
 #include "ggDisplay.h"
 #include "ggTimer.h"
+#include "ggOutput.h"
 
-// general pin description for ESP-12F
+// verbose pin description for ESP-12F
 #define M_PIN_GPIO_00_FLASH  0 // if low at boot, ESP will be in programming mode (boot fails if low)
 #define M_PIN_GPIO_01_TX     1 // usually used for serial communication (terminal), debug at boot (boot fails if low)
 #define M_PIN_GPIO_02_ENBOOT 2 // must be pulled high at boot (boot fails if low)
 #define M_PIN_GPIO_03_RX     3 // usually used for serial communication (terminal)
-#define M_PIN_GPIO_04_SDA    4 // fast digital IO (no side-effects)
-#define M_PIN_GPIO_05_SCL    5 // fast digital IO (no side-effects)
+#define M_PIN_GPIO_04_SDA    4 // fast digital IO (no side-effects), recommended for i2c
+#define M_PIN_GPIO_05_SCL    5 // fast digital IO (no side-effects), recommended for i2c
 #define M_PIN_GPIO_12       12 // fast digital IO (no side-effects)
 #define M_PIN_GPIO_13       13 // fast digital IO (no side-effects)
 #define M_PIN_GPIO_14       14 // fast digital IO (no side-effects)
@@ -22,7 +22,6 @@
 
 // pins for periphery
 #ifndef M_PRESERVE_SERIAL_PINS_FOR_DEBUGGING
-  #define M_PIN_STATUS_LED M_PIN_GPIO_01_TX
   #define M_PIN_BUTTON     M_PIN_GPIO_03_RX
   #define M_PIN_ENCODER_A  M_PIN_GPIO_12
   #define M_PIN_ENCODER_B  M_PIN_GPIO_13
@@ -32,8 +31,7 @@
   #define M_PIN_I2C_SDA    M_PIN_GPIO_04_SDA
   #define M_PIN_I2C_SCL    M_PIN_GPIO_05_SCL
 #else
-  #define M_PIN_STATUS_LED M_PIN_GPIO_ADC0 // status-led will not work ...
-  #define M_PIN_BUTTON     M_PIN_GPIO_02_ENBOOT // conflict with led-strip B ...
+  #define M_PIN_BUTTON     M_PIN_GPIO_ADC0 // maybe works slowly ...
   #define M_PIN_ENCODER_A  M_PIN_GPIO_12
   #define M_PIN_ENCODER_B  M_PIN_GPIO_13
   #define M_PIN_ENABLE_PSU M_PIN_GPIO_14
@@ -52,7 +50,6 @@ struct ggPeriphery {
   ggOutput mEnablePSU;
   ggLEDCenter mLEDCenter;
   ggLEDRing<64> mLEDRing;
-  ggStatusLED mStatusLED;
   ggDisplay mDisplay;
 
   ggPeriphery()
@@ -61,7 +58,6 @@ struct ggPeriphery {
     mEnablePSU(M_PIN_ENABLE_PSU, false), // PSU on/off, non-inverted
     mLEDRing(M_PIN_LED_A_DATA, M_PIN_LED_B_DATA),
     mLEDCenter(), // uses HW I2C
-    mStatusLED(M_PIN_STATUS_LED, true), // status led, inverted
     mDisplay(), // uses HW I2C
     mTimerPSU(2.0f) // 1 sec (for delay after power-on)
   {
@@ -77,7 +73,6 @@ struct ggPeriphery {
     mEnablePSU.Begin();
     mLEDRing.Begin();
     mLEDCenter.Begin();
-    mStatusLED.Begin();
     mDisplay.Begin();
     if (mOn.Get()) SetOn();
   }
@@ -132,7 +127,6 @@ struct ggPeriphery {
     // mEncoder.PrintDebug("mEncoder");
     // mLEDCenter.PrintDebug("mLEDCenter");
     // mLEDRing.PrintDebug("mLEDRing");
-    mStatusLED.PrintDebug("mStatusLED");
     mDisplay.PrintDebug("mDisplay");
   }
 
