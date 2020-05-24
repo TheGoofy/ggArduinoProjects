@@ -52,7 +52,7 @@ ggPeriphery& Periphery()
 }
 
 
-ggTimer& Timer()
+ggTimer& EditTimer()
 {
   static ggTimer* vTimer = nullptr;
   if (vTimer == nullptr) vTimer = new ggTimer(10.0f); // timeout in 10 seconds
@@ -87,43 +87,111 @@ void UpdateDisplay()
 }
 
 
-void ResetAll()
-{
-  Periphery().mDisplay.SetText(0, String("Reset all..."));
-  Periphery().mDisplay.Run(); // main "loop" is not running
-  mName.Set(mHostName);
-  Periphery().ResetSettings();
-  WiFiMgr().resetSettings();
-}
-
-
-struct ggMode {
+struct ggState {
 
   typedef enum tEnum {
-    eCenter,
-    eRingChannel0,
-    eRingChannel1,
-    eRingChannel2
+    eOff,
+    eOn,
+    eEditChannel0,
+    eEditChannel1,
+    eEditChannel2,
+    eEditReset,
+    eResetWiFi
   };
 
-  static tEnum Toggle(tEnum aMode) {
-    switch (aMode) {
-      case eCenter: return eRingChannel0;
-      case eRingChannel0: return eRingChannel1;
-      case eRingChannel1: return eRingChannel2;
-      case eRingChannel2: return eCenter;
-      default: return eCenter;
+  static int GetChannelIndex(tEnum aState) {
+    switch (aState) {
+      case eEditChannel0: return 0;
+      case eEditChannel1: return 1;
+      case eEditChannel2: return 2;
+      default: return 0;
     }
   }
 
 };
 
 
+struct ggEvent {
+  typedef enum tEnum {
+    eClick,
+    eClickLong,
+    eTimeout
+  };
+};
+
+
+class ggLampState {
+
+public:
+
+  ggState::tEnum mState;
+  
+  typedef std::function<void (ggState::tEnum aState)> tStateFunc;
+  tStateFunc mStateFunc;
+  
+  ggLampState()
+  : mState(ggState::eOff),
+    mStateFunc(nullptr) {
+  }
+
+  ggState::tEnum GetState() const {
+    return mState;
+  }
+
+  void SetState(ggState::tEnum aState) {
+    if (mState != aState) {
+      mState = aState;
+      if (mStateFunc) mStateFunc(mState);
+    }
+  }
+  
+  void OnState(tStateFunc aStateFunc) {
+    mStateFunc = aStateFunc;
+  }
+
+  void HandleEvent(ggEvent::tEnum aEvent) {
+    switch (mState) {
+      case ggState::eOff:
+        if (aEvent == ggEvent::eClick) SetState(ggState::eOn);
+        break;
+      case ggState::eOn:
+        if (aEvent == ggEvent::eClick) SetState(ggState::eOff);
+        if (aEvent == ggEvent::eClickLong) SetState(ggState::eEditChannel0);
+        break;
+      case ggState::eEditChannel0:
+        if (aEvent == ggEvent::eClick) SetState(ggState::eEditChannel1);
+        if (aEvent == ggEvent::eTimeout) SetState(ggState::eOn);
+        break;
+      case ggState::eEditChannel1:
+        if (aEvent == ggEvent::eClick) SetState(ggState::eEditChannel2);
+        if (aEvent == ggEvent::eTimeout) SetState(ggState::eOn);
+        break;
+      case ggState::eEditChannel2:
+        if (aEvent == ggEvent::eClick) SetState(ggState::eEditReset);
+        if (aEvent == ggEvent::eTimeout) SetState(ggState::eOn);
+        break;
+      case ggState::eEditReset:
+        if (aEvent == ggEvent::eClick) SetState(ggState::eEditChannel0);
+        if (aEvent == ggEvent::eClickLong) SetState(ggState::eResetWiFi); // potentially this will reboot the system ...
+        if (aEvent == ggEvent::eTimeout) SetState(ggState::eOn);
+        break;
+      case ggState::eResetWiFi:
+        if (aEvent == ggEvent::eTimeout) SetState(ggState::eOn);
+        break;
+      default:
+        break;
+    }
+  }
+};
+
+
+ggLampState mLampState;
+
+
 // wifimanager may be connected before any other comonent (in order to indicate AP-mode)
 void ConnectWifiManager()
 {
   WiFiMgr().setAPCallback([] (WiFiManager* aWiFiManager) {
-    Periphery().mDisplay.Begin();
     Periphery().mDisplay.SetTitle(WiFiMgr().getConfigPortalSSID());
     Periphery().mDisplay.SetText(0, "WiFi config...");
     Periphery().mDisplay.Run(); // main "loop" is not running
@@ -138,59 +206,81 @@ void ConnectWifiManager()
 void ConnectComponents()
 {
   // mode
-  static ggMode::tEnum vMode = ggMode::eCenter;
-  static bool vIgnoreNextReleasedEvent = false;
+  mLampState.OnState([&] (ggState::tEnum aState) {
+    switch (aState) {
+      case ggState::eOff:
+        Periphery().SetOff();
+        WebSockets().UpdateOn(Periphery().GetOn());
+        break;
+      case ggState::eOn:
+        Periphery().SetOn();
+        Periphery().mDisplay.SetText(0, WiFi.localIP().toString());
+        Periphery().mLEDRing.DisplayNormal();
+        WebSockets().UpdateOn(Periphery().GetOn());
+        break;
+      case ggState::eEditChannel0:
+        Periphery().mDisplay.SetText(0, "Color Hue");
+        Periphery().mLEDRing.DisplayChannel(0);
+        EditTimer().Reset();
+        break;
+      case ggState::eEditChannel1:
+        Periphery().mDisplay.SetText(0, "Saturaton");
+        Periphery().mLEDRing.DisplayChannel(1);
+        EditTimer().Reset();
+        break;
+      case ggState::eEditChannel2:
+        Periphery().mDisplay.SetText(0, "Brightness");
+        Periphery().mLEDRing.DisplayChannel(2);
+        EditTimer().Reset();
+        break;
+      case ggState::eEditReset:
+        Periphery().mDisplay.SetText(0, "Reset");
+        Periphery().mLEDRing.DisplayColor(ggColor::cRGB::Orange());
+        EditTimer().Reset();
+        break;
+      case ggState::eResetWiFi:
+        Periphery().mLEDRing.DisplayColor(ggColor::cRGB::Red());
+        Periphery().mDisplay.SetText(0, String("Reset WiFi..."));
+        Periphery().mDisplay.Run(); // main "loop" is not running
+        WiFiMgr().resetSettings();
+        delay(1000);
+        ESP.restart();
+        break;
+    }
+  });
 
+  // click
+  static bool vLongPressed = false;
+  
   // clicking "on/off"
   Periphery().mButton.OnReleased([&] () {
-    Timer().Reset();
-    if (!vIgnoreNextReleasedEvent) {
-      if (vMode == ggMode::eCenter) {
-        Periphery().ToggleOnOff();
-        WebSockets().UpdateOn(Periphery().GetOn());
-      }
-      else {
-        vMode = ggMode::eCenter;
-        Periphery().mLEDRing.DisplayNormal();
-      }
-    }
-    else {
-      vIgnoreNextReleasedEvent = false;
-    }
+    if (!vLongPressed) mLampState.HandleEvent(ggEvent::eClick);
+    else vLongPressed = false;
   });
 
   // long press changes mode
   Periphery().mButton.OnPressedFor(2000, [&] () {
-    Timer().Reset();
-    vIgnoreNextReleasedEvent = true;
-    if (!Periphery().mOn) return;
-    vMode = ggMode::Toggle(vMode);
-    switch (vMode) {
-      case ggMode::eCenter: break;
-      case ggMode::eRingChannel0: Periphery().mLEDRing.DisplayChannel(0); break;
-      case ggMode::eRingChannel1: Periphery().mLEDRing.DisplayChannel(1); break;
-      case ggMode::eRingChannel2: Periphery().mLEDRing.DisplayChannel(2); break;
-    }
+    mLampState.HandleEvent(ggEvent::eClickLong);
+    vLongPressed = true;
   });
 
-  // rotary encoder signal
+  // rotary encoder signal (4 increments per tick and 20 ticks per revolution)
   Periphery().mEncoder.OnValueChangedDelta([&] (long aValueDelta) {
-    Timer().Reset();
-    if (!Periphery().mOn) return;
-    // encoder has 4 increments per tick and 20 ticks per revolution, one revolution is 100%
-    if (vMode == ggMode::eCenter) {
-      Periphery().mLEDCenter.ChangeBrightness(0.25f * 0.05f * aValueDelta);
-      WebSockets().UpdateCenterBrightness(Periphery().mLEDCenter.GetBrightness());
-    }
-    else {
-      switch (vMode) {
-        case ggMode::eRingChannel0: Periphery().mLEDRing.ChangeChannel(0, aValueDelta); break;
-        case ggMode::eRingChannel1: Periphery().mLEDRing.ChangeChannel(1, aValueDelta); break;
-        case ggMode::eRingChannel2: Periphery().mLEDRing.ChangeChannel(2, aValueDelta); break;
-      }
-      WebSockets().UpdateRingColorHSV(Periphery().mLEDRing.GetColorHSV().mH,
-                                      Periphery().mLEDRing.GetColorHSV().mS,
-                                      Periphery().mLEDRing.GetColorHSV().mV);
+    switch (mLampState.GetState()) {
+      case ggState::eOn:
+        Periphery().mLEDCenter.ChangeBrightness(0.25f * 0.05f * aValueDelta);
+        WebSockets().UpdateCenterBrightness(Periphery().mLEDCenter.GetBrightness());
+        EditTimer().Reset();
+        break;
+      case ggState::eEditChannel0:
+      case ggState::eEditChannel1:
+      case ggState::eEditChannel2:
+        Periphery().mLEDRing.ChangeChannel(ggState::GetChannelIndex(mLampState.GetState()), aValueDelta);
+        WebSockets().UpdateRingColorHSV(Periphery().mLEDRing.GetColorHSV().mH,
+                                        Periphery().mLEDRing.GetColorHSV().mS,
+                                        Periphery().mLEDRing.GetColorHSV().mV);
+        EditTimer().Reset();
+        break;
     }
   });
 
@@ -200,11 +290,8 @@ void ConnectComponents()
   });
 
   // switch back to normal after a while of no user inputs
-  Timer().OnTimeOut([&] () {
-    if (vMode != ggMode::eCenter) {
-      vMode = ggMode::eCenter;
-      Periphery().mLEDRing.DisplayNormal();
-    }
+  EditTimer().OnTimeOut([&] () {
+    mLampState.HandleEvent(ggEvent::eTimeout);
   });
 
   // wifi events
@@ -238,8 +325,7 @@ void ConnectComponents()
     Periphery().mDisplay.SetTitle(aName);
   });
   WebSockets().OnSetOn([&] (bool aOn) {
-    Periphery().SetOn(aOn);
-    WebSockets().UpdateOn(Periphery().GetOn());
+    mLampState.SetState(aOn ? ggState::eOn : ggState::eOff);
   });
   WebSockets().OnSetCenterBrightness([&] (float aBrightness) {
     Periphery().mLEDCenter.SetBrightness(aBrightness);
@@ -262,7 +348,11 @@ void ConnectComponents()
     ggDebug::SetStream(Serial);
   });
   WebServer().OnResetAll([] () {
-    ResetAll();
+    Periphery().mDisplay.SetText(0, String("Reset All..."));
+    Periphery().mDisplay.Run(); // main "loop" is not running
+    mName.Set(mHostName);
+    Periphery().ResetSettings();
+    WiFiMgr().resetSettings();
     delay(1000);
     ESP.restart();
   });
@@ -281,29 +371,33 @@ void ConnectComponents()
   });
 
   // OTA status display
-  static ggColor::cRGB vColorProgress(200,0,150);
+  static ggColor::cRGB vColorProgress(150,0,100);
   static ggColor::cRGB vColorProgressBackground(0,0,0);
-  static ggColor::cRGB vColorSuccess(0,200,0);
-  static ggColor::cRGB vColorError(255,0,0);
+  static ggColor::cRGB vColorSuccess(0,150,50);
+  static ggColor::cRGB vColorError(150,0,0);
   ArduinoOTA.onStart([&] () {
-    Periphery().mLEDCenter.SetOn(false);
-    Periphery().mLEDRing.DisplayProgress(0.0f, vColorProgress, vColorProgressBackground);
+    Periphery().mDisplay.SetText(0, String("OTA Start..."));
+    Periphery().mDisplay.Run(); // main "loop" is not running
   });
   ArduinoOTA.onEnd([&] () {
-    Periphery().mLEDRing.DisplayProgress(1.0f, vColorSuccess, vColorProgressBackground);
+    Periphery().mDisplay.SetText(0, String("OTA Complete"));
+    Periphery().mDisplay.Run(); // main "loop" is not running
   });
   ArduinoOTA.onProgress([&] (unsigned int aProgress, unsigned int aTotal) {
-    float vProgress = static_cast<float>(aProgress) / static_cast<float>(aTotal);
-    Periphery().mLEDRing.DisplayProgress(vProgress, vColorProgress, vColorProgressBackground);
+    unsigned int vProgress = aProgress / (aTotal / 100);
+    Periphery().mDisplay.SetText(0, String("OTA: ") + vProgress + "%");
+    Periphery().mDisplay.Run(); // main "loop" is not running
   });
   ArduinoOTA.onError([&] (ota_error_t aError) {
-    Periphery().mLEDRing.DisplayProgress(1.0f, vColorError, vColorError);
+    Periphery().mDisplay.SetText(0, String("OTA Error!"));
+    Periphery().mDisplay.Run(); // main "loop" is not running
   });
 }
 
 
 void Run()
 {
+  EditTimer().Run();
   Periphery().Run();
   WebServer().Run();
   WebSockets().Run();
@@ -342,6 +436,7 @@ void setup()
 
   // initialize eeprom handler
   ggValueEEProm::Begin();
+  mLampState.mState = Periphery().GetOn() ? ggState::eOn : ggState::eOff;
   vDebug.PrintF("Lamp Name: %s\n", mName.Get().c_str());
 
   // configure and start web-server
