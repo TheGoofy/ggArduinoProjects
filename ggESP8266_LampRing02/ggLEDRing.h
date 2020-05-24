@@ -77,6 +77,12 @@ public:
     }
   }
 
+  void DisplayColor(const ggColor::cRGB& aColor) {
+    mLEDsA.fill(aColor, 0, TNumLEDs);
+    mLEDsB.fill(aColor, 0, TNumLEDs);
+    Show();
+  }
+
   void DisplayChannel(int aChannel) {
     ggColor::cHSV vHSV = mHSV;
     if ((aChannel != 1) && (vHSV.mS < 128)) vHSV.mS = 128;
