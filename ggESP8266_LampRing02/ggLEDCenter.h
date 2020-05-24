@@ -9,14 +9,17 @@ class ggLEDCenter {
 
 public:
 
-  ggLEDCenter()
-  : mLogTable(4096),
+  ggLEDCenter(int aPinSDA, int aPinSCL)
+  : mPinSDA(aPinSDA),
+    mPinSCL(aPinSCL),
+    mLogTable(4096),
     mModulePWM(),
     mOn(false),
     mBrightness(0.5f) {
   }
 
   void Begin() {
+    Wire.begin(mPinSDA, mPinSCL);
     mModulePWM.begin();
     mModulePWM.setOscillatorFrequency(28000000);  // The int.osc. is closer to 27MHz
     mModulePWM.setPWMFreq(300);  // 200 worls "silent", 1600 is the maximum PWM frequency
@@ -83,6 +86,8 @@ private:
   }
 
   // basic setup
+  const int mPinSDA;
+  const int mPinSCL;
   const ggLog mLogTable;
   Adafruit_PWMServoDriver mModulePWM;
   int mOutput;

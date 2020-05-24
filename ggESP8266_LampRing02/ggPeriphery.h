@@ -57,8 +57,8 @@ struct ggPeriphery {
     mEncoder(M_PIN_ENCODER_A, M_PIN_ENCODER_B), // rotary encoder
     mEnablePSU(M_PIN_ENABLE_PSU, false), // PSU on/off, non-inverted
     mLEDRing(M_PIN_LED_A_DATA, M_PIN_LED_B_DATA),
-    mLEDCenter(), // uses HW I2C
-    mDisplay(), // uses HW I2C
+    mLEDCenter(M_PIN_I2C_SDA, M_PIN_I2C_SCL), // uses HW I2C
+    mDisplay(M_PIN_I2C_SDA, M_PIN_I2C_SCL), // uses HW I2C
     mTimerPSU(2.0f) // 1 sec (for delay after power-on)
   {
     mTimerPSU.OnTimeOut([&] () {
@@ -67,7 +67,6 @@ struct ggPeriphery {
   }
 
   void Begin() {
-    Wire.begin(M_PIN_I2C_SDA, M_PIN_I2C_SCL);
     mButton.Begin();
     mEncoder.Begin();
     mEnablePSU.Begin();
@@ -114,6 +113,7 @@ struct ggPeriphery {
   }
 
   void Run() {
+    mTimerPSU.Run();
     mButton.Run();
     mEncoder.Run();
     mDisplay.Run();

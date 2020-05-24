@@ -14,8 +14,10 @@ class ggDisplay {
 
 public:
 
-  ggDisplay()
-  : mLCD(0/*rs*/, 1/*rw*/, 2/*en*/,
+  ggDisplay(int aPinSDA, int aPinSCL)
+  : mPinSDA(aPinSDA),
+    mPinSCL(aPinSCL),
+    mLCD(0/*rs*/, 1/*rw*/, 2/*en*/,
          4/*d4*/, 5/*d5*/, 6/*d6*/, 7/*d7*/,
          ioFrom8574(GetAddressI2C())),
     mConnectFunc(nullptr),
@@ -26,6 +28,7 @@ public:
   }
 
   void Begin() {
+    Wire.begin(mPinSDA, mPinSCL);
     Connect();
   }
 
@@ -155,6 +158,9 @@ private:
       mUpdate = false;
     }
   }
+
+  const int mPinSDA;
+  const int mPinSCL;
 
   mutable LiquidCrystal mLCD;
   mutable bool mConnected;
