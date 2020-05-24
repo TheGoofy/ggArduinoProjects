@@ -21,7 +21,7 @@
   
     function InitWebSocket() {
       if (mWebSocketServer == '') {
-        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.54");
+        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.150");
       }
       mWebSocket = new WebSocket('ws://' + mWebSocketServer +':81/', ['arduino']);
       mWebSocket.onopen = onWebSocketOpen;
@@ -91,9 +91,25 @@
       var vHex = Number(aValue).toString(16);
       if (vHex.length < 2) vHex = '0' + vHex;
       return vHex;
-    }    
+    }
 
-    function HSVtoRGB(aH, aS, aV) {
+    function MapRGBtoRGB(aR, aG, aB) {
+      return [aR, aG, aB];
+    }
+
+    function MapTemperaturetoRGB(aR, aG, aB) {
+      var vR = [0.0, 0.0, 0.0]; // orange
+      var vG = [0.5, 0.1, 0.0]; // warm white (yellow)
+      var vB = [0.0, 0.1, 0.5]; // cold white (cyan)
+      var vSum = [vR[0] + vG[0] + vB[0],
+                  vR[1] + vG[1] + vB[1],
+                  vR[2] + vG[2] + vB[2]];
+      return [(aR*vR[0] + aG*vG[0] + aB*vB[0]) / vSum[0],
+              (aR*vR[1] + aG*vG[1] + aB*vB[1]) / vSum[1],
+              (aR*vR[2] + aG*vG[2] + aB*vB[2]) / vSum[2]];
+    }
+
+    function HSVtoRGB(aH, aS, aV, aMapRGB = MapRGBtoRGB) {
       var vR = vG = vB = aV;
       if (aS != 0) {
         aH /= 42.501; // scale to 0..6
@@ -112,6 +128,7 @@
           case 4:  vR = vT; vG = vP; vB = aV; break;
           default: vR = aV; vG = vP; vB = vQ; break; // case 5 or 6
         }
+        [vR, vG, vB] = aMapRGB(vR, vG, vB);
         vR = Math.round(255 * vR);
         vG = Math.round(255 * vG);
         vB = Math.round(255 * vB);
