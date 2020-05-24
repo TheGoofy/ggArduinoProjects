@@ -1,22 +1,18 @@
 #pragma once
 
-#include <Ticker.h>
-
 class ggTimer {
 
 public:
 
   ggTimer(float aTimeOutSeconds)
-  : mTimeOutSeconds(aTimeOutSeconds),
+  : mTimeOutMicroSeconds(1000000.0f * aTimeOutSeconds + 0.5f),
+    mLastMicroSeconds(-1),
     mTimeOutFunc(nullptr) {
-    Reset();
   }
 
   void Reset() {
-    mTicker.detach();
-    mTicker.once(mTimeOutSeconds, [&] () {
-      if (mTimeOutFunc != nullptr) mTimeOutFunc();
-    });
+    mLastMicroSeconds = micros();
+    if (mLastMicroSeconds == -1) mLastMicroSeconds = 0;
   }
 
   typedef std::function<void()> tTimeOutFunc;
@@ -25,10 +21,23 @@ public:
     mTimeOutFunc = aTimeOutFunc;
   }
 
+  void Run() {
+    if (mTimeOutFunc != nullptr) {
+      if (mLastMicroSeconds != -1) {
+        unsigned long vMicroSeconds = micros();
+        unsigned long vMicroSecondsDelta = vMicroSeconds - mLastMicroSeconds;
+        if (vMicroSecondsDelta >= mTimeOutMicroSeconds) {
+          mLastMicroSeconds = -1;
+          mTimeOutFunc();
+        }
+      }
+    }
+  }
+
 private:
 
-  float mTimeOutSeconds;
+  unsigned long mTimeOutMicroSeconds;
+  unsigned long mLastMicroSeconds;
   tTimeOutFunc mTimeOutFunc;
-  Ticker mTicker;
   
 };
