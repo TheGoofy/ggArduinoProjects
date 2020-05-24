@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ggDebug.h"
+
 class ggInputOutput {
 
 public:

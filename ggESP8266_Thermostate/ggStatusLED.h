@@ -2,6 +2,7 @@
 
 #include "ggOutput.h"
 #include "ggTicker.h"
+#include "ggDebug.h"
 
 class ggStatusLED {
 
