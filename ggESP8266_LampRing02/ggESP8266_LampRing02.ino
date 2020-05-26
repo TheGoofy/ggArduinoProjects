@@ -239,11 +239,14 @@ void ConnectComponents()
         EditTimer().Reset();
         break;
       case ggState::eResetWiFi:
-        Periphery().mLEDRing.DisplayColor(ggColor::cRGB::Red());
-        Periphery().mDisplay.SetText(0, String("Reset WiFi..."));
-        Periphery().mDisplay.Run(); // main "loop" is not running
-        WiFiMgr().resetSettings();
-        delay(1000);
+        {
+          ggDebug vDebug("mLampState.OnState(ggState::eResetWiFi)");
+          Periphery().mLEDRing.DisplayColor(ggColor::cRGB::Red());
+          Periphery().mDisplay.SetText(0, String("Reset WiFi..."));
+          Periphery().mDisplay.Run(); // main "loop" is not running
+          WiFiMgr().resetSettings();
+          delay(1000);
+        }
         ESP.restart();
         break;
     }
@@ -348,25 +351,34 @@ void ConnectComponents()
     ggDebug::SetStream(Serial);
   });
   WebServer().OnResetAll([] () {
-    Periphery().mDisplay.SetText(0, String("Reset All..."));
-    Periphery().mDisplay.Run(); // main "loop" is not running
-    mName.Set(mHostName);
-    Periphery().ResetSettings();
-    WiFiMgr().resetSettings();
-    delay(1000);
+    {
+      ggDebug vDebug("mWebServer.OnResetAll(...)");
+      Periphery().mDisplay.SetText(0, String("Reset All..."));
+      Periphery().mDisplay.Run(); // main "loop" is not running
+      mName.Set(mHostName);
+      Periphery().ResetSettings();
+      WiFiMgr().resetSettings();
+      delay(1000);
+    }
     ESP.restart();
   });
   WebServer().OnResetWifi([] () {
-    Periphery().mDisplay.SetText(0, String("Reset WiFi..."));
-    Periphery().mDisplay.Run(); // main "loop" is not running
-    WiFiMgr().resetSettings();
-    delay(1000);
+    {
+      ggDebug vDebug("mWebServer.OnResetWifi(...)");
+      Periphery().mDisplay.SetText(0, String("Reset WiFi..."));
+      Periphery().mDisplay.Run(); // main "loop" is not running
+      WiFiMgr().resetSettings();
+      delay(1000);
+    }
     ESP.restart();
   });
   WebServer().OnReboot([] () {
-    Periphery().mDisplay.SetText(0, String("Rebooting..."));
-    Periphery().mDisplay.Run(); // main "loop" is not running
-    delay(1000);
+    {
+      ggDebug vDebug("mWebServer.OnReboot(...)");
+      Periphery().mDisplay.SetText(0, String("Rebooting..."));
+      Periphery().mDisplay.Run(); // main "loop" is not running
+      delay(1000);
+    }
     ESP.restart();
   });
 
@@ -392,19 +404,6 @@ void ConnectComponents()
     Periphery().mDisplay.SetText(0, String("OTA Error!"));
     Periphery().mDisplay.Run(); // main "loop" is not running
   });
-}
-
-
-void Run()
-{
-  EditTimer().Run();
-  Periphery().Run();
-  WebServer().Run();
-  WebSockets().Run();
-  WiFiConnection().Run();
-  MDNS.update();
-  ArduinoOTA.handle();
-  yield();
 }
 
 
@@ -469,5 +468,12 @@ void setup()
 
 void loop()
 {
-  Run();
+  EditTimer().Run();
+  Periphery().Run();
+  WebServer().Run();
+  WebSockets().Run();
+  WiFiConnection().Run();
+  MDNS.update();
+  ArduinoOTA.handle();
+  yield();
 }
