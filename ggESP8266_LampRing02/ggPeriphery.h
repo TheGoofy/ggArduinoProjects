@@ -9,16 +9,24 @@
 #include "ggOutput.h"
 
 // verbose pin description for ESP-12F
-#define M_PIN_GPIO_00_FLASH  0 // if low at boot, ESP will be in programming mode (boot fails if low)
-#define M_PIN_GPIO_01_TX     1 // usually used for serial communication (terminal), debug at boot (boot fails if low)
-#define M_PIN_GPIO_02_ENBOOT 2 // must be pulled high at boot (boot fails if low)
-#define M_PIN_GPIO_03_RX     3 // usually used for serial communication (terminal)
-#define M_PIN_GPIO_04_SDA    4 // fast digital IO (no side-effects), recommended for i2c
-#define M_PIN_GPIO_05_SCL    5 // fast digital IO (no side-effects), recommended for i2c
-#define M_PIN_GPIO_12       12 // fast digital IO (no side-effects)
-#define M_PIN_GPIO_13       13 // fast digital IO (no side-effects)
-#define M_PIN_GPIO_14       14 // fast digital IO (no side-effects)
-#define M_PIN_GPIO_ADC0     A0 // analog input (inefficient for digital IO)
+#define M_PIN_GPIO_00_FLASH     0 // if low at boot, ESP will be in programming mode (boot fails if low)
+#define M_PIN_GPIO_01_TX        1 // usually used for serial communication (terminal), high at boot, debug at boot (boot fails if low)
+#define M_PIN_GPIO_02_ENBOOT    2 // must be pulled high at boot (boot fails if low)
+#define M_PIN_GPIO_03_RX        3 // usually used for serial communication (terminal), high at boot
+#define M_PIN_GPIO_04_SDA       4 // fast digital IO (no side-effects), recommended for i2c
+#define M_PIN_GPIO_05_SCL       5 // fast digital IO (no side-effects), recommended for i2c
+#define M_PIN_GPIO_06_SPI_CLK   6 //
+#define M_PIN_GPIO_07_SPI_MISO  7 //
+#define M_PIN_GPIO_08_SPI_MOSI  8 //
+#define M_PIN_GPIO_09_SPI_HD    9 // high at boot
+#define M_PIN_GPIO_10_SPI_WP   10 // high at boot
+#define M_PIN_GPIO_11_SPI_CS0  11 //
+#define M_PIN_GPIO_12          12 // fast digital IO (no side-effects)
+#define M_PIN_GPIO_13          13 // fast digital IO (no side-effects)
+#define M_PIN_GPIO_14          14 // fast digital IO (no side-effects)
+#define M_PIN_GPIO_15_SPI_CS   15 // pulled to ground (boot fails if high)
+#define M_PIN_GPIO_16_XPD_DCDC 16 // high at boot, used to wake up from deep sleep
+#define M_PIN_GPIO_ADC0        A0 // analog input (inefficient for digital IO)
 
 // pins for periphery
 #ifndef M_PRESERVE_SERIAL_PINS_FOR_DEBUGGING
@@ -31,7 +39,7 @@
   #define M_PIN_I2C_SDA    M_PIN_GPIO_04_SDA
   #define M_PIN_I2C_SCL    M_PIN_GPIO_05_SCL
 #else
-  #define M_PIN_BUTTON     M_PIN_GPIO_ADC0 // maybe works slowly ...
+  #define M_PIN_BUTTON     M_PIN_GPIO_15_SPI_CS // not connected
   #define M_PIN_ENCODER_A  M_PIN_GPIO_12
   #define M_PIN_ENCODER_B  M_PIN_GPIO_13
   #define M_PIN_ENABLE_PSU M_PIN_GPIO_14
@@ -39,6 +47,13 @@
   #define M_PIN_LED_B_DATA M_PIN_GPIO_02_ENBOOT
   #define M_PIN_I2C_SDA    M_PIN_GPIO_04_SDA
   #define M_PIN_I2C_SCL    M_PIN_GPIO_05_SCL
+#endif
+
+// IO logic polarity
+#ifndef M_PRESERVE_SERIAL_PINS_FOR_DEBUGGING
+  #define M_BUTTON_INVERT true
+#else
+  #define M_BUTTON_INVERT false
 #endif
 
 struct ggPeriphery {
@@ -53,7 +68,7 @@ struct ggPeriphery {
   ggDisplay mDisplay;
 
   ggPeriphery()
-  : mButton(M_PIN_BUTTON, true, true), // button, inverted (input signal low if pressed)
+  : mButton(M_PIN_BUTTON, M_BUTTON_INVERT, true), // button, inverted (input signal low if pressed), enable pull-up
     mEncoder(M_PIN_ENCODER_A, M_PIN_ENCODER_B), // rotary encoder
     mEnablePSU(M_PIN_ENABLE_PSU, false), // PSU on/off, non-inverted
     mLEDRing(M_PIN_LED_A_DATA, M_PIN_LED_B_DATA),
