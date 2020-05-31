@@ -64,7 +64,7 @@ struct ggPeriphery {
   ggRotaryEncoder mEncoder;
   ggOutput mEnablePSU;
   ggLEDCenter mLEDCenter;
-  ggLEDRing<64> mLEDRing;
+  ggLEDRing<24*4> mLEDRing;
   ggDisplay mDisplay;
 
   ggPeriphery()
