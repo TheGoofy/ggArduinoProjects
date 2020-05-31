@@ -21,7 +21,7 @@
   
     function InitWebSocket() {
       if (mWebSocketServer == '') {
-        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.150");
+        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.251");
       }
       mWebSocket = new WebSocket('ws://' + mWebSocketServer +':81/', ['arduino']);
       mWebSocket.onopen = onWebSocketOpen;
@@ -76,6 +76,17 @@
       mCenterBrightnessRange.onchange = function() {
         mWebSocket.send('SetCenterBrightness(' + mCenterBrightnessRange.value + ')');
       }
+      /*
+      mCenterBrightnessRange.onmousedown = function() {
+        mCenterBrightnessRange.mIsInteracting = true;
+      }
+      mCenterBrightnessRange.onmouseup = function() {
+        mCenterBrightnessRange.mIsInteracting = false;
+      }
+      mCenterBrightnessRange.oninput = function() {
+        mWebSocket.send('SetCenterBrightness(' + mCenterBrightnessRange.value + ')');
+      }
+      */
       mRingColorRangeH.onchange = function() {
         WebSocketSendSetRingColorHSV();
       }
@@ -151,7 +162,9 @@
 
     function UpdateCenterBrightness(aBrightness) {
       mCenterBrightnessValue.innerHTML = Math.round(100.0 * aBrightness) + '%';
-      mCenterBrightnessRange.value = aBrightness;
+      // if (!mCenterBrightnessRange.mIsInteracting) {
+        mCenterBrightnessRange.value = aBrightness;
+      // }
       mCenterBrightnessRange.style.backgroundImage = 'linear-gradient(to right, #000 05%, #f90 95%)';
     }
 
