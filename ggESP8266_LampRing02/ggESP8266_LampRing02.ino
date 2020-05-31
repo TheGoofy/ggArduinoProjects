@@ -388,23 +388,27 @@ void ConnectComponents()
   static ggColor::cRGB vColorSuccess(20,80,0);
   static ggColor::cRGB vColorError(90,0,10);
   ArduinoOTA.onStart([&] () {
-    Periphery().mDisplay.SetText(0, String("OTA Start..."));
+    Periphery().mDisplay.SetText(0, String("Update Start..."));
     Periphery().mDisplay.Run(); // main "loop" is not running
     Periphery().mLEDRing.DisplayProgress(0.0f, vColorProgress, vColorProgressBackground);
   });
   ArduinoOTA.onEnd([&] () {
-    Periphery().mDisplay.SetText(0, String("OTA Complete"));
+    Periphery().mDisplay.SetText(0, String("Update Complete!"));
     Periphery().mDisplay.Run(); // main "loop" is not running
     Periphery().mLEDRing.DisplayProgress(1.0f, vColorSuccess, vColorProgressBackground);
   });
   ArduinoOTA.onProgress([&] (unsigned int aProgress, unsigned int aTotal) {
-    float vProgress = static_cast<float>(aProgress) / static_cast<float>(aTotal);
-    Periphery().mDisplay.SetText(0, String("OTA: ") + vProgress + "%");
-    Periphery().mDisplay.Run(); // main "loop" is not running
-    Periphery().mLEDRing.DisplayProgress(vProgress, vColorProgress, vColorProgressBackground);
+    unsigned int vProgressPercent = aProgress / (aTotal / 100);
+    static unsigned int vProgressPercentLast = -1;
+    if (vProgressPercent != vProgressPercentLast) {
+      vProgressPercentLast = vProgressPercent;
+      Periphery().mDisplay.SetText(0, String("Update: ") + vProgressPercent + "%");
+      Periphery().mDisplay.Run(); // main "loop" is not running
+      Periphery().mLEDRing.DisplayProgress(0.01f * vProgressPercent, vColorProgress, vColorProgressBackground);
+    }
   });
   ArduinoOTA.onError([&] (ota_error_t aError) {
-    Periphery().mDisplay.SetText(0, String("OTA Error!"));
+    Periphery().mDisplay.SetText(0, String("Update Error!"));
     Periphery().mDisplay.Run(); // main "loop" is not running
     Periphery().mLEDRing.DisplayProgress(1.0f, vColorError, vColorError);
   });
