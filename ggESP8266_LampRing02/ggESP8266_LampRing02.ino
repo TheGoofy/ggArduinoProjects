@@ -280,7 +280,10 @@ void ConnectComponents()
     switch (mLampState.GetState()) {
       case ggState::eOn:
         Periphery().mLEDCenter.ChangeBrightness(0.25f * 0.05f * aValueDelta);
-        WebSockets().UpdateCenterBrightness(Periphery().mLEDCenter.GetBrightness());
+        WebSockets().UpdateBrightness(Periphery().mLEDCenter.GetBrightness());
+        Periphery().mLEDCenter.ForEachChannel([&] (int aChannel) {
+          WebSockets().UpdateChannelBrightness(aChannel, Periphery().mLEDCenter.GetChannelBrightness(aChannel));
+        });
         EditTimer().Reset();
         break;
       case ggState::eEditChannel0:
@@ -318,7 +321,10 @@ void ConnectComponents()
     vDebug.PrintF("aClientID = %d\n", aClientID);
     WebSockets().UpdateName(mName.Get(), aClientID);
     WebSockets().UpdateOn(Periphery().GetOn(), aClientID);
-    WebSockets().UpdateCenterBrightness(Periphery().mLEDCenter.GetBrightness(), aClientID);
+    WebSockets().UpdateBrightness(Periphery().mLEDCenter.GetBrightness(), aClientID);
+    Periphery().mLEDCenter.ForEachChannel([&] (int aChannel) {
+      WebSockets().UpdateChannelBrightness(aChannel, Periphery().mLEDCenter.GetChannelBrightness(aChannel), aClientID);
+    });
     WebSockets().UpdateRingColorHSV(Periphery().mLEDRing.GetColorHSV().mH,
                                     Periphery().mLEDRing.GetColorHSV().mS,
                                     Periphery().mLEDRing.GetColorHSV().mV,
@@ -338,9 +344,17 @@ void ConnectComponents()
   WebSockets().OnSetOn([&] (bool aOn) {
     mLampState.SetState(aOn ? ggState::eOn : ggState::eOff);
   });
-  WebSockets().OnSetCenterBrightness([&] (float aBrightness) {
+  WebSockets().OnSetBrightness([&] (float aBrightness) {
     Periphery().mLEDCenter.SetBrightness(aBrightness);
-    WebSockets().UpdateCenterBrightness(aBrightness);
+    WebSockets().UpdateBrightness(aBrightness);
+    Periphery().mLEDCenter.ForEachChannel([&] (int aChannel) {
+      WebSockets().UpdateChannelBrightness(aChannel, Periphery().mLEDCenter.GetChannelBrightness(aChannel));
+    });
+  });
+  WebSockets().OnSetChannelBrightness([&] (int aChannel, float aBrightness) {
+    Periphery().mLEDCenter.SetChannelBrightness(aChannel, aBrightness);
+    WebSockets().UpdateBrightness(Periphery().mLEDCenter.GetBrightness());
+    WebSockets().UpdateChannelBrightness(aChannel, aBrightness);
   });
   WebSockets().OnSetRingColorHSV([&] (uint32_t aH, uint32_t aS, uint32_t aV) {
     Periphery().mLEDRing.SetColor(ggColor::cHSV(aH, aS, aV));

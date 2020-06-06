@@ -9,10 +9,11 @@ class ggWebSockets {
 public:
 
   typedef std::function<void(int aClientNumber)> tClientConnectFunc;
+  typedef std::function<void(float aValue)> tSetBrightnessFunc;
+  typedef std::function<void(int aChannel, float aBrightness)> tSetChannelBrightnessFunc;
   typedef std::function<void(bool aValue)> tSetBoolValueFunc;
   typedef std::function<void(uint32_t aClientNumber)> tSetUInt32ValueFunc;
   typedef std::function<void(uint32_t, uint32_t, uint32_t)> tSet3UInt32ValueFunc;
-  typedef std::function<void(float aValue)> tSetFloatValueFunc;
   typedef std::function<void(const String& aValue)> tSetStringValueFunc;
 
   ggWebSockets(int aPort)
@@ -21,7 +22,8 @@ public:
     mClientDisconnectFunc(nullptr),
     mSetNameFunc(nullptr),
     mSetOnFunc(nullptr),
-    mSetCenterBrightnessFunc(nullptr),
+    mSetBrightnessFunc(nullptr),
+    mSetChannelBrightnessFunc(nullptr),
     mSetRingColorHSVFunc(nullptr) {
   }
 
@@ -47,8 +49,12 @@ public:
     UpdateClientTXT(String("UpdateOn(") + aOn + ")", aClientID);
   }
 
-  void UpdateCenterBrightness(float aBrightness, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateCenterBrightness(") + aBrightness + ")", aClientID);
+  void UpdateBrightness(float aBrightness, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateBrightness(") + aBrightness + ")", aClientID);
+  }
+
+  void UpdateChannelBrightness(int aChannel, float aBrightness, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateChannelBrightness(") + aChannel + "," + aBrightness + ")", aClientID);
   }
 
   void UpdateRingColorHSV(uint8_t aH, uint8_t aS, uint8_t aV, int aClientID = -1) {
@@ -71,8 +77,12 @@ public:
     mSetOnFunc = aSetOnFunc;
   }
 
-  void OnSetCenterBrightness(tSetFloatValueFunc aSetBrightnessFunc) {
-    mSetCenterBrightnessFunc = aSetBrightnessFunc;
+  void OnSetBrightness(tSetBrightnessFunc aSetBrightnessFunc) {
+    mSetBrightnessFunc = aSetBrightnessFunc;
+  }
+
+  void OnSetChannelBrightness(tSetChannelBrightnessFunc aSetChannelBrightnessFunc) {
+    mSetChannelBrightnessFunc = aSetChannelBrightnessFunc;
   }
 
   void OnSetRingColorHSV(tSet3UInt32ValueFunc aSetRingColorHSVFunc) {
@@ -130,20 +140,24 @@ private:
 
   void Eval(const String& aText) {
     ggFunctionParser vFunction(aText);
-    // vFunction.Print(Serial);
-    if (vFunction.GetName() == "SetName") {
+    vFunction.Print(ggDebug::GetStream());
+    if (vFunction.GetName() == "SetName" && vFunction.NumArgs() == 1) {
       if (mSetNameFunc != nullptr) mSetNameFunc(vFunction.Arg(0));
       return;
     }
-    if (vFunction.GetName() == "SetOn") {
+    if (vFunction.GetName() == "SetOn" && vFunction.NumArgs() == 1) {
       if (mSetOnFunc != nullptr) mSetOnFunc(vFunction.ArgBool(0));
       return;
     }
-    if (vFunction.GetName() == "SetCenterBrightness") {
-      if (mSetCenterBrightnessFunc != nullptr) mSetCenterBrightnessFunc(vFunction.ArgFloat(0));
+    if (vFunction.GetName() == "SetBrightness") {
+      if (mSetBrightnessFunc != nullptr && vFunction.NumArgs() == 1) mSetBrightnessFunc(vFunction.ArgFloat(0));
       return;
     }
-    if (vFunction.GetName() == "SetRingColorHSV") {
+    if (vFunction.GetName() == "SetChannelBrightness") {
+      if (mSetChannelBrightnessFunc != nullptr && vFunction.NumArgs() == 2) mSetChannelBrightnessFunc(vFunction.ArgInt(0), vFunction.ArgFloat(1));
+      return;
+    }
+    if (vFunction.GetName() == "SetRingColorHSV" && vFunction.NumArgs() == 3) {
       if (mSetRingColorHSVFunc != nullptr) mSetRingColorHSVFunc(vFunction.ArgInt(0), vFunction.ArgInt(1), vFunction.ArgInt(2));
       return;
     }
@@ -155,7 +169,8 @@ private:
   tClientConnectFunc mClientDisconnectFunc;
   tSetStringValueFunc mSetNameFunc;
   tSetBoolValueFunc mSetOnFunc;
-  tSetFloatValueFunc mSetCenterBrightnessFunc;
+  tSetBrightnessFunc mSetBrightnessFunc;
+  tSetChannelBrightnessFunc mSetChannelBrightnessFunc;
   tSet3UInt32ValueFunc mSetRingColorHSVFunc;
   
 };

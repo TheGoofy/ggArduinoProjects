@@ -63,7 +63,7 @@ struct ggPeriphery {
   ggButton mButton;
   ggRotaryEncoder mEncoder;
   ggOutput mEnablePSU;
-  ggLEDCenter mLEDCenter;
+  ggLEDCenter<6> mLEDCenter;
   ggLEDRing<24*4> mLEDRing;
   ggDisplay mDisplay;
 

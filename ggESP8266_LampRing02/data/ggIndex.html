@@ -21,7 +21,7 @@
   
     function InitWebSocket() {
       if (mWebSocketServer == '') {
-        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.251");
+        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.152");
       }
       mWebSocket = new WebSocket('ws://' + mWebSocketServer +':81/', ['arduino']);
       mWebSocket.onopen = onWebSocketOpen;
@@ -73,18 +73,43 @@
       mOn.onchange = function() {
         mWebSocket.send('SetOn(' + mOn.checked + ')');
       }
-      mCenterBrightnessRange.onchange = function() {
-        mWebSocket.send('SetCenterBrightness(' + mCenterBrightnessRange.value + ')');
+      mBrightnessRange.style.backgroundImage = 'linear-gradient(to right, #000 05%, #fff 95%)';
+      mBrightnessRange0.style.backgroundImage = 'linear-gradient(to right, #000 05%, #cef 95%)';
+      mBrightnessRange1.style.backgroundImage = 'linear-gradient(to right, #000 05%, #fec 95%)';
+      mBrightnessRange2.style.backgroundImage = 'linear-gradient(to right, #000 05%, #fb7 95%)';
+      mBrightnessRange3.style.backgroundImage = 'linear-gradient(to right, #000 05%, #cef 95%)';
+      mBrightnessRange4.style.backgroundImage = 'linear-gradient(to right, #000 05%, #fec 95%)';
+      mBrightnessRange5.style.backgroundImage = 'linear-gradient(to right, #000 05%, #fb7 95%)';
+      mBrightnessRange.onchange = function() {
+        mWebSocket.send('SetBrightness(' + mBrightnessRange.value + ')');
+      }
+      mBrightnessRange0.onchange = function() {
+        mWebSocket.send('SetChannelBrightness(0, ' + mBrightnessRange0.value + ')');
+      }
+      mBrightnessRange1.onchange = function() {
+        mWebSocket.send('SetChannelBrightness(1, ' + mBrightnessRange1.value + ')');
+      }
+      mBrightnessRange2.onchange = function() {
+        mWebSocket.send('SetChannelBrightness(2, ' + mBrightnessRange2.value + ')');
+      }
+      mBrightnessRange3.onchange = function() {
+        mWebSocket.send('SetChannelBrightness(3, ' + mBrightnessRange3.value + ')');
+      }
+      mBrightnessRange4.onchange = function() {
+        mWebSocket.send('SetChannelBrightness(4, ' + mBrightnessRange4.value + ')');
+      }
+      mBrightnessRange5.onchange = function() {
+        mWebSocket.send('SetChannelBrightness(5, ' + mBrightnessRange5.value + ')');
       }
       /*
-      mCenterBrightnessRange.onmousedown = function() {
-        mCenterBrightnessRange.mIsInteracting = true;
+      mBrightnessRange.onmousedown = function() {
+        mBrightnessRange.mIsInteracting = true;
       }
-      mCenterBrightnessRange.onmouseup = function() {
-        mCenterBrightnessRange.mIsInteracting = false;
+      mBrightnessRange.onmouseup = function() {
+        mBrightnessRange.mIsInteracting = false;
       }
-      mCenterBrightnessRange.oninput = function() {
-        mWebSocket.send('SetCenterBrightness(' + mCenterBrightnessRange.value + ')');
+      mBrightnessRange.oninput = function() {
+        mWebSocket.send('SetBrightness(' + mBrightnessRange.value + ')');
       }
       */
       mRingColorRangeH.onchange = function() {
@@ -154,18 +179,27 @@
     function UpdateOn(aOn) {
       mOnValue.innerHTML = aOn ? 'On' : 'Off';
       mOn.checked = aOn;
-      mCenterBrightnessRange.disabled = !aOn;
+      mBrightnessRange.disabled = !aOn;
+      mBrightnessRange0.disabled = !aOn;
+      mBrightnessRange1.disabled = !aOn;
+      mBrightnessRange2.disabled = !aOn;
+      mBrightnessRange3.disabled = !aOn;
+      mBrightnessRange4.disabled = !aOn;
+      mBrightnessRange5.disabled = !aOn;
       mRingColorRangeH.disabled = !aOn;
       mRingColorRangeS.disabled = !aOn;
       mRingColorRangeV.disabled = !aOn;
     }
 
-    function UpdateCenterBrightness(aBrightness) {
-      mCenterBrightnessValue.innerHTML = Math.round(100.0 * aBrightness) + '%';
-      // if (!mCenterBrightnessRange.mIsInteracting) {
-        mCenterBrightnessRange.value = aBrightness;
+    function UpdateBrightness(aBrightness) {
+      mBrightnessValue.innerHTML = Math.round(100.0 * aBrightness) + '%';
+      // if (!mBrightnessRange.mIsInteracting) {
+        mBrightnessRange.value = aBrightness;
       // }
-      mCenterBrightnessRange.style.backgroundImage = 'linear-gradient(to right, #000 05%, #f90 95%)';
+    }
+
+    function UpdateChannelBrightness(aChannel, aBrightness) {
+      document.getElementById('mBrightnessRange' + aChannel).value = aBrightness;
     }
 
     function UpdateRingColorHSV(aH, aS, aV) {
@@ -209,8 +243,26 @@
 
     <br>
 
-    <div class='cTitleDiv'>Center Brightness: <span id='mCenterBrightnessValue'>(na)</span></div>
-    <input id='mCenterBrightnessRange' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
+    <div class='cTitleDiv'>Brightness: <span id='mBrightnessValue'>(na)</span></div>
+    <input id='mBrightnessRange' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
+    <style>
+      #mBrightnessTable { margin-left:auto; margin-right: auto; border-collapse: collapse; width: 100%;}
+      #mBrightnessTable td { text-align: center; }
+    </style>
+    <table id='mBrightnessTable'>
+      <tr>
+        <td>
+          <input id='mBrightnessRange0' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
+          <input id='mBrightnessRange1' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
+          <input id='mBrightnessRange2' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled>
+        </td>
+        <td>
+          <input id='mBrightnessRange3' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
+          <input id='mBrightnessRange4' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
+          <input id='mBrightnessRange5' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled>
+        </td>
+      </tr>
+    </table>
 
     <br>
 
