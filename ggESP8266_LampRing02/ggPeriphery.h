@@ -29,8 +29,8 @@
 #define M_PIN_GPIO_ADC0        A0 // analog input (inefficient for digital IO)
 
 // pins for periphery
-#ifndef M_PRESERVE_SERIAL_PINS_FOR_DEBUGGING
-  #define M_PIN_BUTTON     M_PIN_GPIO_03_RX
+#if !M_DEBUGGING // pins for serial communication may used for other devices
+  #define M_PIN_BUTTON     M_PIN_GPIO_03_RX // button can interfere with serial communication
   #define M_PIN_ENCODER_A  M_PIN_GPIO_12
   #define M_PIN_ENCODER_B  M_PIN_GPIO_13
   #define M_PIN_ENABLE_PSU M_PIN_GPIO_14
@@ -38,8 +38,8 @@
   #define M_PIN_LED_B_DATA M_PIN_GPIO_02_ENBOOT
   #define M_PIN_I2C_SDA    M_PIN_GPIO_04_SDA
   #define M_PIN_I2C_SCL    M_PIN_GPIO_05_SCL
-#else
-  #define M_PIN_BUTTON     M_PIN_GPIO_15_SPI_CS // not connected
+#else // don't use pins that are needed for serial communication
+  #define M_PIN_BUTTON     M_PIN_GPIO_15_SPI_CS // gpio 15 is not connected, button won't work
   #define M_PIN_ENCODER_A  M_PIN_GPIO_12
   #define M_PIN_ENCODER_B  M_PIN_GPIO_13
   #define M_PIN_ENABLE_PSU M_PIN_GPIO_14

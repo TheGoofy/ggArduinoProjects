@@ -5,13 +5,14 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 
-// #define M_PRESERVE_SERIAL_PINS_FOR_DEBUGGING
+#define M_DEBUGGING false
 
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
 #include "ggWiFiConnection.h"
 #include "ggPeriphery.h"
 #include "ggValueEEPromString.h"
+#include "ggNullStream.h"
 #include "ggStreams.h"
 #include "ggTimer.h"
 
@@ -27,6 +28,13 @@ FS* mFileSystem = &SPIFFS; // &LittleFS or &SPIFFS;
 // ports
 const int mWebServerPort = 80;
 const int mWebSocketsPort = 81;
+
+
+#ifdef M_DEBUGGING
+Stream& mDebugStream(Serial);
+#else
+ggNullStream mDebugStream;
+#endif
 
 
 WiFiManager& WiFiMgr()
@@ -343,12 +351,12 @@ void ConnectComponents()
   WebServer().OnDebugStream([] (Stream& aStream) {
     ggStreams vStreams;
     vStreams.push_back(&aStream);
-    vStreams.push_back(&Serial);
+    vStreams.push_back(&mDebugStream);
     ggDebug::SetStream(vStreams);
     ggDebug vDebug("mWebServer.OnDebugStream(...)");
     vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
     Periphery().PrintDebug("mPeriphery");
-    ggDebug::SetStream(Serial);
+    ggDebug::SetStream(mDebugStream);
   });
   WebServer().OnResetAll([] () {
     {
@@ -418,9 +426,13 @@ void ConnectComponents()
 void setup()
 {
   // serial communication (for debugging)
+  #if M_DEBUGGING
   Serial.begin(115200);
   Serial.println();
+  ggDebug::SetStream(mDebugStream);
+  #endif
 
+  // object debugging output
   GG_DEBUG();
 
   // start the file system
@@ -431,7 +443,7 @@ void setup()
 
   // connect to wifi
   ConnectWifiManager();
-  WiFiMgr().setDebugOutput(false);
+  WiFiMgr().setDebugOutput(M_DEBUGGING);
   WiFiMgr().setConfigPortalTimeout(60); // 1 minute
   WiFiMgr().autoConnect(mHostName.c_str());
   vDebug.PrintF("Connected to: %s\n", WiFi.SSID().c_str());
