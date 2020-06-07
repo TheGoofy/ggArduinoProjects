@@ -26,6 +26,16 @@ public:
     return *this;
   }
 
+  inline ggValueEEPromT& operator += (const TValue& aValue) {
+    Set(mValue + aValue);
+    return *this;
+  }
+
+  inline ggValueEEPromT& operator -= (const TValue& aValue) {
+    Set(mValue - aValue);
+    return *this;
+  }
+
   inline const TValue& Get() const {
     return mValue;
   }
