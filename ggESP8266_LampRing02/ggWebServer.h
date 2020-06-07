@@ -88,16 +88,16 @@ private:
           size_t vBytesSent = mServer.streamFile(vFile, vContentType);
         }
         catch (...) {
-          vDebug.PrintF("unknown exception\n");
+          GG_DEBUG_PRINTF("unknown exception\n");
         }
         unsigned long vMicrosEnd = micros();
         float vMilliSeconds = (vMicrosEnd - vMicrosStart) / 1000.0f;
-        vDebug.PrintF("file \"%s\" transferred in %lf ms\n", aFileName.c_str(), vMilliSeconds);
+        GG_DEBUG_PRINTF("file \"%s\" transferred in %lf ms\n", aFileName.c_str(), vMilliSeconds);
         vFile.close();
         return true;
       }
     }
-    vDebug.PrintF("file \"%s\" not found\n", aFileName.c_str());
+    GG_DEBUG_PRINTF("file \"%s\" not found\n", aFileName.c_str());
     return false;
   }
 
@@ -108,8 +108,8 @@ private:
 
   void OnHome() {
     GG_DEBUG();
-    vDebug.PrintF("local IP = %s\n", mServer.client().localIP().toString().c_str());
-    vDebug.PrintF("remote IP = %s\n", mServer.client().remoteIP().toString().c_str());
+    GG_DEBUG_PRINTF("local IP = %s\n", mServer.client().localIP().toString().c_str());
+    GG_DEBUG_PRINTF("remote IP = %s\n", mServer.client().remoteIP().toString().c_str());
     HandleFile("/ggIndex.html");
   }
 

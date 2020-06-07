@@ -59,6 +59,74 @@
       }
     }
 
+    function ForEachChannel(aChannelFunc) {
+      let vChannels = Array.from(document.getElementsByClassName("cChannel"));
+      vChannels.forEach(vChannel => {
+        aChannelFunc(vChannel);
+      });
+      return vChannels.length;
+    }
+
+    function OnBrightnessRangeChange() {
+      let vBrightnessOld = GetBrightness();
+      if (vBrightnessOld == 0.0) {
+        ForEachChannel(function (aChannel) {
+          aChannel.value = mBrightnessRange.value;
+        });
+      }      
+      else if (vBrightnessOld != mBrightnessRange.value) {
+        let vRatio = mBrightnessRange.value / vBrightnessOld;
+        let vNumSaturatedChannels = 0;
+        let vBrightnessOverflow = 0.0;
+        let vNumChannels = ForEachChannel(function (aChannel) {
+          aChannel.mBrightness = aChannel.value * vRatio;
+          if (aChannel.mBrightness > 1.0) {
+            vBrightnessOverflow += aChannel.mBrightness - 1.0;
+            aChannel.mBrightness = 1.0;
+          }
+          if (aChannel.mBrightness >= 1.0) {
+            vNumSaturatedChannels++;
+          }
+        });
+        while ((vBrightnessOverflow > 0.0) &&
+               (vNumSaturatedChannels < vNumChannels)) {
+          vBrightnessAdd = vBrightnessOverflow / (vNumChannels - vNumSaturatedChannels);
+          vBrightnessOverflow = 0.0;
+          vNumSaturatedChannels = 0;
+          ForEachChannel(function (aChannel) {
+            if (aChannel.mBrightness < 1.0) {
+              aChannel.mBrightness += vBrightnessAdd;
+              if (aChannel.mBrightness > 1.0) {
+                vBrightnessOverflow += aChannel.mBrightness - 1.0;
+                aChannel.mBrightness = 1.0;
+              }
+            }
+            if (aChannel.mBrightness >= 1.0) {
+              vNumSaturatedChannels++;
+            }
+          });
+        }
+        ForEachChannel(function (aChannel) {
+          aChannel.value = aChannel.mBrightness;
+        });    
+      }
+      WebSocketSendSetChannelBrightness();
+    }
+
+    function OnChannelBrightnessRangeChange() {
+      WebSocketSendSetChannelBrightness();
+    }
+
+    function WebSocketSendSetChannelBrightness() {
+      mWebSocket.send('SetChannelBrightness('
+        + mBrightnessRange0.value + ','
+        + mBrightnessRange1.value + ','
+        + mBrightnessRange2.value + ','
+        + mBrightnessRange3.value + ','
+        + mBrightnessRange4.value + ','
+        + mBrightnessRange5.value + ')');
+    }
+
     function WebSocketSendSetRingColorHSV() {
       mWebSocket.send('SetRingColorHSV('
         + mRingColorRangeH.value + ','
@@ -73,54 +141,23 @@
       mOn.onchange = function() {
         mWebSocket.send('SetOn(' + mOn.checked + ')');
       }
+      mBrightnessRange.onchange = OnBrightnessRangeChange;
       mBrightnessRange.style.backgroundImage = 'linear-gradient(to right, #000 05%, #fff 95%)';
+      mBrightnessRange0.onchange = OnChannelBrightnessRangeChange;
+      mBrightnessRange1.onchange = OnChannelBrightnessRangeChange;
+      mBrightnessRange2.onchange = OnChannelBrightnessRangeChange;
+      mBrightnessRange3.onchange = OnChannelBrightnessRangeChange;
+      mBrightnessRange4.onchange = OnChannelBrightnessRangeChange;
+      mBrightnessRange5.onchange = OnChannelBrightnessRangeChange;
       mBrightnessRange0.style.backgroundImage = 'linear-gradient(to right, #000 05%, #cef 95%)';
       mBrightnessRange1.style.backgroundImage = 'linear-gradient(to right, #000 05%, #fec 95%)';
       mBrightnessRange2.style.backgroundImage = 'linear-gradient(to right, #000 05%, #fb7 95%)';
       mBrightnessRange3.style.backgroundImage = 'linear-gradient(to right, #000 05%, #cef 95%)';
       mBrightnessRange4.style.backgroundImage = 'linear-gradient(to right, #000 05%, #fec 95%)';
       mBrightnessRange5.style.backgroundImage = 'linear-gradient(to right, #000 05%, #fb7 95%)';
-      mBrightnessRange.onchange = function() {
-        mWebSocket.send('SetBrightness(' + mBrightnessRange.value + ')');
-      }
-      mBrightnessRange0.onchange = function() {
-        mWebSocket.send('SetChannelBrightness(0, ' + mBrightnessRange0.value + ')');
-      }
-      mBrightnessRange1.onchange = function() {
-        mWebSocket.send('SetChannelBrightness(1, ' + mBrightnessRange1.value + ')');
-      }
-      mBrightnessRange2.onchange = function() {
-        mWebSocket.send('SetChannelBrightness(2, ' + mBrightnessRange2.value + ')');
-      }
-      mBrightnessRange3.onchange = function() {
-        mWebSocket.send('SetChannelBrightness(3, ' + mBrightnessRange3.value + ')');
-      }
-      mBrightnessRange4.onchange = function() {
-        mWebSocket.send('SetChannelBrightness(4, ' + mBrightnessRange4.value + ')');
-      }
-      mBrightnessRange5.onchange = function() {
-        mWebSocket.send('SetChannelBrightness(5, ' + mBrightnessRange5.value + ')');
-      }
-      /*
-      mBrightnessRange.onmousedown = function() {
-        mBrightnessRange.mIsInteracting = true;
-      }
-      mBrightnessRange.onmouseup = function() {
-        mBrightnessRange.mIsInteracting = false;
-      }
-      mBrightnessRange.oninput = function() {
-        mWebSocket.send('SetBrightness(' + mBrightnessRange.value + ')');
-      }
-      */
-      mRingColorRangeH.onchange = function() {
-        WebSocketSendSetRingColorHSV();
-      }
-      mRingColorRangeS.onchange = function() {
-        WebSocketSendSetRingColorHSV();
-      }
-      mRingColorRangeV.onchange = function() {
-        WebSocketSendSetRingColorHSV();
-      }
+      mRingColorRangeH.onchange = WebSocketSendSetRingColorHSV;
+      mRingColorRangeS.onchange = WebSocketSendSetRingColorHSV;
+      mRingColorRangeV.onchange = WebSocketSendSetRingColorHSV;
     }
 
     function ToHex(aValue) {
@@ -191,15 +228,27 @@
       mRingColorRangeV.disabled = !aOn;
     }
 
-    function UpdateBrightness(aBrightness) {
-      mBrightnessValue.innerHTML = Math.round(100.0 * aBrightness) + '%';
-      // if (!mBrightnessRange.mIsInteracting) {
-        mBrightnessRange.value = aBrightness;
-      // }
+    function GetBrightness() {
+      let vBrightness = 0.0;
+      let vNumberOfChannels = ForEachChannel(function (aChannel) {
+        vBrightness += parseFloat(aChannel.value);
+      });
+      return vBrightness / vNumberOfChannels;
     }
 
-    function UpdateChannelBrightness(aChannel, aBrightness) {
-      document.getElementById('mBrightnessRange' + aChannel).value = aBrightness;
+    function UpdateBrightness(aBrightness) {
+      mBrightnessValue.innerHTML = Math.round(100.0 * aBrightness) + '%';
+      mBrightnessRange.value = aBrightness;
+    }
+
+    function UpdateChannelBrightness(aB0, aB1, aB2, aB3, aB4, aB5) {
+      mBrightnessRange0.value = aB0;
+      mBrightnessRange1.value = aB1;
+      mBrightnessRange2.value = aB2;
+      mBrightnessRange3.value = aB3;
+      mBrightnessRange4.value = aB4;
+      mBrightnessRange5.value = aB5;
+      UpdateBrightness(GetBrightness());
     }
 
     function UpdateRingColorHSV(aH, aS, aV) {
@@ -252,14 +301,14 @@
     <table id='mBrightnessTable'>
       <tr>
         <td>
-          <input id='mBrightnessRange0' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
-          <input id='mBrightnessRange1' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
-          <input id='mBrightnessRange2' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled>
+          <input id='mBrightnessRange0' type='range' min='0' max='1' step='0.01' value='0' class='cChannel range_slider' disabled><br>
+          <input id='mBrightnessRange1' type='range' min='0' max='1' step='0.01' value='0' class='cChannel range_slider' disabled><br>
+          <input id='mBrightnessRange2' type='range' min='0' max='1' step='0.01' value='0' class='cChannel range_slider' disabled>
         </td>
         <td>
-          <input id='mBrightnessRange3' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
-          <input id='mBrightnessRange4' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
-          <input id='mBrightnessRange5' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled>
+          <input id='mBrightnessRange3' type='range' min='0' max='1' step='0.01' value='0' class='cChannel range_slider' disabled><br>
+          <input id='mBrightnessRange4' type='range' min='0' max='1' step='0.01' value='0' class='cChannel range_slider' disabled><br>
+          <input id='mBrightnessRange5' type='range' min='0' max='1' step='0.01' value='0' class='cChannel range_slider' disabled>
         </td>
       </tr>
     </table>

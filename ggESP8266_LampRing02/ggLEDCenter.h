@@ -48,64 +48,12 @@ public:
     SetOn(!GetOn());
   }
 
-  float GetBrightness() const {
-    float vBrightness = 0.0f;
+  void ChangeBrightness(const float& aBrightnessDelta) {
     ForEachChannel([&] (int aChannel) {
-      vBrightness += GetChannelBrightness(aChannel);
+      const float vBrightness = mBrightness[aChannel] + aBrightnessDelta;
+      mBrightness[aChannel] = ggClamp(vBrightness, 0.0f, 1.0f);;
     });
-    return vBrightness / GetNumberOfChannels();
-  }
-
-  void SetBrightness(float aBrightness) {
-    float vBrightnessOld = GetBrightness();
-    if (vBrightnessOld == 0.0f) {
-      SetChannelBrightness(aBrightness);
-    }
-    else if (!ggEqual(aBrightness, vBrightnessOld)) {
-      float vRatio = aBrightness / vBrightnessOld;
-      float vBrightness[TNumChannels];
-      ForEachChannel([&] (int aChannel) {
-        vBrightness[aChannel] = mBrightness[aChannel];
-      });
-      int vNumSaturatedChannels = 0;
-      float vBrightnessOverflow = 0.0f;
-      ForEachChannel([&] (int aChannel) {
-        vBrightness[aChannel] *= vRatio;
-        if (vBrightness[aChannel] > 1.0f) {
-          vBrightnessOverflow += vBrightness[aChannel] - 1.0f;
-          vBrightness[aChannel] = 1.0f;
-        }
-        if (vBrightness[aChannel] >= 1.0) {
-          vNumSaturatedChannels++;
-        }
-      });
-      while ((vBrightnessOverflow > 0.0f) &&
-             (vNumSaturatedChannels < TNumChannels)) {
-        float vBrightnessAdd = vBrightnessOverflow / (TNumChannels - vNumSaturatedChannels);
-        vBrightnessOverflow = 0.0f;
-        vNumSaturatedChannels = 0;
-        ForEachChannel([&] (int aChannel) {
-          if (vBrightness[aChannel] < 1.0f) {
-            vBrightness[aChannel] += vBrightnessAdd;
-            if (vBrightness[aChannel] > 1.0f) {
-              vBrightnessOverflow += vBrightness[aChannel] - 1.0f;
-              vBrightness[aChannel] = 1.0f;
-            }
-          }
-          if (vBrightness[aChannel] >= 1.0) {
-            vNumSaturatedChannels++;
-          }
-        });
-      }
-      ForEachChannel([&] (int aChannel) {
-        mBrightness[aChannel] = vBrightness[aChannel];
-      });
-      UpdateOutput();
-    }
-  }
-
-  void ChangeBrightness(float aBrightnessDelta) {
-    SetBrightness(GetBrightness() + aBrightnessDelta);
+    UpdateOutput();
   }
 
   int GetNumberOfChannels() const {
@@ -119,14 +67,15 @@ public:
     }
   }
 
-  float GetChannelBrightness(int aChannel) const {
+  inline float GetChannelBrightness(int aChannel) const {
     if ((0 <= aChannel) && (aChannel < TNumChannels)) {
       return mBrightness[aChannel];
     }
-    return 0.0;
+    return 0.0f;
   }
 
   void SetChannelBrightness(float aBrightness) {
+    GG_DEBUG();
     ForEachChannel([&] (int aChannel) {
       mBrightness[aChannel] = aBrightness;
     });
@@ -134,6 +83,7 @@ public:
   }
 
   void SetChannelBrightness(int aChannel, float aBrightness) {
+    GG_DEBUG();
     if ((0 <= aChannel) && (aChannel < TNumChannels)) {
       float vBrightness = ggClamp(aBrightness, 0.0f, 1.0f);
       if (mBrightness[aChannel] != vBrightness) {
@@ -145,7 +95,7 @@ public:
 
 private:
 
-  static int GetChannelPWM(int aChannel) {
+  inline static int GetChannelPWM(int aChannel) {
     switch (aChannel) {
       case 0: return  6; // right white cold
       case 1: return 10; // right white warm
@@ -157,17 +107,19 @@ private:
     }
   }
 
-  void AnalogWrite(int aChannelPWM, int aValue) {
+  inline void AnalogWrite(int aChannelPWM, int aValue) {
     mModulePWM.setPin(aChannelPWM, aValue);
   }
 
-  void UpdateOutput(int aChannel) {
+  inline void UpdateOutput(int aChannel) {
+    GG_DEBUG();
     int vChannelPWM = GetChannelPWM(aChannel);
-    int vValuePWM = GetOn() ? mLogTable.Get(mBrightness[aChannel].Get()) : 0;
+    int vValuePWM = GetOn() ? mLogTable.Get(mBrightness[aChannel]) : 0;
     AnalogWrite(vChannelPWM, vValuePWM);
   }
 
   void UpdateOutput() {
+    GG_DEBUG();
     ForEachChannel([&] (int aChannel) {
       UpdateOutput(aChannel);
     });

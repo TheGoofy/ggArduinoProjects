@@ -12,7 +12,7 @@ public:
     InitializeTable(aMax);
   }
 
-  int Get(const float& aInputValue) const {
+  inline int Get(const float& aInputValue) const {
     int vIndex = aInputValue * (mTable.size() - 1) + 0.5f;
     return mTable[ggClamp<int>(vIndex, 0, mTable.size() - 1)];
   }
