@@ -43,7 +43,7 @@ public:
   inline void Set(const TValue& aValue) {
     if (mValue != aValue) {
       mValue = aValue;
-      Write(true);
+      if (!WriteLazy()) Write(true);
     }
   }
 

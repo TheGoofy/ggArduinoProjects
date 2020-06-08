@@ -49,6 +49,7 @@ public:
   }
 
   void ChangeBrightness(const float& aBrightnessDelta) {
+    ggValueEEProm::cLazyWriter vLazyWriter;
     ForEachChannel([&] (int aChannel) {
       const float vBrightness = mBrightness[aChannel] + aBrightnessDelta;
       mBrightness[aChannel] = ggClamp(vBrightness, 0.0f, 1.0f);;
@@ -76,6 +77,7 @@ public:
 
   void SetChannelBrightness(float aBrightness) {
     GG_DEBUG();
+    ggValueEEProm::cLazyWriter vLazyWriter;
     ForEachChannel([&] (int aChannel) {
       mBrightness[aChannel] = aBrightness;
     });

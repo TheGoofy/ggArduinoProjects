@@ -15,6 +15,24 @@ public:
   // - ... any default value changes
   static void Begin(size_t aSize = 512);
 
+  class cLazyWriter {
+  public:
+    cLazyWriter()
+    : mWasWriteLazy(WriteLazy()) {
+      WriteLazy() = true;
+    }
+    virtual ~cLazyWriter() {
+      if (!mWasWriteLazy) {
+        WriteLazy() = false;
+        WriteHeader();
+        WriteData();
+        EEPROM.commit();
+      }
+    }
+  private:
+    bool mWasWriteLazy;
+  };
+
 protected:
 
   ggValueEEProm(int aSize);
@@ -25,6 +43,11 @@ protected:
   virtual void Write(bool aCommit) = 0;
 
   static void WriteHeader();
+
+  static bool& WriteLazy() {
+    static bool vWriteLazy = false;
+    return vWriteLazy;
+  }
   
   // EEProm address of single value item
   const int mAddressEEProm;

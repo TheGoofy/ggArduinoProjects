@@ -112,6 +112,7 @@ void WebSocketsUpdateChannelBrightness(int aClientID = -1)
 void PeripheryLEDCenterSetChannelBrightness(const float& aB0, const float& aB1, const float& aB2, const float& aB3, const float& aB4, const float& aB5)
 {
   GG_DEBUG();
+  ggValueEEProm::cLazyWriter vLazyWriter;
   Periphery().mLEDCenter.SetChannelBrightness(0, aB0);
   Periphery().mLEDCenter.SetChannelBrightness(1, aB1);
   Periphery().mLEDCenter.SetChannelBrightness(2, aB2);
