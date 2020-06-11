@@ -142,12 +142,14 @@
 
     function OnClickButtonHSV(aButtonClicked) {
       aButtonClicked.mSelected = !aButtonClicked.mSelected;
-      let vNumberOfSelectedLocations = 0;
-      if (mButtonHSV0.mSelected) vNumberOfSelectedLocations++;
-      if (mButtonHSV1.mSelected) vNumberOfSelectedLocations++;
-      if (mButtonHSV2.mSelected) vNumberOfSelectedLocations++;
-      if (mButtonHSV3.mSelected) vNumberOfSelectedLocations++;
-      if (vNumberOfSelectedLocations == 0) aButtonClicked.mSelected = true;
+      let vNothingSelected = true;
+      if (mButtonHSV0.mSelected) vNothingSelected = false;
+      if (mButtonHSV1.mSelected) vNothingSelected = false;
+      if (mButtonHSV2.mSelected) vNothingSelected = false;
+      if (mButtonHSV3.mSelected) vNothingSelected = false;
+      mRingColorRangeH.disabled = vNothingSelected;
+      mRingColorRangeS.disabled = vNothingSelected;
+      mRingColorRangeV.disabled = vNothingSelected;
       aButtonClicked.style.border = aButtonClicked.mSelected ? '3px solid #fff' : '3px solid transparent';
       UpdateRingColorRanges();
     }
@@ -283,6 +285,7 @@
       if (mButtonHSV1.mSelected) return mButtonHSV1.mColorHSV;
       if (mButtonHSV2.mSelected) return mButtonHSV2.mColorHSV;
       if (mButtonHSV3.mSelected) return mButtonHSV3.mColorHSV;
+      return {mH: 0, mS: 0, mv: 0};
     }
 
     function UpdateRingColorRanges() {
