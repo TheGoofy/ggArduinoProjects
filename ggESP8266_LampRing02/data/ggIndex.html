@@ -21,7 +21,7 @@
   
     function InitWebSocket() {
       if (mWebSocketServer == '') {
-        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.152");
+        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.151");
       }
       mWebSocket = new WebSocket('ws://' + mWebSocketServer +':81/', ['arduino']);
       mWebSocket.onopen = onWebSocketOpen;
@@ -128,10 +128,28 @@
     }
 
     function WebSocketSendSetRingColorHSV() {
+      let vLocations = 0;
+      if (mButtonHSV0.mSelected) vLocations |= 1;
+      if (mButtonHSV1.mSelected) vLocations |= 2;
+      if (mButtonHSV2.mSelected) vLocations |= 4;
+      if (mButtonHSV3.mSelected) vLocations |= 8;
       mWebSocket.send('SetRingColorHSV('
         + mRingColorRangeH.value + ','
         + mRingColorRangeS.value + ','
-        + mRingColorRangeV.value + ')');
+        + mRingColorRangeV.value + ','
+        + vLocations + ')');
+    }
+
+    function OnClickButtonHSV(aButtonClicked) {
+      aButtonClicked.mSelected = !aButtonClicked.mSelected;
+      let vNumberOfSelectedLocations = 0;
+      if (mButtonHSV0.mSelected) vNumberOfSelectedLocations++;
+      if (mButtonHSV1.mSelected) vNumberOfSelectedLocations++;
+      if (mButtonHSV2.mSelected) vNumberOfSelectedLocations++;
+      if (mButtonHSV3.mSelected) vNumberOfSelectedLocations++;
+      if (vNumberOfSelectedLocations == 0) aButtonClicked.mSelected = true;
+      aButtonClicked.style.border = aButtonClicked.mSelected ? '3px solid #fff' : '3px solid transparent';
+      UpdateRingColorRanges();
     }
 
     function InitHtmlElements() {
@@ -158,6 +176,11 @@
       mRingColorRangeH.onchange = WebSocketSendSetRingColorHSV;
       mRingColorRangeS.onchange = WebSocketSendSetRingColorHSV;
       mRingColorRangeV.onchange = WebSocketSendSetRingColorHSV;
+      mButtonHSV0.mSelected = true;
+      mButtonHSV0.style.border = '3px solid #fff';
+      mButtonHSV1.mSelected = false;
+      mButtonHSV2.mSelected = false;
+      mButtonHSV3.mSelected = false;
     }
 
     function ToHex(aValue) {
@@ -226,6 +249,10 @@
       mRingColorRangeH.disabled = !aOn;
       mRingColorRangeS.disabled = !aOn;
       mRingColorRangeV.disabled = !aOn;
+      mButtonHSV0.disabled = !aOn;
+      mButtonHSV1.disabled = !aOn;
+      mButtonHSV2.disabled = !aOn;
+      mButtonHSV3.disabled = !aOn;
     }
 
     function GetBrightness() {
@@ -251,25 +278,47 @@
       UpdateBrightness(GetBrightness());
     }
 
-    function UpdateRingColorHSV(aH, aS, aV) {
-      mRingColorValueHSV.innerHTML = aH + '/' + aS + '/' + aV;
-      mRingColorRangeH.value = aH;
-      mRingColorRangeS.value = aS;
-      mRingColorRangeV.value = aV;
+    function GetSelectedColorHSV() {
+      if (mButtonHSV0.mSelected) return mButtonHSV0.mColorHSV;
+      if (mButtonHSV1.mSelected) return mButtonHSV1.mColorHSV;
+      if (mButtonHSV2.mSelected) return mButtonHSV2.mColorHSV;
+      if (mButtonHSV3.mSelected) return mButtonHSV3.mColorHSV;
+    }
+
+    function UpdateRingColorRanges() {
+      let vColorHSV = GetSelectedColorHSV();
+      let [vH, vS, vV] = [vColorHSV.mH, vColorHSV.mS, vColorHSV.mV];
+      mRingColorValueHSV.innerHTML = vH + '/' + vS + '/' + vV;
+      mRingColorRangeH.value = vH;
+      mRingColorRangeS.value = vS;
+      mRingColorRangeV.value = vV;
       mRingColorRangeH.style.backgroundImage = 'linear-gradient(to right, '
-        + HSVtoRGB(  0.0,aS,aV) + ' 5%, '
-        + HSVtoRGB( 43.5,aS,aV) + ', '
-        + HSVtoRGB( 85.0,aS,aV) + ', '
-        + HSVtoRGB(127.5,aS,aV) + ', '
-        + HSVtoRGB(170.0,aS,aV) + ', '
-        + HSVtoRGB(221.5,aS,aV) + ', '
-        + HSVtoRGB(255.0,aS,aV) + ' 95%)';
+        + HSVtoRGB(  0.0,vS,vV) + ' 5%, '
+        + HSVtoRGB( 43.5,vS,vV) + ', '
+        + HSVtoRGB( 85.0,vS,vV) + ', '
+        + HSVtoRGB(127.5,vS,vV) + ', '
+        + HSVtoRGB(170.0,vS,vV) + ', '
+        + HSVtoRGB(221.5,vS,vV) + ', '
+        + HSVtoRGB(255.0,vS,vV) + ' 95%)';
       mRingColorRangeS.style.backgroundImage = 'linear-gradient(to right, '
-        + HSVtoRGB(aH,0,aV) + ' 5%, '
-        + HSVtoRGB(aH,255,aV) + ' 95%)';
+        + HSVtoRGB(vH,0,vV) + ' 5%, '
+        + HSVtoRGB(vH,255,vV) + ' 95%)';
       mRingColorRangeV.style.backgroundImage = 'linear-gradient(to right, '
-        + HSVtoRGB(aH,aS,0) + ' 5%, '
-        + HSVtoRGB(aH,aS,255) + ' 95%)';
+        + HSVtoRGB(vH,vS,0) + ' 5%, '
+        + HSVtoRGB(vH,vS,255) + ' 95%)';
+    }
+
+    function AssignColor(aButton, aH, aS, aV) {
+      aButton.mColorHSV = {mH: aH, mS: aS, mV: aV};
+      aButton.style.backgroundColor = HSVtoRGB(aH, aS, aV);
+    }
+
+    function UpdateRingColorHSV(aH0, aS0, aV0, aH1, aS1, aV1, aH2, aS2, aV2, aH3, aS3, aV3) {
+      AssignColor(mButtonHSV0, aH0, aS0, aV0);
+      AssignColor(mButtonHSV1, aH1, aS1, aV1);
+      AssignColor(mButtonHSV2, aH2, aS2, aV2);
+      AssignColor(mButtonHSV3, aH3, aS3, aV3);
+      UpdateRingColorRanges();
     }
 
   </script>
@@ -283,22 +332,24 @@
     </style>  
     <input id='mName' type='text' value='(na)' style='width:100%' class='cRoundedCentered' maxlength='30'>
 
-    <style>
-      .cTitleDiv { text-align: center; }
-    </style>
-
-    <div class='cTitleDiv'>Power: <span id='mOnValue'>(na)</span></div>
-    <label class='switch'><input id='mOn' type='checkbox'><span class='switch_slider round'></span></label><br>
+    <label class='switch' style='width:100%'>
+      <input id='mOn' type='checkbox'>
+      <span class='switch_slider round'></span>
+    </label>
 
     <br>
+    <br>
 
-    <div class='cTitleDiv'>Brightness: <span id='mBrightnessValue'>(na)</span></div>
-    <input id='mBrightnessRange' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
     <style>
       #mBrightnessTable { margin-left:auto; margin-right: auto; border-collapse: collapse; width: 100%;}
       #mBrightnessTable td { text-align: center; }
     </style>
     <table id='mBrightnessTable'>
+      <tr>
+        <td colspan='2'>
+          <input id='mBrightnessRange' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
+        </td>
+      </tr>
       <tr>
         <td>
           <input id='mBrightnessRange0' type='range' min='0' max='1' step='0.01' value='0' class='cChannel range_slider' disabled><br>
@@ -315,20 +366,41 @@
 
     <br>
 
-    <div class='cTitleDiv'>Ring Color: <span id='mRingColorValueHSV'>(na)</span></div>
+    <style>
+      #mLocationTable { margin-left:auto; margin-right: auto; border-collapse: collapse; width: 100%; }
+      .cButtonRound { border-radius: 17px; height: 34px; color: white; background-color: #000;
+        border: 3px solid transparent; cursor: pointer; text-decoration: double; 
+        -webkit-transition: 0.3s; transition: opacity 0.3s; }
+      .cButtonRound:disabled { opacity: 0.3; }
+    </style>
+    <table id='mLocationTable'>
+      <tr>
+        <td><input id="mButtonHSV0" type="button" onclick='OnClickButtonHSV(this)' class="cButtonRound cButtonHSV" style='width:100%' value=''/></td>
+        <td><input id="mButtonHSV1" type="button" onclick='OnClickButtonHSV(this)' class="cButtonRound cButtonHSV" style='width:100%' value=''/></td>
+        <td><input id="mButtonHSV2" type="button" onclick='OnClickButtonHSV(this)' class="cButtonRound cButtonHSV" style='width:100%' value=''/></td>
+        <td><input id="mButtonHSV3" type="button" onclick='OnClickButtonHSV(this)' class="cButtonRound cButtonHSV" style='width:100%' value=''/></td>
+      </tr>
+    </table>
+
     <input id='mRingColorRangeH' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled><br>
     <input id='mRingColorRangeS' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled><br>
     <input id='mRingColorRangeV' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled><br>
 
-    <br>
     <hr noshade>
 
-    Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
+    <div>Power: <span id='mOnValue'>(na)</span></div>
+    <div>Brightness: <span id='mBrightnessValue'>(na)</span></div>
+    <div>Color HSV: <span id='mRingColorValueHSV'>(na)</span></div>
+    <div>Web Socket Status: <span id='mWebSocketStatus'>(na)</div>
+
     <hr noshade>
+
     <a href='/'>[home]</a>
     <a href='/files'>[files]</a>
     <a href='/debug'>[debug]</a>
+
     <br>
+
     (c) 2020, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
 
   </div>

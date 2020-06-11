@@ -125,9 +125,14 @@ void PeripheryLEDCenterSetChannelBrightness(const float& aB0, const float& aB1, 
 void WebSocketsUpdateRingColorHSV(int aClientID = -1)
 {
   GG_DEBUG();
-  WebSockets().UpdateRingColorHSV(Periphery().mLEDRing.GetColorHSV().mH,
-                                  Periphery().mLEDRing.GetColorHSV().mS,
-                                  Periphery().mLEDRing.GetColorHSV().mV,
+  const ggColor::cHSV& vHSV0(Periphery().mLEDRing.GetColorHSV(ggLocations::eBackBase));
+  const ggColor::cHSV& vHSV1(Periphery().mLEDRing.GetColorHSV(ggLocations::eBackTop));
+  const ggColor::cHSV& vHSV2(Periphery().mLEDRing.GetColorHSV(ggLocations::eFrontBase));
+  const ggColor::cHSV& vHSV3(Periphery().mLEDRing.GetColorHSV(ggLocations::eFrontTop));
+  WebSockets().UpdateRingColorHSV(vHSV0.mH, vHSV0.mS, vHSV0.mV,
+                                  vHSV1.mH, vHSV1.mS, vHSV1.mV,
+                                  vHSV2.mH, vHSV2.mS, vHSV2.mV,
+                                  vHSV3.mH, vHSV3.mS, vHSV3.mV,
                                   aClientID);
 }
 
@@ -137,18 +142,18 @@ struct ggState {
   typedef enum tEnum {
     eOff,
     eOn,
-    eEditChannel0,
-    eEditChannel1,
-    eEditChannel2,
+    eEditColorChannel0,
+    eEditColorChannel1,
+    eEditColorChannel2,
     eEditReset,
     eResetWiFi
   };
 
-  static int GetChannelIndex(tEnum aState) {
+  static int GetColorChannelIndex(tEnum aState) {
     switch (aState) {
-      case eEditChannel0: return 0;
-      case eEditChannel1: return 1;
-      case eEditChannel2: return 2;
+      case eEditColorChannel0: return 0;
+      case eEditColorChannel1: return 1;
+      case eEditColorChannel2: return 2;
       default: return 0;
     }
   }
@@ -201,22 +206,22 @@ public:
         break;
       case ggState::eOn:
         if (aEvent == ggEvent::eClick) SetState(ggState::eOff);
-        if (aEvent == ggEvent::eClickLong) SetState(ggState::eEditChannel0);
+        if (aEvent == ggEvent::eClickLong) SetState(ggState::eEditColorChannel0);
         break;
-      case ggState::eEditChannel0:
-        if (aEvent == ggEvent::eClick) SetState(ggState::eEditChannel1);
+      case ggState::eEditColorChannel0:
+        if (aEvent == ggEvent::eClick) SetState(ggState::eEditColorChannel1);
         if (aEvent == ggEvent::eTimeout) SetState(ggState::eOn);
         break;
-      case ggState::eEditChannel1:
-        if (aEvent == ggEvent::eClick) SetState(ggState::eEditChannel2);
+      case ggState::eEditColorChannel1:
+        if (aEvent == ggEvent::eClick) SetState(ggState::eEditColorChannel2);
         if (aEvent == ggEvent::eTimeout) SetState(ggState::eOn);
         break;
-      case ggState::eEditChannel2:
+      case ggState::eEditColorChannel2:
         if (aEvent == ggEvent::eClick) SetState(ggState::eEditReset);
         if (aEvent == ggEvent::eTimeout) SetState(ggState::eOn);
         break;
       case ggState::eEditReset:
-        if (aEvent == ggEvent::eClick) SetState(ggState::eEditChannel0);
+        if (aEvent == ggEvent::eClick) SetState(ggState::eEditColorChannel0);
         if (aEvent == ggEvent::eClickLong) SetState(ggState::eResetWiFi); // potentially this will reboot the system ...
         if (aEvent == ggEvent::eTimeout) SetState(ggState::eOn);
         break;
@@ -263,19 +268,19 @@ void ConnectComponents()
         Periphery().mLEDRing.DisplayNormal();
         WebSockets().UpdateOn(Periphery().GetOn());
         break;
-      case ggState::eEditChannel0:
+      case ggState::eEditColorChannel0:
         Periphery().mDisplay.SetText(0, "Color Hue");
-        Periphery().mLEDRing.DisplayChannel(0);
+        Periphery().mLEDRing.DisplayColorChannel(0);
         EditTimer().Reset();
         break;
-      case ggState::eEditChannel1:
+      case ggState::eEditColorChannel1:
         Periphery().mDisplay.SetText(0, "Saturaton");
-        Periphery().mLEDRing.DisplayChannel(1);
+        Periphery().mLEDRing.DisplayColorChannel(1);
         EditTimer().Reset();
         break;
-      case ggState::eEditChannel2:
+      case ggState::eEditColorChannel2:
         Periphery().mDisplay.SetText(0, "Brightness");
-        Periphery().mLEDRing.DisplayChannel(2);
+        Periphery().mLEDRing.DisplayColorChannel(2);
         EditTimer().Reset();
         break;
       case ggState::eEditReset:
@@ -320,10 +325,10 @@ void ConnectComponents()
         WebSocketsUpdateChannelBrightness();
         EditTimer().Reset();
         break;
-      case ggState::eEditChannel0:
-      case ggState::eEditChannel1:
-      case ggState::eEditChannel2:
-        Periphery().mLEDRing.ChangeChannel(ggState::GetChannelIndex(mLampState.GetState()), aValueDelta);
+      case ggState::eEditColorChannel0:
+      case ggState::eEditColorChannel1:
+      case ggState::eEditColorChannel2:
+        Periphery().mLEDRing.ChangeColorChannel(ggState::GetColorChannelIndex(mLampState.GetState()), aValueDelta);
         WebSocketsUpdateRingColorHSV();
         EditTimer().Reset();
         break;
@@ -374,9 +379,9 @@ void ConnectComponents()
     PeripheryLEDCenterSetChannelBrightness(aB0, aB1, aB2, aB3, aB4, aB5);
     WebSockets().UpdateChannelBrightness(aB0, aB1, aB2, aB3, aB4, aB5);
   });
-  WebSockets().OnSetRingColorHSV([&] (uint32_t aH, uint32_t aS, uint32_t aV) {
-    Periphery().mLEDRing.SetColor(ggColor::cHSV(aH, aS, aV));
-    WebSockets().UpdateRingColorHSV(aH, aS, aV);
+  WebSockets().OnSetRingColorHSV([&] (uint8_t aH, uint8_t aS, uint8_t aV, uint8_t aLocations) {
+    Periphery().mLEDRing.SetColor(ggColor::cHSV(aH, aS, aV), (ggLocations)aLocations);
+    WebSocketsUpdateRingColorHSV();
   });
   
   // web server

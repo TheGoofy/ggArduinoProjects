@@ -1,8 +1,19 @@
 #include <Adafruit_NeoPixel.h>
 #include "ggColor.h"
 
+enum class ggLocations {
+  eBackBase  = 0b00000001,
+  eBackTop   = 0b00000010,
+  eFrontBase = 0b00000100,
+  eFrontTop  = 0b00001000,
+  eBack      = eBackBase  | eBackTop,
+  eFront     = eFrontBase | eFrontTop,
+  eBase      = eBackBase  | eFrontBase,
+  eTop       = eBackTop   | eFrontTop,
+  eAll       = eBack | eFront,
+};
 
-template <int TNumLEDs = 64>
+template <uint16_t TNumLEDs = 64>
 class ggLEDRing {
 
 public:
@@ -10,10 +21,11 @@ public:
   ggLEDRing(int aPinA, int aPinB)
   : mLEDsA(TNumLEDs, aPinA, NEO_BGR + NEO_KHZ800),
     mLEDsB(TNumLEDs, aPinB, NEO_BGR + NEO_KHZ800),
-    mFuncShowStart(nullptr),
-    mFuncShowFinish(nullptr),
     mOn(false),
-    mHSV(ggColor::cHSV(10,255,100)) {
+    mHSV({ggColor::cHSV::DarkOrange(),
+          ggColor::cHSV::DarkBlue(),
+          ggColor::cHSV::DarkOrange(),
+          ggColor::cHSV::DarkBlue()}) {
   }
 
   void Begin() {
@@ -24,7 +36,9 @@ public:
   }
 
   void ResetSettings() {
-    SetColor(ggColor::cHSV(10,255,100));
+    ggValueEEProm::cLazyWriter vLazyWriter;
+    SetColor(ggColor::cHSV::DarkOrange(), ggLocations::eBase);
+    SetColor(ggColor::cHSV::DarkBlue(), ggLocations::eTop);
   }
 
   bool GetOn() const {
@@ -42,28 +56,31 @@ public:
     SetOn(!GetOn());
   }
 
-  const ggColor::cHSV& GetColorHSV() const {
-    return mHSV.Get();
+  const ggColor::cHSV& GetColorHSV(ggLocations aLocations) const {
+    return GetColor(GetLocationIndex(aLocations));
   }
 
-  ggColor::cRGB GetColorRGB() const {
-    return ggColor::ToRGB(mHSV);
+  ggColor::cRGB GetColorRGB(ggLocations aLocations) const {
+    return ggColor::ToRGB(GetColorHSV(aLocations));
   }
 
-  void SetColor(const ggColor::cHSV& aHSV) {
-    if (mHSV.Get() != aHSV) {
-      mHSV = aHSV;
-      UpdateOutput();
-    }
+  void SetColor(const ggColor::cHSV& aHSV, ggLocations aLocations = ggLocations::eAll) {
+    bool vColorChanged = false;
+    ggValueEEProm::cLazyWriter vLazyWriter;
+    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eBackBase),  vColorChanged);
+    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eBackTop),   vColorChanged);
+    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eFrontBase), vColorChanged);
+    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eFrontTop),  vColorChanged);
+    if (vColorChanged) UpdateOutput();
   }
 
-  void SetColor(const ggColor::cRGB& aRGB) {
-    SetColor(ggColor::ToHSV(aRGB));
+  void SetColor(const ggColor::cRGB& aRGB, ggLocations aLocations = ggLocations::eAll) {
+    SetColor(ggColor::ToHSV(aRGB), aLocations);
   }
 
-  void ChangeChannel(int aChannel, int aDelta) {
+  void ChangeColorChannel(int aChannel, int aDelta, ggLocations aLocations = ggLocations::eAll) {
     if (!GetOn()) return;
-    ggColor::cHSV vHSV = mHSV;
+    ggColor::cHSV vHSV = mHSV[0];
     int vValue = vHSV.mChannels[aChannel];
     switch (aChannel) {
       case 0: vValue = (vValue + aDelta) & 0xff; break;
@@ -71,10 +88,7 @@ public:
       case 2: vValue = ggClamp<int>(vValue + aDelta, 0, 255); break;
     }
     vHSV.mChannels[aChannel] = vValue;
-    if (mHSV.Get() != vHSV) {
-      mHSV = vHSV;
-      UpdateOutput();
-    }
+    SetColor(vHSV, aLocations);
   }
 
   void DisplayColor(const ggColor::cRGB& aColor) {
@@ -83,8 +97,8 @@ public:
     Show();
   }
 
-  void DisplayChannel(int aChannel) {
-    ggColor::cHSV vHSV = mHSV;
+  void DisplayColorChannel(int aChannel) {
+    ggColor::cHSV vHSV = mHSV[0];
     if ((aChannel != 1) && (vHSV.mS < 128)) vHSV.mS = 128;
     if ((aChannel != 2) && (vHSV.mV < 128)) vHSV.mV = 128;
     for (int vIndex = 0; vIndex < TNumLEDs; vIndex++) {
@@ -104,49 +118,87 @@ public:
     Show();
   }
 
-  typedef std::function<void()> tFunc;
-  
-  void OnShowStart(tFunc aFuncShowStart) {
-    mFuncShowStart = aFuncShowStart;
-  }
-
-  void OnShowFinish(tFunc aFuncShowFinish) {
-    mFuncShowFinish = aFuncShowFinish;
-  }
-
   void DisplayNormal() {
     UpdateOutput();
   }
 
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggLEDRing", aName);
+    vDebug.PrintF("mOn=%d\n", mOn);
+    vDebug.PrintF("mHSV[0]=%d/%d/%d\n", mHSV[0].Get().mH, mHSV[0].Get().mS, mHSV[0].Get().mV);
+    vDebug.PrintF("mHSV[1]=%d/%d/%d\n", mHSV[1].Get().mH, mHSV[1].Get().mS, mHSV[1].Get().mV);
+    vDebug.PrintF("mHSV[2]=%d/%d/%d\n", mHSV[2].Get().mH, mHSV[2].Get().mS, mHSV[2].Get().mV);
+    vDebug.PrintF("mHSV[3]=%d/%d/%d\n", mHSV[3].Get().mH, mHSV[3].Get().mS, mHSV[3].Get().mV);
+    vDebug.PrintF("mLEDsA[0..%d]=\n", mLEDsA.numPixels() - 1);
+    for (int vIndex = 0; vIndex < mLEDsA.numPixels(); vIndex++) {
+      ggColor::cRGB vRGB(mLEDsA.getPixelColor(vIndex));
+      vDebug.GetStream().printf("%d/%d/%d ", vRGB.mR, vRGB.mG, vRGB.mB);
+      if ((vIndex % 8 == 7) || (vIndex + 1 == mLEDsB.numPixels())) vDebug.GetStream().printf("\n");
+    }
+    vDebug.PrintF("mLEDsB[0..%d]=\n", mLEDsB.numPixels() - 1);
+    for (int vIndex = 0; vIndex < mLEDsB.numPixels(); vIndex++) {
+      ggColor::cRGB vRGB(mLEDsB.getPixelColor(vIndex));
+      vDebug.GetStream().printf("%d/%d/%d ", vRGB.mR, vRGB.mG, vRGB.mB);
+      if ((vIndex % 8 == 7) || (vIndex + 1 == mLEDsB.numPixels())) vDebug.GetStream().printf("\n");
+    }
+  }
+
 private:
 
-  template <typename TStream>
-  void Print(TStream& aStream) {
-    aStream.printf("%s - mOn=%d mHSV=%d/%d/%d\n", __PRETTY_FUNCTION__, mOn, mHSV.Get().mH, mHSV.Get().mS, mHSV.Get().mV);
-    for (int vIndex = 0; vIndex < TNumLEDs; vIndex++) {
-      ggColor::cRGB vRGB(mLEDsA.getPixelColor(vIndex));
-      aStream.printf("mLEDsA[%d]=%d/%d/%d ", vIndex, vRGB.mR, vRGB.mG, vRGB.mB);
-      if (vIndex % 6 == 5) aStream.println();
+  inline static int GetLocationIndex(ggLocations aLocations, ggLocations aLocationToCheck = ggLocations::eAll) {
+    ggLocations vLocations = (ggLocations)((int)aLocations & (int)aLocationToCheck);
+    switch (vLocations) {
+      case ggLocations::eBackBase:  return 0;
+      case ggLocations::eBackTop:   return 1;
+      case ggLocations::eFrontBase: return 2;
+      case ggLocations::eFrontTop:  return 3;
+      default: return -1;
     }
-    aStream.flush();
   }
-   
+
+  const ggColor::cHSV& GetColor(int aLocatonIndex) const {
+    if ((0 <= aLocatonIndex) && (aLocatonIndex < 4)) return mHSV[aLocatonIndex];
+    else return mHSV[0];
+  }
+
+  void SetColor(const ggColor::cHSV& aHSV, int aLocatonIndex, bool& aChanged) {
+    if ((0 <= aLocatonIndex) && (aLocatonIndex < 4)) {
+      if (mHSV[aLocatonIndex].Get() != aHSV) {
+        mHSV[aLocatonIndex] = aHSV;
+        aChanged = true;
+      }
+    }
+  }
+
   void Show() {
-    if (mFuncShowStart != nullptr) mFuncShowStart();
     mLEDsA.show();
     mLEDsB.show();
-    if (mFuncShowFinish != nullptr) mFuncShowFinish();
+  }
+
+  static void FillGradient(Adafruit_NeoPixel& aLEDs,
+                           const ggColor::cRGB& aRGB0,
+                           const ggColor::cRGB& aRGB1) {
+    const uint16_t vNumLEDs = aLEDs.numPixels();
+    int32_t vDeltaR = (int32_t)aRGB1.mR - (int32_t)aRGB0.mR;
+    int32_t vDeltaG = (int32_t)aRGB1.mG - (int32_t)aRGB0.mG;
+    int32_t vDeltaB = (int32_t)aRGB1.mB - (int32_t)aRGB0.mB;
+    for (uint16_t vIndex = 0; vIndex < vNumLEDs; vIndex++) {
+      ggColor::cRGB vRGB(aRGB0.mR + vIndex * vDeltaR / (vNumLEDs - 1),
+                         aRGB0.mG + vIndex * vDeltaG / (vNumLEDs - 1),
+                         aRGB0.mB + vIndex * vDeltaB / (vNumLEDs - 1));
+      aLEDs.setPixelColor(vIndex, vRGB);
+    }
   }
 
   void UpdateOutput() {
     // Print(Serial);
     if (GetOn()) {
-      mLEDsA.fill(ggColor::ToRGB(mHSV.Get()));
-      mLEDsB.fill(ggColor::ToRGB(mHSV.Get()));
+      FillGradient(mLEDsA, ggColor::ToRGB(mHSV[0].Get()), ggColor::ToRGB(mHSV[1].Get()));
+      FillGradient(mLEDsB, ggColor::ToRGB(mHSV[2].Get()), ggColor::ToRGB(mHSV[3].Get()));
     }
     else {
-      mLEDsA.fill(ggColor::cRGB::Black());
-      mLEDsB.fill(ggColor::cRGB::Black());
+      mLEDsA.clear();
+      mLEDsB.clear();
     }
     Show();
   }
@@ -154,11 +206,9 @@ private:
   // basic setup
   Adafruit_NeoPixel mLEDsA;
   Adafruit_NeoPixel mLEDsB;
-  tFunc mFuncShowStart;
-  tFunc mFuncShowFinish;
   bool mOn;
   
   // persistent settings
-  ggValueEEPromT<ggColor::cHSV> mHSV;
+  ggValueEEPromT<ggColor::cHSV> mHSV[4];
   
 };

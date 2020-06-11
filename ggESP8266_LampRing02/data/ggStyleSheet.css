@@ -63,16 +63,9 @@ td {
   text-align: center;
 }
 
-input[type=button] {
-  background-color: #000;
-  border: none;
-  cursor: pointer;
-}
-
 .switch {
   position: relative;
   display: inline-block;
-  width: 100%;
   height: 34px;
 }
 
@@ -90,8 +83,8 @@ input[type=button] {
   right: 0;
   bottom: 0;
   background-color: #000;
-  -webkit-transition: .4s;
-  transition: .4s;
+  -webkit-transition: .5s;
+  transition: .5s;
 }
 
 .switch_slider:before {
@@ -102,8 +95,8 @@ input[type=button] {
   left: 4px;
   bottom: 4px;
   background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
+  -webkit-transition: .5s;
+  transition: .5s;
 }
 
 input:checked + .switch_slider {
@@ -115,9 +108,9 @@ input:focus + .switch_slider {
 }
 
 input:checked + .switch_slider:before {
-  -webkit-transform: translate(302px, -1px);
-  -ms-transform: translate(302px, -1px);
-  transform: translate(302px, -1px);
+  -webkit-transform: translate(306px, -1px);
+  -ms-transform: translate(306px, -1px);
+  transform: translate(306px, -1px);
 }
 
 .switch_slider.round {
@@ -137,8 +130,8 @@ input:checked + .switch_slider:before {
   background: #000;
   outline: none;
   opacity: 1;
-  -webkit-transition: .2s;
-  transition: opacity .2s;
+  -webkit-transition: .3s;
+  transition: opacity .3s;
 }
 
 .range_slider:disabled {

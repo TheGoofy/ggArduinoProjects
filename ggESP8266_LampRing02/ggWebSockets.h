@@ -10,6 +10,7 @@ public:
 
   typedef std::function<void(int aClientNumber)> tClientConnectFunc;
   typedef std::function<void(float, float, float, float, float, float)> tSetChannelBrightnessFunc;
+  typedef std::function<void(uint8_t, uint8_t, uint8_t, uint8_t)> tSetRingColorHSVFunc;
   typedef std::function<void(bool aValue)> tSetBoolValueFunc;
   typedef std::function<void(uint32_t aClientNumber)> tSetUInt32ValueFunc;
   typedef std::function<void(uint32_t, uint32_t, uint32_t)> tSet3UInt32ValueFunc;
@@ -51,8 +52,15 @@ public:
     UpdateClientTXT(String("UpdateChannelBrightness(") + aB0 + "," + aB1 + "," + aB2 + "," + aB3 + "," + aB4 + "," + aB5 + ")", aClientID);
   }
 
-  void UpdateRingColorHSV(uint8_t aH, uint8_t aS, uint8_t aV, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateRingColorHSV(") + aH + "," + aS + "," + aV + ")", aClientID);
+  void UpdateRingColorHSV(uint8_t aH0, uint8_t aS0, uint8_t aV0,
+                          uint8_t aH1, uint8_t aS1, uint8_t aV1,
+                          uint8_t aH2, uint8_t aS2, uint8_t aV2,
+                          uint8_t aH3, uint8_t aS3, uint8_t aV3,
+                          int aClientID = -1) {
+    UpdateClientTXT(String("UpdateRingColorHSV(") + aH0 + "," + aS0 + "," + aV0 + ","
+                                                  + aH1 + "," + aS1 + "," + aV1 + ","
+                                                  + aH2 + "," + aS2 + "," + aV2 + ","
+                                                  + aH3 + "," + aS3 + "," + aV3 + ")", aClientID);
   }
 
   void OnClientConnect(tClientConnectFunc aClientConnectFunc) {
@@ -75,7 +83,7 @@ public:
     mSetChannelBrightnessFunc = aSetChannelBrightnessFunc;
   }
 
-  void OnSetRingColorHSV(tSet3UInt32ValueFunc aSetRingColorHSVFunc) {
+  void OnSetRingColorHSV(tSetRingColorHSVFunc aSetRingColorHSVFunc) {
     mSetRingColorHSVFunc = aSetRingColorHSVFunc;
   }
 
@@ -155,11 +163,12 @@ private:
       }
       return;
     }
-    if (vFunction.GetName() == "SetRingColorHSV" && vFunction.NumArgs() == 3) {
+    if (vFunction.GetName() == "SetRingColorHSV" && vFunction.NumArgs() == 4) {
       if (mSetRingColorHSVFunc != nullptr) {
         mSetRingColorHSVFunc(vFunction.ArgInt(0),
                              vFunction.ArgInt(1),
-                             vFunction.ArgInt(2));
+                             vFunction.ArgInt(2),
+                             vFunction.ArgInt(3));
       }
       return;
     }
@@ -173,6 +182,6 @@ private:
   tSetStringValueFunc mSetNameFunc;
   tSetBoolValueFunc mSetOnFunc;
   tSetChannelBrightnessFunc mSetChannelBrightnessFunc;
-  tSet3UInt32ValueFunc mSetRingColorHSVFunc;
+  tSetRingColorHSVFunc mSetRingColorHSVFunc;
   
 };

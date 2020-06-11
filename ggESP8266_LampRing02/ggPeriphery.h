@@ -141,7 +141,7 @@ struct ggPeriphery {
     mEnablePSU.PrintDebug("mEnablePSU");
     // mEncoder.PrintDebug("mEncoder");
     // mLEDCenter.PrintDebug("mLEDCenter");
-    // mLEDRing.PrintDebug("mLEDRing");
+    mLEDRing.PrintDebug("mLEDRing");
     mDisplay.PrintDebug("mDisplay");
   }
 
