@@ -21,7 +21,7 @@
   
     function InitWebSocket() {
       if (mWebSocketServer == '') {
-        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.151");
+        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.150");
       }
       mWebSocket = new WebSocket('ws://' + mWebSocketServer +':81/', ['arduino']);
       mWebSocket.onopen = onWebSocketOpen;
@@ -140,13 +140,17 @@
         + vLocations + ')');
     }
 
+    function IsButtonHSVSelected() {
+      if (mButtonHSV0.mSelected) return true;
+      if (mButtonHSV1.mSelected) return true;
+      if (mButtonHSV2.mSelected) return true;
+      if (mButtonHSV3.mSelected) return true;
+      return false;
+    }
+
     function OnClickButtonHSV(aButtonClicked) {
       aButtonClicked.mSelected = !aButtonClicked.mSelected;
-      let vNothingSelected = true;
-      if (mButtonHSV0.mSelected) vNothingSelected = false;
-      if (mButtonHSV1.mSelected) vNothingSelected = false;
-      if (mButtonHSV2.mSelected) vNothingSelected = false;
-      if (mButtonHSV3.mSelected) vNothingSelected = false;
+      let vNothingSelected = !IsButtonHSVSelected();
       mRingColorRangeH.disabled = vNothingSelected;
       mRingColorRangeS.disabled = vNothingSelected;
       mRingColorRangeV.disabled = vNothingSelected;
@@ -248,13 +252,14 @@
       mBrightnessRange3.disabled = !aOn;
       mBrightnessRange4.disabled = !aOn;
       mBrightnessRange5.disabled = !aOn;
-      mRingColorRangeH.disabled = !aOn;
-      mRingColorRangeS.disabled = !aOn;
-      mRingColorRangeV.disabled = !aOn;
       mButtonHSV0.disabled = !aOn;
       mButtonHSV1.disabled = !aOn;
       mButtonHSV2.disabled = !aOn;
       mButtonHSV3.disabled = !aOn;
+      let vNoButtonHSVSelected = !IsButtonHSVSelected();
+      mRingColorRangeH.disabled = !aOn || vNoButtonHSVSelected;
+      mRingColorRangeS.disabled = !aOn || vNoButtonHSVSelected;
+      mRingColorRangeV.disabled = !aOn || vNoButtonHSVSelected;
     }
 
     function GetBrightness() {
@@ -288,6 +293,12 @@
       return {mH: 0, mS: 0, mv: 0};
     }
 
+    // if brightness is too low, all colors appear black on GUI => scale it up
+    function ScaleBrightnessForGUI(aV) {
+      const vMinV = 100;
+      return (aV / 255.0) * (255.0 - vMinV) + vMinV;
+    }
+
     function UpdateRingColorRanges() {
       let vColorHSV = GetSelectedColorHSV();
       let [vH, vS, vV] = [vColorHSV.mH, vColorHSV.mS, vColorHSV.mV];
@@ -295,6 +306,7 @@
       mRingColorRangeH.value = vH;
       mRingColorRangeS.value = vS;
       mRingColorRangeV.value = vV;
+      vV = ScaleBrightnessForGUI(vV);
       mRingColorRangeH.style.backgroundImage = 'linear-gradient(to right, '
         + HSVtoRGB(  0.0,vS,vV) + ' 5%, '
         + HSVtoRGB( 43.5,vS,vV) + ', '
@@ -313,7 +325,7 @@
 
     function AssignColor(aButton, aH, aS, aV) {
       aButton.mColorHSV = {mH: aH, mS: aS, mV: aV};
-      aButton.style.backgroundColor = HSVtoRGB(aH, aS, aV);
+      aButton.style.backgroundColor = HSVtoRGB(aH, aS, ScaleBrightnessForGUI(aV));
     }
 
     function UpdateRingColorHSV(aH0, aS0, aV0, aH1, aS1, aV1, aH2, aS2, aV2, aH3, aS3, aV3) {
@@ -332,8 +344,9 @@
 
     <style>
       #mName { width: 97.5%; margin-top: 10px; margin-bottom: 10px; }
+      #mName:focus { outline: none; }
     </style>  
-    <input id='mName' type='text' value='(na)' style='width:100%' class='cRoundedCentered' maxlength='30'>
+    <input id='mName' type='text' value='(na)' class='cRoundedCentered' maxlength='30'>
 
     <label class='switch' style='width:100%'>
       <input id='mOn' type='checkbox'>
@@ -375,6 +388,7 @@
         border: 3px solid transparent; cursor: pointer; text-decoration: double; 
         -webkit-transition: 0.3s; transition: opacity 0.3s; }
       .cButtonRound:disabled { opacity: 0.3; }
+      .cButtonRound:focus { outline: none; }
     </style>
     <table id='mLocationTable'>
       <tr>

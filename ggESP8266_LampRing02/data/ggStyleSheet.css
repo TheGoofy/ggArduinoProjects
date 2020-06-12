@@ -105,6 +105,7 @@ input:checked + .switch_slider {
 
 input:focus + .switch_slider {
   box-shadow: 0 0 0px #f90;
+  outline: none;
 }
 
 input:checked + .switch_slider:before {
