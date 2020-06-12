@@ -296,7 +296,8 @@
     // if brightness is too low, all colors appear black on GUI => scale it up
     function ScaleBrightnessForGUI(aV) {
       const vMinV = 100;
-      return (aV / 255.0) * (255.0 - vMinV) + vMinV;
+      let vV = (aV / 255.0) * (255.0 - vMinV) + vMinV;
+      return Math.floor(vV + 0.5);
     }
 
     function UpdateRingColorRanges() {
