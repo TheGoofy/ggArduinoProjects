@@ -479,6 +479,7 @@ void setup()
   Periphery().mDisplay.Begin();
 
   // connect to wifi
+  WiFi.mode(WIFI_STA);
   ConnectWifiManager();
   WiFiMgr().setDebugOutput(M_DEBUGGING);
   WiFiMgr().setConfigPortalTimeout(60); // 1 minute
