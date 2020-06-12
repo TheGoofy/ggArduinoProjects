@@ -88,7 +88,7 @@ struct ggPeriphery {
     mLEDRing.Begin();
     mLEDCenter.Begin();
     mDisplay.Begin();
-    if (mOn.Get()) SetOn();
+    SetOn(mOn.Get());
   }
 
   void ResetSettings()
@@ -108,7 +108,6 @@ struct ggPeriphery {
     mTimerPSU.Reset();
     mLEDRing.SetOn(true);
     mLEDCenter.SetOn(true);
-    mDisplay.SetOn(true);    
   }
 
   void SetOff() {
@@ -116,7 +115,6 @@ struct ggPeriphery {
     mEnablePSU.Set(false);
     mLEDCenter.SetOn(false);
     mLEDRing.SetOn(false);
-    mDisplay.SetOn(false);
   }
 
   void SetOn(bool aOn) {

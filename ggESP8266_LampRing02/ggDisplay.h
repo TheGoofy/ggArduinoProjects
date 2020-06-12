@@ -140,7 +140,6 @@ private:
     else {
       mConnected = vConnected;
       if (mConnected) {
-        mLCD.setBacklight(1);
         mLCD.begin(GetWidth(), 2);
         if (mConnectFunc != nullptr) {
           mConnectFunc(mConnected);

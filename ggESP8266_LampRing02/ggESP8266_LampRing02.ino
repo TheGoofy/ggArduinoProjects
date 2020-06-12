@@ -60,6 +60,14 @@ ggPeriphery& Periphery()
 }
 
 
+ggTimer& DisplayTimer()
+{
+  static ggTimer* vTimer = nullptr;
+  if (vTimer == nullptr) vTimer = new ggTimer(30.0f); // timeout in 30 seconds
+  return *vTimer;
+}
+
+
 ggTimer& EditTimer()
 {
   static ggTimer* vTimer = nullptr;
@@ -242,6 +250,7 @@ ggLampState mLampState;
 void ConnectWifiManager()
 {
   WiFiMgr().setAPCallback([] (WiFiManager* aWiFiManager) {
+    Periphery().mDisplay.SetOn(true);
     Periphery().mDisplay.SetTitle(WiFiMgr().getConfigPortalSSID());
     Periphery().mDisplay.SetText(0, "WiFi config...");
     Periphery().mDisplay.Run(); // main "loop" is not running
@@ -260,6 +269,7 @@ void ConnectComponents()
     switch (aState) {
       case ggState::eOff:
         Periphery().SetOff();
+        Periphery().mDisplay.SetOn(false);
         WebSockets().UpdateOn(Periphery().GetOn());
         break;
       case ggState::eOn:
@@ -309,16 +319,24 @@ void ConnectComponents()
   Periphery().mButton.OnReleased([&] () {
     if (!vLongPressed) mLampState.HandleEvent(ggEvent::eClick);
     else vLongPressed = false;
+    if (mLampState.GetState() != ggState::eOff) {
+      Periphery().mDisplay.SetOn(true);
+      DisplayTimer().Reset();
+    }
   });
 
   // long press changes mode
   Periphery().mButton.OnPressedFor(2000, [&] () {
+    DisplayTimer().Reset();
+    Periphery().mDisplay.SetOn(true);
     mLampState.HandleEvent(ggEvent::eClickLong);
     vLongPressed = true;
   });
 
   // rotary encoder signal (4 increments per tick and 20 ticks per revolution)
   Periphery().mEncoder.OnValueChangedDelta([&] (long aValueDelta) {
+    DisplayTimer().Reset();
+    Periphery().mDisplay.SetOn(true);
     switch (mLampState.GetState()) {
       case ggState::eOn:
         Periphery().mLEDCenter.ChangeBrightness(0.25f * 0.05f * aValueDelta);
@@ -338,6 +356,11 @@ void ConnectComponents()
   // display
   Periphery().mDisplay.OnConnection([] (bool aConnected) {
     if (aConnected) UpdateDisplay();
+  });
+
+  // switch off display, when not in use
+  DisplayTimer().OnTimeOut([&] () {
+    Periphery().mDisplay.SetOn(false);
   });
 
   // switch back to normal after a while of no user inputs
@@ -477,6 +500,7 @@ void setup()
 
   // early init display (for debugging- or user-info)
   Periphery().mDisplay.Begin();
+  DisplayTimer().Reset();
 
   // connect to wifi
   WiFi.mode(WIFI_STA);
@@ -526,6 +550,7 @@ void setup()
 
 void loop()
 {
+  DisplayTimer().Run();
   EditTimer().Run();
   Periphery().Run();
   WebServer().Run();
