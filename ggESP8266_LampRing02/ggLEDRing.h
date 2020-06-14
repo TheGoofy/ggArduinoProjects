@@ -133,13 +133,13 @@ public:
     for (int vIndex = 0; vIndex < mLEDsA.numPixels(); vIndex++) {
       ggColor::cRGB vRGB(mLEDsA.getPixelColor(vIndex));
       vDebug.GetStream().printf("%d/%d/%d ", vRGB.mR, vRGB.mG, vRGB.mB);
-      if ((vIndex % 8 == 7) || (vIndex + 1 == mLEDsB.numPixels())) vDebug.GetStream().printf("\n");
+      if ((vIndex % 5 == 4) || (vIndex + 1 == mLEDsB.numPixels())) vDebug.GetStream().printf("\n");
     }
     vDebug.PrintF("mLEDsB[0..%d]=\n", mLEDsB.numPixels() - 1);
     for (int vIndex = 0; vIndex < mLEDsB.numPixels(); vIndex++) {
       ggColor::cRGB vRGB(mLEDsB.getPixelColor(vIndex));
       vDebug.GetStream().printf("%d/%d/%d ", vRGB.mR, vRGB.mG, vRGB.mB);
-      if ((vIndex % 8 == 7) || (vIndex + 1 == mLEDsB.numPixels())) vDebug.GetStream().printf("\n");
+      if ((vIndex % 5 == 4) || (vIndex + 1 == mLEDsB.numPixels())) vDebug.GetStream().printf("\n");
     }
   }
 
@@ -176,25 +176,45 @@ private:
   }
 
   static void FillGradient(Adafruit_NeoPixel& aLEDs,
+                           uint16_t aIndex0,
+                           uint16_t aIndex1,
                            const ggColor::cRGB& aRGB0,
                            const ggColor::cRGB& aRGB1) {
-    const uint16_t vNumLEDs = aLEDs.numPixels();
+    const uint16_t vRange = aIndex1 - aIndex0;
     int32_t vDeltaR = (int32_t)aRGB1.mR - (int32_t)aRGB0.mR;
     int32_t vDeltaG = (int32_t)aRGB1.mG - (int32_t)aRGB0.mG;
     int32_t vDeltaB = (int32_t)aRGB1.mB - (int32_t)aRGB0.mB;
-    for (uint16_t vIndex = 0; vIndex < vNumLEDs; vIndex++) {
-      ggColor::cRGB vRGB(aRGB0.mR + vIndex * vDeltaR / (vNumLEDs - 1),
-                         aRGB0.mG + vIndex * vDeltaG / (vNumLEDs - 1),
-                         aRGB0.mB + vIndex * vDeltaB / (vNumLEDs - 1));
+    for (uint16_t vIndex = aIndex0; vIndex <= aIndex1; vIndex++) {
+      ggColor::cRGB vRGB(aRGB0.mR + vIndex * vDeltaR / vRange,
+                         aRGB0.mG + vIndex * vDeltaG / vRange,
+                         aRGB0.mB + vIndex * vDeltaB / vRange);
       aLEDs.setPixelColor(vIndex, vRGB);
     }
   }
 
+  static void FillGradient(Adafruit_NeoPixel& aLEDs,
+                           uint16_t aIndex0, 
+                           uint16_t aIndex1,
+                           const ggColor::cHSV& aHSV0,
+                           const ggColor::cHSV& aHSV1) {
+    const uint16_t vRange = aIndex1 - aIndex0;
+    int32_t vDeltaH = (int32_t)aHSV1.mH - (int32_t)aHSV0.mH;
+    int32_t vDeltaS = (int32_t)aHSV1.mS - (int32_t)aHSV0.mS;
+    int32_t vDeltaV = (int32_t)aHSV1.mV - (int32_t)aHSV0.mV;
+    if (vDeltaH >=  256/2) vDeltaH -= 256;
+    if (vDeltaH <= -256/2) vDeltaH += 256;
+    for (uint16_t vIndex = aIndex0; vIndex <= aIndex1; vIndex++) {
+      ggColor::cHSV vHSV(aHSV0.mH + vIndex * vDeltaH / vRange,
+                         aHSV0.mS + vIndex * vDeltaS / vRange,
+                         aHSV0.mV + vIndex * vDeltaV / vRange);
+      aLEDs.setPixelColor(vIndex, ggColor::ToRGB(vHSV));
+    }
+  }
+
   void UpdateOutput() {
-    // Print(Serial);
     if (GetOn()) {
-      FillGradient(mLEDsA, ggColor::ToRGB(mHSV[0].Get()), ggColor::ToRGB(mHSV[1].Get()));
-      FillGradient(mLEDsB, ggColor::ToRGB(mHSV[2].Get()), ggColor::ToRGB(mHSV[3].Get()));
+      FillGradient(mLEDsA, 0, mLEDsA.numPixels() - 1, mHSV[0].Get(), mHSV[1].Get());
+      FillGradient(mLEDsB, 0, mLEDsA.numPixels() - 1, mHSV[2].Get(), mHSV[3].Get());
     }
     else {
       mLEDsA.clear();
