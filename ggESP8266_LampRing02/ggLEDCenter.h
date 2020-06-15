@@ -76,7 +76,6 @@ public:
   }
 
   void SetChannelBrightness(float aBrightness) {
-    GG_DEBUG();
     ggValueEEProm::cLazyWriter vLazyWriter;
     ForEachChannel([&] (int aChannel) {
       mBrightness[aChannel] = aBrightness;
@@ -85,7 +84,6 @@ public:
   }
 
   void SetChannelBrightness(int aChannel, float aBrightness) {
-    GG_DEBUG();
     if ((0 <= aChannel) && (aChannel < TNumChannels)) {
       float vBrightness = ggClamp(aBrightness, 0.0f, 1.0f);
       if (mBrightness[aChannel] != vBrightness) {
@@ -114,14 +112,12 @@ private:
   }
 
   inline void UpdateOutput(int aChannel) {
-    GG_DEBUG();
     int vChannelPWM = GetChannelPWM(aChannel);
     int vValuePWM = GetOn() ? mLogTable.Get(mBrightness[aChannel]) : 0;
     AnalogWrite(vChannelPWM, vValuePWM);
   }
 
   void UpdateOutput() {
-    GG_DEBUG();
     ForEachChannel([&] (int aChannel) {
       UpdateOutput(aChannel);
     });
