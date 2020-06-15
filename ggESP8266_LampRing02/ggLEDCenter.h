@@ -13,7 +13,7 @@ public:
   ggLEDCenter(int aPinSDA, int aPinSCL)
   : mPinSDA(aPinSDA),
     mPinSCL(aPinSCL),
-    mLogTable(4096),
+    mLogTable(4095),
     mModulePWM(),
     mOn(false),
     mBrightness()
@@ -108,7 +108,18 @@ private:
   }
 
   inline void AnalogWrite(int aChannelPWM, int aValue) {
-    mModulePWM.setPin(aChannelPWM, aValue);
+    if (aValue == 0) {
+      mModulePWM.setPWM(aChannelPWM, 0, 4096);
+    }
+    else if (aValue >= 4095) {
+      mModulePWM.setPWM(aChannelPWM, 4096, 0);
+    }
+    else {
+      // stagger "on" in order to distribute current draw more evenly
+      uint16_t vOn = aChannelPWM * 341; // same as 4096 / 12;
+      uint16_t vOff = (vOn + aValue) & 0x0fff; // same as % 4096;
+      mModulePWM.setPWM(aChannelPWM, vOn, vOff);
+    }
   }
 
   inline void UpdateOutput(int aChannel) {
