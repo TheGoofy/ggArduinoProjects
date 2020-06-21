@@ -133,10 +133,10 @@ void PeripheryLEDCenterSetChannelBrightness(const float& aB0, const float& aB1, 
 void WebSocketsUpdateRingColorHSV(int aClientID = -1)
 {
   GG_DEBUG();
-  const ggColor::cHSV& vHSV0(Periphery().mLEDRing.GetColorHSV(ggLocations::eBackBase));
-  const ggColor::cHSV& vHSV1(Periphery().mLEDRing.GetColorHSV(ggLocations::eBackTop));
-  const ggColor::cHSV& vHSV2(Periphery().mLEDRing.GetColorHSV(ggLocations::eFrontBase));
-  const ggColor::cHSV& vHSV3(Periphery().mLEDRing.GetColorHSV(ggLocations::eFrontTop));
+  const ggColor::cHSV& vHSV0(Periphery().mLEDRing.GetColorHSV(ggLocations::eAL));
+  const ggColor::cHSV& vHSV1(Periphery().mLEDRing.GetColorHSV(ggLocations::eAR));
+  const ggColor::cHSV& vHSV2(Periphery().mLEDRing.GetColorHSV(ggLocations::eBL));
+  const ggColor::cHSV& vHSV3(Periphery().mLEDRing.GetColorHSV(ggLocations::eBR));
   WebSockets().UpdateRingColorHSV(vHSV0.mH, vHSV0.mS, vHSV0.mV,
                                   vHSV1.mH, vHSV1.mS, vHSV1.mV,
                                   vHSV2.mH, vHSV2.mS, vHSV2.mV,

@@ -2,15 +2,15 @@
 #include "ggColor.h"
 
 enum class ggLocations {
-  eBackBase  = 0b00000001,
-  eBackTop   = 0b00000010,
-  eFrontBase = 0b00000100,
-  eFrontTop  = 0b00001000,
-  eBack      = eBackBase  | eBackTop,
-  eFront     = eFrontBase | eFrontTop,
-  eBase      = eBackBase  | eFrontBase,
-  eTop       = eBackTop   | eFrontTop,
-  eAll       = eBack | eFront,
+  eAL = 0b00000001, // strip A, left  (or lower, or base, ...)
+  eAR = 0b00000010, // strip A, right (or upper, or top, ...)
+  eBL = 0b00000100, // strip B, left  (or lower, or base, ...)
+  eBR = 0b00001000, // strip B, right (or upper, or top, ...)
+  eA  = eAL | eAR,  // strip A (L+R)
+  eB  = eBL | eBR,  // strip B (L+R)
+  eL  = eAL | eBL,  // left (strips A+B)
+  eR  = eAR | eBR,  // right (strips A+B)
+  eAll = eA | eB
 };
 
 template <uint16_t TNumLEDs = 64>
@@ -18,8 +18,19 @@ class ggLEDRing {
 
 public:
 
+  // WS2812 LED-Strip RGB channel mapping
+  //
+  // Input   | R | G | B
+  // --------+---+---+--
+  // NEO_RGB | B | R | G
+  // NEO_RBG | R | B | G
+  // NEO_GRB | B | G | R
+  // NEO_GBR | R | G | B (correct)
+  // NEO_BRG | G | B | R
+  // NEO_BGR | G | R | B
+
   ggLEDRing(int aPinA, int aPinB)
-  : mLEDsA(TNumLEDs, aPinA, NEO_BGR + NEO_KHZ800),
+  : mLEDsA(TNumLEDs, aPinA, NEO_GBR + NEO_KHZ800),
     mLEDsB(TNumLEDs, aPinB, NEO_BGR + NEO_KHZ800),
     mOn(false),
     mHSV({ggColor::cHSV::DarkOrange(),
@@ -37,8 +48,8 @@ public:
 
   void ResetSettings() {
     ggValueEEProm::cLazyWriter vLazyWriter;
-    SetColor(ggColor::cHSV::DarkOrange(), ggLocations::eBase);
-    SetColor(ggColor::cHSV::DarkBlue(), ggLocations::eTop);
+    SetColor(ggColor::cHSV::DarkOrange(), ggLocations::eL);
+    SetColor(ggColor::cHSV::DarkBlue(), ggLocations::eR);
   }
 
   bool GetOn() const {
@@ -67,10 +78,10 @@ public:
   void SetColor(const ggColor::cHSV& aHSV, ggLocations aLocations = ggLocations::eAll) {
     bool vColorChanged = false;
     ggValueEEProm::cLazyWriter vLazyWriter;
-    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eBackBase),  vColorChanged);
-    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eBackTop),   vColorChanged);
-    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eFrontBase), vColorChanged);
-    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eFrontTop),  vColorChanged);
+    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eAL), vColorChanged);
+    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eAR), vColorChanged);
+    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eBL), vColorChanged);
+    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eBR), vColorChanged);
     if (vColorChanged) UpdateOutput();
   }
 
@@ -148,10 +159,10 @@ private:
   inline static int GetLocationIndex(ggLocations aLocations, ggLocations aLocationToCheck = ggLocations::eAll) {
     ggLocations vLocations = (ggLocations)((int)aLocations & (int)aLocationToCheck);
     switch (vLocations) {
-      case ggLocations::eBackBase:  return 0;
-      case ggLocations::eBackTop:   return 1;
-      case ggLocations::eFrontBase: return 2;
-      case ggLocations::eFrontTop:  return 3;
+      case ggLocations::eAL: return 0;
+      case ggLocations::eAR: return 1;
+      case ggLocations::eBL: return 2;
+      case ggLocations::eBR: return 3;
       default: return -1;
     }
   }
@@ -214,7 +225,7 @@ private:
   void UpdateOutput() {
     if (GetOn()) {
       FillGradient(mLEDsA, 0, mLEDsA.numPixels() - 1, mHSV[0].Get(), mHSV[1].Get());
-      FillGradient(mLEDsB, 0, mLEDsA.numPixels() - 1, mHSV[2].Get(), mHSV[3].Get());
+      FillGradient(mLEDsB, 0, mLEDsB.numPixels() - 1, mHSV[2].Get(), mHSV[3].Get());
     }
     else {
       mLEDsA.clear();

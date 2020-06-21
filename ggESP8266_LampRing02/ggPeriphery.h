@@ -31,8 +31,8 @@
 // pins for periphery
 #if !M_DEBUGGING // pins for serial communication may used for other devices
   #define M_PIN_BUTTON     M_PIN_GPIO_03_RX // button can interfere with serial communication
-  #define M_PIN_ENCODER_A  M_PIN_GPIO_12
-  #define M_PIN_ENCODER_B  M_PIN_GPIO_13
+  #define M_PIN_ENCODER_A  M_PIN_GPIO_13
+  #define M_PIN_ENCODER_B  M_PIN_GPIO_12
   #define M_PIN_ENABLE_PSU M_PIN_GPIO_14
   #define M_PIN_LED_A_DATA M_PIN_GPIO_00_FLASH
   #define M_PIN_LED_B_DATA M_PIN_GPIO_02_ENBOOT
@@ -40,8 +40,8 @@
   #define M_PIN_I2C_SCL    M_PIN_GPIO_05_SCL
 #else // don't use pins that are needed for serial communication
   #define M_PIN_BUTTON     M_PIN_GPIO_15_SPI_CS // gpio 15 is not connected, button won't work
-  #define M_PIN_ENCODER_A  M_PIN_GPIO_12
-  #define M_PIN_ENCODER_B  M_PIN_GPIO_13
+  #define M_PIN_ENCODER_A  M_PIN_GPIO_13
+  #define M_PIN_ENCODER_B  M_PIN_GPIO_12
   #define M_PIN_ENABLE_PSU M_PIN_GPIO_14
   #define M_PIN_LED_A_DATA M_PIN_GPIO_00_FLASH
   #define M_PIN_LED_B_DATA M_PIN_GPIO_02_ENBOOT
@@ -64,7 +64,7 @@ struct ggPeriphery {
   ggRotaryEncoder mEncoder;
   ggOutput mEnablePSU;
   ggLEDCenter<6> mLEDCenter;
-  ggLEDRing<24*4> mLEDRing;
+  ggLEDRing<24*4+18> mLEDRing;
   ggDisplay mDisplay;
 
   ggPeriphery()
