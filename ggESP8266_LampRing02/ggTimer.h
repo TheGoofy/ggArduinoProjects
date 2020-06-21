@@ -39,6 +39,14 @@ public:
     }
   }
 
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggTimer", aName);
+    vDebug.PrintF("mTimeOutMicroSeconds = %d\n", mTimeOutMicroSeconds);
+    vDebug.PrintF("mLastMicroSeconds = %d\n", mLastMicroSeconds);
+    vDebug.PrintF("micros() = %d\n", micros());
+    vDebug.PrintF("mTimeOutFunc = 0x%08X\n", std::addressof(mTimeOutFunc));
+  }
+
 private:
 
   unsigned long mTimeOutMicroSeconds;
