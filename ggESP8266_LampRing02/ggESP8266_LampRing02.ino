@@ -6,6 +6,7 @@
 #include <ArduinoOTA.h>
 
 #define M_DEBUGGING false
+#define M_TEST_ENVIRONMENT false
 
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
@@ -342,7 +343,7 @@ void ConnectComponents()
     switch (aState) {
       case ggState::eOff:
         Data().mOn = false;
-        Periphery().SetOff();
+        Periphery().mSwitchPSU.SetOff();
         Periphery().mLEDCenter.SetChannelBrightness(0.0f);
         Periphery().mLEDRing.SetColors(ggColor::cHSV::Black());
         Periphery().mDisplay.SetOn(false);
@@ -350,9 +351,9 @@ void ConnectComponents()
         break;
       case ggState::eOn:
         Data().mOn = true;
-        Periphery().SetOn();
+        Periphery().mSwitchPSU.SetOn();
         PeripheryLEDCenterSetChannelBrightness();
-        PeripheryLEDRingSetColors();
+        // PeripheryLEDRingSetColors(); colors are updated delayed when PSU is on
         Periphery().mDisplay.SetText(0, WiFi.localIP().toString());
         WebSockets().UpdateOn(true);
         break;
@@ -431,6 +432,11 @@ void ConnectComponents()
         EditTimer().Start();
         break;
     }
+  });
+
+  // PSU switch on is delayed => need to update color ring
+  Periphery().mSwitchPSU.OnSwitchedOn([&] () {
+    PeripheryLEDRingSetColors();
   });
 
   // display
@@ -632,8 +638,9 @@ void setup()
   
   // update periphery depending on eeprom data
   if (mLampState.mState == ggState::eOn) {
+    Periphery().mSwitchPSU.SetOn();
     PeripheryLEDCenterSetChannelBrightness();
-    PeripheryLEDRingSetColors();
+    // PeripheryLEDRingSetColors(); colors are updated delayed when PSU is on
   }
 }
 

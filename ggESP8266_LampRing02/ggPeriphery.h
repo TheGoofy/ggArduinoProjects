@@ -2,11 +2,10 @@
 
 #include "ggButton.h"
 #include "ggRotaryEncoder.h"
+#include "ggSwitchPSU.h"
 #include "ggLEDCenter.h"
 #include "ggLEDRing.h"
 #include "ggDisplay.h"
-#include "ggTimer.h"
-#include "ggOutput.h"
 
 // verbose pin description for ESP-12F
 #define M_PIN_GPIO_00_FLASH     0 // if low at boot, ESP will be in programming mode (boot fails if low)
@@ -33,7 +32,7 @@
   #define M_PIN_BUTTON     M_PIN_GPIO_03_RX // button can interfere with serial communication
   #define M_PIN_ENCODER_A  M_PIN_GPIO_12
   #define M_PIN_ENCODER_B  M_PIN_GPIO_13
-  #define M_PIN_ENABLE_PSU M_PIN_GPIO_14
+  #define M_PIN_SWITCH_PSU M_PIN_GPIO_14
   #define M_PIN_LED_A_DATA M_PIN_GPIO_02_ENBOOT
   #define M_PIN_LED_B_DATA M_PIN_GPIO_00_FLASH
   #define M_PIN_I2C_SDA    M_PIN_GPIO_04_SDA
@@ -42,7 +41,7 @@
   #define M_PIN_BUTTON     M_PIN_GPIO_15_SPI_CS // gpio 15 is not connected, button won't work
   #define M_PIN_ENCODER_A  M_PIN_GPIO_12
   #define M_PIN_ENCODER_B  M_PIN_GPIO_13
-  #define M_PIN_ENABLE_PSU M_PIN_GPIO_14
+  #define M_PIN_SWITCH_PSU M_PIN_GPIO_14
   #define M_PIN_LED_A_DATA M_PIN_GPIO_02_ENBOOT
   #define M_PIN_LED_B_DATA M_PIN_GPIO_00_FLASH
   #define M_PIN_I2C_SDA    M_PIN_GPIO_04_SDA
@@ -50,23 +49,32 @@
 #endif
 
 // IO logic polarity
-#ifndef M_PRESERVE_SERIAL_PINS_FOR_DEBUGGING
+#if !M_DEBUGGING
   #define M_BUTTON_INVERT true
 #else
   #define M_BUTTON_INVERT false
 #endif
 
 // LED strip settings
-#define M_LED_CENTER_NUM_STRIPS 6
-#define M_LED_RING_NUM_LEDS 6 // 114
-#define M_LED_RING_A_TYPE NEO_BGR
-#define M_LED_RING_B_TYPE NEO_BGR // NEO_GBR
+#if !M_TEST_ENVIRONMENT
+  #define M_SWITCH_PSU_ON_DELAY 1.5f
+  #define M_LED_CENTER_NUM_STRIPS 6
+  #define M_LED_RING_NUM_LEDS 114
+  #define M_LED_RING_A_TYPE NEO_BGR
+  #define M_LED_RING_B_TYPE NEO_GBR
+#else
+  #define M_SWITCH_PSU_ON_DELAY 0.5f
+  #define M_LED_CENTER_NUM_STRIPS 6
+  #define M_LED_RING_NUM_LEDS 6
+  #define M_LED_RING_A_TYPE NEO_BGR
+  #define M_LED_RING_B_TYPE NEO_BGR
+#endif
 
 struct ggPeriphery {
 
   ggButton mButton;
   ggRotaryEncoder mEncoder;
-  ggOutput mEnablePSU;
+  ggSwitchPSU mSwitchPSU;
   ggLEDCenter<M_LED_CENTER_NUM_STRIPS> mLEDCenter;
   ggLEDRing<M_LED_RING_NUM_LEDS> mLEDRing;
   ggDisplay mDisplay;
@@ -74,52 +82,34 @@ struct ggPeriphery {
   ggPeriphery()
   : mButton(M_PIN_BUTTON, M_BUTTON_INVERT, true), // button, inverted (input signal low if pressed), enable pull-up
     mEncoder(M_PIN_ENCODER_A, M_PIN_ENCODER_B), // rotary encoder
-    mEnablePSU(M_PIN_ENABLE_PSU, false), // PSU on/off, non-inverted
+    mSwitchPSU(M_PIN_SWITCH_PSU, false, M_SWITCH_PSU_ON_DELAY), // PSU on/off, non-inverted, on-delay
     mLEDRing(M_PIN_LED_A_DATA, M_LED_RING_A_TYPE, M_PIN_LED_B_DATA, M_LED_RING_B_TYPE),
     mLEDCenter(M_PIN_I2C_SDA, M_PIN_I2C_SCL), // uses HW I2C
-    mDisplay(M_PIN_I2C_SDA, M_PIN_I2C_SCL), // uses HW I2C
-    mTimerPSU(2.0f) // 1 sec (for delay after power-on)
+    mDisplay(M_PIN_I2C_SDA, M_PIN_I2C_SCL) // uses HW I2C
   {
-    mTimerPSU.OnTimeOut([&] () {
-      mLEDRing.DisplayNormal();
-    });
   }
 
   void Begin() {
     mButton.Begin();
     mEncoder.Begin();
-    mEnablePSU.Begin();
+    mSwitchPSU.Begin();
     mLEDRing.Begin();
     mLEDCenter.Begin();
     mDisplay.Begin();
   }
 
-  void SetOn() {
-    mTimerPSU.Start();
-    mEnablePSU.Set(true);
-  }
-
-  void SetOff() {
-    mTimerPSU.Stop();
-    mEnablePSU.Set(false);
-  }
-
-  void SetOn(bool aOn) {
-    aOn ? SetOn() : SetOff();
-  }
-
   void Run() {
-    mTimerPSU.Run();
     mButton.Run();
     mEncoder.Run();
-    mDisplay.Run();
+    mSwitchPSU.Run();
     mLEDCenter.Run();
+    mDisplay.Run();
   }
 
   void PrintDebug(const String& aName = "") const {
     ggDebug vDebug("ggPeriphery", aName);
     mButton.PrintDebug("mButton");
-    mEnablePSU.PrintDebug("mEnablePSU");
+    mSwitchPSU.PrintDebug("mSwitchPSU");
     // mEncoder.PrintDebug("mEncoder");
     // mLEDCenter.PrintDebug("mLEDCenter");
     mLEDRing.PrintDebug("mLEDRing");
@@ -127,7 +117,5 @@ struct ggPeriphery {
   }
 
 private:
-
-  ggTimer mTimerPSU;
 
 };
