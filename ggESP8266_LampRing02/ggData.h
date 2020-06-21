@@ -6,7 +6,7 @@
 typedef ggDataEEPromT<
   32,            // TStringLength
   1,             // TNumScenes
-  uint8_t,       // TBrightness
+  float,         // TBrightness
   6,             // TNumBrightnesses
   ggColor::cHSV, // TColor
   4              // TNumColors

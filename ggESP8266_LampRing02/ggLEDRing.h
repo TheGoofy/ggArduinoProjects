@@ -1,5 +1,6 @@
 #include <Adafruit_NeoPixel.h>
 #include "ggColor.h"
+#include "ggValueEEPromT.h"
 
 enum class ggLocations {
   eAL = 0b00000001, // strip A, left  (or lower, or base, ...)
@@ -13,7 +14,7 @@ enum class ggLocations {
   eAll = eA | eB
 };
 
-template <uint16_t TNumLEDs = 64>
+template <uint16_t TNumLEDs>
 class ggLEDRing {
 
 public:
@@ -30,8 +31,8 @@ public:
   // NEO_BGR | G | R | B
 
   ggLEDRing(int aPinA, int aPinB)
-  : mLEDsA(TNumLEDs, aPinA, NEO_GBR + NEO_KHZ800),
-    mLEDsB(TNumLEDs, aPinB, NEO_BGR + NEO_KHZ800),
+  : mLEDsA(TNumLEDs, aPinA, NEO_BGR + NEO_KHZ800),
+    mLEDsB(TNumLEDs, aPinB, NEO_GBR + NEO_KHZ800),
     mOn(false),
     mHSV({ggColor::cHSV::DarkOrange(),
           ggColor::cHSV::DarkBlue(),
@@ -43,7 +44,10 @@ public:
     // Print(Serial);
     mLEDsA.begin();
     mLEDsB.begin();
-    UpdateOutput();
+    mLEDsA.clear();
+    mLEDsB.clear();
+    mLEDsA.show();
+    mLEDsB.show();
   }
 
   void ResetSettings() {
@@ -223,6 +227,8 @@ private:
   }
 
   void UpdateOutput() {
+    GG_DEBUG();
+    GG_DEBUG_PRINTF("GetOn() = %d\n", GetOn());
     if (GetOn()) {
       FillGradient(mLEDsA, 0, mLEDsA.numPixels() - 1, mHSV[0].Get(), mHSV[1].Get());
       FillGradient(mLEDsB, 0, mLEDsB.numPixels() - 1, mHSV[2].Get(), mHSV[3].Get());

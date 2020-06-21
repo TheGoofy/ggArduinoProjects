@@ -11,7 +11,7 @@
 #include "ggWebSockets.h"
 #include "ggWiFiConnection.h"
 #include "ggPeriphery.h"
-#include "ggValueEEPromString.h"
+#include "ggData.h"
 #include "ggNullStream.h"
 #include "ggStreams.h"
 #include "ggTimer.h"
@@ -51,6 +51,7 @@ ggWebSockets& WebSockets()
   if (vWebSockets == nullptr) vWebSockets = new ggWebSockets(mWebSocketsPort);
   return *vWebSockets;
 }
+
 
 ggPeriphery& Periphery()
 {
@@ -92,41 +93,70 @@ ggWebServer& WebServer()
 }
 
 
-ggValueEEPromString<> mName(mHostName);
+ggData& Data()
+{
+  static ggData* vData = nullptr;
+  if (vData == nullptr) {
+    GG_DEBUG();
+    GG_DEBUG_PRINTF("allocating data\n");
+    vData = new ggData(mHostName, 1);
+  }
+  return *vData;
+}
 
 
 void UpdateDisplay()
 {
   GG_DEBUG();
   Periphery().mDisplay.Clear();
-  Periphery().mDisplay.SetTitle(mName.Get());
+  Periphery().mDisplay.SetTitle(Data().mName.Get());
   Periphery().mDisplay.SetText(0, WiFi.localIP().toString());
+}
+
+
+void DataSetChannelBrightness(const float& aB0, const float& aB1, const float& aB2, const float& aB3, const float& aB4, const float& aB5)
+{
+  GG_DEBUG();
+  ggValueEEProm::cLazyWriter vLazyWriter;
+  Data().mCurrentScene.mBrightnesses[0] = aB0;
+  Data().mCurrentScene.mBrightnesses[1] = aB1;
+  Data().mCurrentScene.mBrightnesses[2] = aB2;
+  Data().mCurrentScene.mBrightnesses[3] = aB3;
+  Data().mCurrentScene.mBrightnesses[4] = aB4;
+  Data().mCurrentScene.mBrightnesses[5] = aB5;
+}
+
+
+void DataChangeBrightness(const float& aBrightnessDelta)
+{
+  GG_DEBUG();
+  ggValueEEProm::cLazyWriter vLazyWriter;
+  for (ggData::tBrightness& vBrightness : Data().mCurrentScene.mBrightnesses) {
+    float vBrightnessNew = vBrightness + aBrightnessDelta;
+    vBrightness = ggClamp(vBrightnessNew, 0.0f, 1.0f);
+  }
+}
+
+
+void PeripheryLEDCenterSetChannelBrightness()
+{
+  GG_DEBUG();
+  Periphery().mLEDCenter.ForEachChannel([] (int aChannel) {
+    Periphery().mLEDCenter.SetChannelBrightness(aChannel, Data().mCurrentScene.mBrightnesses[aChannel]);
+  });
 }
 
 
 void WebSocketsUpdateChannelBrightness(int aClientID = -1)
 {
   GG_DEBUG();
-  WebSockets().UpdateChannelBrightness(Periphery().mLEDCenter.GetChannelBrightness(0),
-                                       Periphery().mLEDCenter.GetChannelBrightness(1),
-                                       Periphery().mLEDCenter.GetChannelBrightness(2),
-                                       Periphery().mLEDCenter.GetChannelBrightness(3),
-                                       Periphery().mLEDCenter.GetChannelBrightness(4),
-                                       Periphery().mLEDCenter.GetChannelBrightness(5),
+  WebSockets().UpdateChannelBrightness(Data().mCurrentScene.mBrightnesses[0],
+                                       Data().mCurrentScene.mBrightnesses[1],
+                                       Data().mCurrentScene.mBrightnesses[2],
+                                       Data().mCurrentScene.mBrightnesses[3],
+                                       Data().mCurrentScene.mBrightnesses[4],
+                                       Data().mCurrentScene.mBrightnesses[5],
                                        aClientID);
-}
-
-
-void PeripheryLEDCenterSetChannelBrightness(const float& aB0, const float& aB1, const float& aB2, const float& aB3, const float& aB4, const float& aB5)
-{
-  GG_DEBUG();
-  ggValueEEProm::cLazyWriter vLazyWriter;
-  Periphery().mLEDCenter.SetChannelBrightness(0, aB0);
-  Periphery().mLEDCenter.SetChannelBrightness(1, aB1);
-  Periphery().mLEDCenter.SetChannelBrightness(2, aB2);
-  Periphery().mLEDCenter.SetChannelBrightness(3, aB3);
-  Periphery().mLEDCenter.SetChannelBrightness(4, aB4);
-  Periphery().mLEDCenter.SetChannelBrightness(5, aB5);
 }
 
 
@@ -268,35 +298,38 @@ void ConnectComponents()
   mLampState.OnState([&] (ggState::tEnum aState) {
     switch (aState) {
       case ggState::eOff:
+        Data().mOn = false;
         Periphery().SetOff();
+        Periphery().mLEDCenter.SetChannelBrightness(0.0f);
         Periphery().mDisplay.SetOn(false);
-        WebSockets().UpdateOn(Periphery().GetOn());
+        WebSockets().UpdateOn(false);
         break;
       case ggState::eOn:
+        Data().mOn = true;
         Periphery().SetOn();
+        PeripheryLEDCenterSetChannelBrightness();
         Periphery().mDisplay.SetText(0, WiFi.localIP().toString());
-        Periphery().mLEDRing.DisplayNormal();
-        WebSockets().UpdateOn(Periphery().GetOn());
+        WebSockets().UpdateOn(true);
         break;
       case ggState::eEditColorChannel0:
         Periphery().mDisplay.SetText(0, "Color Hue");
         Periphery().mLEDRing.DisplayColorChannel(0);
-        EditTimer().Reset();
+        EditTimer().Start();
         break;
       case ggState::eEditColorChannel1:
         Periphery().mDisplay.SetText(0, "Saturaton");
         Periphery().mLEDRing.DisplayColorChannel(1);
-        EditTimer().Reset();
+        EditTimer().Start();
         break;
       case ggState::eEditColorChannel2:
         Periphery().mDisplay.SetText(0, "Brightness");
         Periphery().mLEDRing.DisplayColorChannel(2);
-        EditTimer().Reset();
+        EditTimer().Start();
         break;
       case ggState::eEditReset:
         Periphery().mDisplay.SetText(0, "Reset");
         Periphery().mLEDRing.DisplayColor(ggColor::cRGB::Orange());
-        EditTimer().Reset();
+        EditTimer().Start();
         break;
       case ggState::eResetWiFi:
         {
@@ -321,13 +354,13 @@ void ConnectComponents()
     else vLongPressed = false;
     if (mLampState.GetState() != ggState::eOff) {
       Periphery().mDisplay.SetOn(true);
-      DisplayTimer().Reset();
+      DisplayTimer().Start();
     }
   });
 
   // long press changes mode
   Periphery().mButton.OnPressedFor(2000, [&] () {
-    DisplayTimer().Reset();
+    DisplayTimer().Start();
     Periphery().mDisplay.SetOn(true);
     mLampState.HandleEvent(ggEvent::eClickLong);
     vLongPressed = true;
@@ -335,20 +368,21 @@ void ConnectComponents()
 
   // rotary encoder signal (4 increments per tick and 20 ticks per revolution)
   Periphery().mEncoder.OnValueChangedDelta([&] (long aValueDelta) {
-    DisplayTimer().Reset();
+    DisplayTimer().Start();
     Periphery().mDisplay.SetOn(true);
     switch (mLampState.GetState()) {
       case ggState::eOn:
-        Periphery().mLEDCenter.ChangeBrightness(0.25f * 0.05f * aValueDelta);
+        DataChangeBrightness(0.25f * 0.05f * aValueDelta);
+        PeripheryLEDCenterSetChannelBrightness();
         WebSocketsUpdateChannelBrightness();
-        EditTimer().Reset();
+        EditTimer().Start();
         break;
       case ggState::eEditColorChannel0:
       case ggState::eEditColorChannel1:
       case ggState::eEditColorChannel2:
         Periphery().mLEDRing.ChangeColorChannel(ggState::GetColorChannelIndex(mLampState.GetState()), aValueDelta);
         WebSocketsUpdateRingColorHSV();
-        EditTimer().Reset();
+        EditTimer().Start();
         break;
     }
   });
@@ -379,8 +413,8 @@ void ConnectComponents()
   WebSockets().OnClientConnect([&] (int aClientID) { // need to update all sockets
     GG_DEBUG_BLOCK("WebSockets().OnClientConnect(...)");
     GG_DEBUG_PRINTF("aClientID = %d\n", aClientID);
-    WebSockets().UpdateName(mName.Get(), aClientID);
-    WebSockets().UpdateOn(Periphery().GetOn(), aClientID);
+    WebSockets().UpdateName(Data().mName.Get(), aClientID);
+    WebSockets().UpdateOn(Data().mOn.Get(), aClientID);
     WebSocketsUpdateChannelBrightness(aClientID);
     WebSocketsUpdateRingColorHSV(aClientID);
   });
@@ -391,16 +425,17 @@ void ConnectComponents()
   WebSockets().OnSetName([&] (const String& aName) {
     GG_DEBUG_BLOCK("WebSockets().OnSetName(...)");
     GG_DEBUG_PRINTF("aName = %s\n", aName.c_str());
-    mName.Set(aName);
-    WebSockets().UpdateName(mName.Get());
+    Data().mName.Set(aName);
+    WebSockets().UpdateName(aName);
     Periphery().mDisplay.SetTitle(aName);
   });
   WebSockets().OnSetOn([&] (bool aOn) {
     mLampState.SetState(aOn ? ggState::eOn : ggState::eOff);
   });
   WebSockets().OnSetChannelBrightness([&] (float aB0, float aB1, float aB2, float aB3, float aB4, float aB5) {
-    PeripheryLEDCenterSetChannelBrightness(aB0, aB1, aB2, aB3, aB4, aB5);
-    WebSockets().UpdateChannelBrightness(aB0, aB1, aB2, aB3, aB4, aB5);
+    DataSetChannelBrightness(aB0, aB1, aB2, aB3, aB4, aB5);
+    PeripheryLEDCenterSetChannelBrightness();
+    WebSocketsUpdateChannelBrightness();
   });
   WebSockets().OnSetRingColorHSV([&] (uint8_t aH, uint8_t aS, uint8_t aV, uint8_t aLocations) {
     Periphery().mLEDRing.SetColor(ggColor::cHSV(aH, aS, aV), (ggLocations)aLocations);
@@ -423,7 +458,7 @@ void ConnectComponents()
       GG_DEBUG_BLOCK("mWebServer.OnResetAll(...)");
       Periphery().mDisplay.SetText(0, String("Reset All..."));
       Periphery().mDisplay.Run(); // main "loop" is not running
-      mName.Set(mHostName);
+      Data().mName.Set(mHostName);
       Periphery().ResetSettings();
       WiFiMgr().resetSettings();
       delay(1000);
@@ -500,7 +535,7 @@ void setup()
 
   // early init display (for debugging- or user-info)
   Periphery().mDisplay.Begin();
-  DisplayTimer().Reset();
+  DisplayTimer().Start();
 
   // connect to wifi
   WiFi.mode(WIFI_STA);
@@ -516,9 +551,8 @@ void setup()
   ConnectComponents();
 
   // initialize eeprom handler
+  Data(); // creates data object
   ggValueEEProm::Begin();
-  mLampState.mState = Periphery().GetOn() ? ggState::eOn : ggState::eOff;
-  GG_DEBUG_PRINTF("Lamp Name: %s\n", mName.Get().c_str());
 
   // configure and start web-server
   WebServer().Begin();
@@ -545,6 +579,16 @@ void setup()
 
   // setup connected hardware
   Periphery().Begin();
+
+  // start with main lamp state "off" or "on"
+  mLampState.mState = Data().mOn ? ggState::eOn : ggState::eOff;
+  GG_DEBUG_PRINTF("Lamp Name: %s\n", Data().mName.Get().c_str());
+  
+  // update periphery depending on eeprom data
+  if (mLampState.mState == ggState::eOn) {
+    PeripheryLEDCenterSetChannelBrightness();
+    Periphery().mLEDRing.SetOn(true);
+  }
 }
 
 

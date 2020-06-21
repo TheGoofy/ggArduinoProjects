@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ggLog.h"
-#include "ggValueEEPromT.h"
+#include "ggTransitionT.h"
 #include <Adafruit_PWMServoDriver.h>
 
 
@@ -15,8 +15,7 @@ public:
     mPinSCL(aPinSCL),
     mLogTable(4095),
     mModulePWM(),
-    mOn(false),
-    mBrightness()
+    mBrightnesses()
   {
     ResetSettings();
   }
@@ -25,36 +24,19 @@ public:
     Wire.begin(mPinSDA, mPinSCL);
     mModulePWM.begin();
     mModulePWM.setOscillatorFrequency(28000000);  // The int.osc. is closer to 27MHz
-    mModulePWM.setPWMFreq(180);  // 200 most "silent", 1600 is the maximum PWM frequency
+    mModulePWM.setPWMFreq(180); // 180 most "silent", 1600 is the maximum PWM frequency
     UpdateOutput();
   }
 
-  void ResetSettings(float aChannelBrightness = 0.5f) {
-    SetChannelBrightness(aChannelBrightness);
+  void ResetSettings() {
+    SetTransitionTime(0.3f); // seconds
+    SetChannelBrightness(0.0f);
   }
 
-  bool GetOn() const {
-    return mOn;
-  }
-
-  void SetOn(bool aOn) {
-    if (mOn != aOn) {
-      mOn = aOn;
-      UpdateOutput();
-    }
-  }
-
-  void ToggleOnOff() {
-    SetOn(!GetOn());
-  }
-
-  void ChangeBrightness(const float& aBrightnessDelta) {
-    ggValueEEProm::cLazyWriter vLazyWriter;
+  void SetTransitionTime(float aSeconds) {
     ForEachChannel([&] (int aChannel) {
-      const float vBrightness = mBrightness[aChannel] + aBrightnessDelta;
-      mBrightness[aChannel] = ggClamp(vBrightness, 0.0f, 1.0f);;
+      mBrightnesses[aChannel].SetSeconds(aSeconds);
     });
-    UpdateOutput();
   }
 
   int GetNumberOfChannels() const {
@@ -70,15 +52,14 @@ public:
 
   inline float GetChannelBrightness(int aChannel) const {
     if ((0 <= aChannel) && (aChannel < TNumChannels)) {
-      return mBrightness[aChannel];
+      return mBrightnesses[aChannel].Get();
     }
     return 0.0f;
   }
 
   void SetChannelBrightness(float aBrightness) {
-    ggValueEEProm::cLazyWriter vLazyWriter;
     ForEachChannel([&] (int aChannel) {
-      mBrightness[aChannel] = aBrightness;
+      mBrightnesses[aChannel].Set(aBrightness);
     });
     UpdateOutput();
   }
@@ -86,11 +67,17 @@ public:
   void SetChannelBrightness(int aChannel, float aBrightness) {
     if ((0 <= aChannel) && (aChannel < TNumChannels)) {
       float vBrightness = ggClamp(aBrightness, 0.0f, 1.0f);
-      if (mBrightness[aChannel] != vBrightness) {
-        mBrightness[aChannel] = vBrightness;
+      mBrightnesses[aChannel].Set(vBrightness);
+      UpdateOutput(aChannel);
+    }
+  }
+
+  void Run() {
+    ForEachChannel([&] (int aChannel) {
+      if (!mBrightnesses[aChannel].Finished()) {
         UpdateOutput(aChannel);
       }
-    }
+    });
   }
 
 private:
@@ -116,7 +103,8 @@ private:
     }
     else {
       // stagger "on" in order to distribute current draw more evenly
-      uint16_t vOn = aChannelPWM * 341; // same as 4096 / 12;
+      // uint16_t vOn = aChannelPWM * 341; // 4096 / 12 = 341.33;
+      uint16_t vOn = 0; // "on" later than 0 sometimes a skipped pwm-cycle (dimming flicker)
       uint16_t vOff = (vOn + aValue) & 0x0fff; // same as % 4096;
       mModulePWM.setPWM(aChannelPWM, vOn, vOff);
     }
@@ -124,7 +112,7 @@ private:
 
   inline void UpdateOutput(int aChannel) {
     int vChannelPWM = GetChannelPWM(aChannel);
-    int vValuePWM = GetOn() ? mLogTable.Get(mBrightness[aChannel]) : 0;
+    int vValuePWM = mLogTable.Get(mBrightnesses[aChannel].Get());
     AnalogWrite(vChannelPWM, vValuePWM);
   }
 
@@ -139,9 +127,6 @@ private:
   const int mPinSCL;
   const ggLog mLogTable;
   Adafruit_PWMServoDriver mModulePWM;
-  bool mOn;
-  
-  // persistent settings
-  ggValueEEPromT<float> mBrightness[TNumChannels];
+  std::array<ggTransitionT<float>, TNumChannels> mBrightnesses;
   
 };

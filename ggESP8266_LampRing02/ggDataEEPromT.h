@@ -29,7 +29,7 @@ public:
 
   struct cScene {
     tString mName;
-    std::array<tBrightness, TNumBrightnesses>  mBrightnesses;
+    std::array<tBrightness, TNumBrightnesses> mBrightnesses;
     std::array<tColor, TNumColors> mColors;
   };
 

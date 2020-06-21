@@ -56,15 +56,17 @@
   #define M_BUTTON_INVERT false
 #endif
 
-struct ggPeriphery {
+// LED strip count
+#define M_LED_CENTER_NUM_STRIPS 6
+#define M_LED_RING_NUM_LEDS 114
 
-  ggValueEEPromT<bool> mOn;
+struct ggPeriphery {
 
   ggButton mButton;
   ggRotaryEncoder mEncoder;
   ggOutput mEnablePSU;
-  ggLEDCenter<6> mLEDCenter;
-  ggLEDRing<24*4+18> mLEDRing;
+  ggLEDCenter<M_LED_CENTER_NUM_STRIPS> mLEDCenter;
+  ggLEDRing<M_LED_RING_NUM_LEDS> mLEDRing;
   ggDisplay mDisplay;
 
   ggPeriphery()
@@ -88,7 +90,6 @@ struct ggPeriphery {
     mLEDRing.Begin();
     mLEDCenter.Begin();
     mDisplay.Begin();
-    SetOn(mOn.Get());
   }
 
   void ResetSettings()
@@ -98,22 +99,15 @@ struct ggPeriphery {
     mLEDCenter.ResetSettings();
   }
 
-  bool GetOn() const {
-    return mOn;
-  }
-
   void SetOn() {
-    mOn = true;
+    mTimerPSU.Start();
     mEnablePSU.Set(true);
-    mTimerPSU.Reset();
     mLEDRing.SetOn(true);
-    mLEDCenter.SetOn(true);
   }
 
   void SetOff() {
-    mOn = false;
+    mTimerPSU.Stop();
     mEnablePSU.Set(false);
-    mLEDCenter.SetOn(false);
     mLEDRing.SetOn(false);
   }
 
@@ -121,20 +115,16 @@ struct ggPeriphery {
     aOn ? SetOn() : SetOff();
   }
 
-  void ToggleOnOff() {
-    SetOn(!GetOn());
-  }
-
   void Run() {
     mTimerPSU.Run();
     mButton.Run();
     mEncoder.Run();
     mDisplay.Run();
+    mLEDCenter.Run();
   }
 
   void PrintDebug(const String& aName = "") const {
     ggDebug vDebug("ggPeriphery", aName);
-    // mOn.PrintDebug("mOn");
     mButton.PrintDebug("mButton");
     mEnablePSU.PrintDebug("mEnablePSU");
     // mEncoder.PrintDebug("mEncoder");
