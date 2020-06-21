@@ -31,7 +31,11 @@ ggValueEEProm::ggValueEEProm(int aSize)
 {
   ValuesSize() += aSize;
   Values().push_back(this);
-  // Serial.printf("%s - mAddressEEProm=%d ValuesSize()=%d Values().size()=%d\n", __PRETTY_FUNCTION__, mAddressEEProm, ValuesSize(), Values().size()); Serial.flush();
+  #if M_DEBUGGING
+    Serial.printf("%s - Index=%d aSize=%d mAddressEEProm=%d EEPromNeeded=%d\n",
+      __PRETTY_FUNCTION__, Values().size() - 1, aSize, mAddressEEProm, sizeof(cHeader) + ValuesSize());
+    Serial.flush();
+  #endif
 }
 
 

@@ -56,9 +56,11 @@
   #define M_BUTTON_INVERT false
 #endif
 
-// LED strip count
+// LED strip settings
 #define M_LED_CENTER_NUM_STRIPS 6
-#define M_LED_RING_NUM_LEDS 114
+#define M_LED_RING_NUM_LEDS 6 // 114
+#define M_LED_RING_A_TYPE NEO_BGR
+#define M_LED_RING_B_TYPE NEO_BGR // NEO_GBR
 
 struct ggPeriphery {
 
@@ -73,7 +75,7 @@ struct ggPeriphery {
   : mButton(M_PIN_BUTTON, M_BUTTON_INVERT, true), // button, inverted (input signal low if pressed), enable pull-up
     mEncoder(M_PIN_ENCODER_A, M_PIN_ENCODER_B), // rotary encoder
     mEnablePSU(M_PIN_ENABLE_PSU, false), // PSU on/off, non-inverted
-    mLEDRing(M_PIN_LED_A_DATA, M_PIN_LED_B_DATA),
+    mLEDRing(M_PIN_LED_A_DATA, M_LED_RING_A_TYPE, M_PIN_LED_B_DATA, M_LED_RING_B_TYPE),
     mLEDCenter(M_PIN_I2C_SDA, M_PIN_I2C_SCL), // uses HW I2C
     mDisplay(M_PIN_I2C_SDA, M_PIN_I2C_SCL), // uses HW I2C
     mTimerPSU(2.0f) // 1 sec (for delay after power-on)
@@ -92,23 +94,14 @@ struct ggPeriphery {
     mDisplay.Begin();
   }
 
-  void ResetSettings()
-  {
-    SetOff();
-    mLEDRing.ResetSettings();
-    mLEDCenter.ResetSettings();
-  }
-
   void SetOn() {
     mTimerPSU.Start();
     mEnablePSU.Set(true);
-    mLEDRing.SetOn(true);
   }
 
   void SetOff() {
     mTimerPSU.Stop();
     mEnablePSU.Set(false);
-    mLEDRing.SetOn(false);
   }
 
   void SetOn(bool aOn) {

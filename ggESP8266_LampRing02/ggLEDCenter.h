@@ -17,7 +17,8 @@ public:
     mModulePWM(),
     mBrightnesses()
   {
-    ResetSettings();
+    SetTransitionTime(0.3f); // seconds
+    SetChannelBrightness(0.0f);
   }
 
   void Begin() {
@@ -26,11 +27,6 @@ public:
     mModulePWM.setOscillatorFrequency(28000000);  // The int.osc. is closer to 27MHz
     mModulePWM.setPWMFreq(180); // 180 most "silent", 1600 is the maximum PWM frequency
     UpdateOutput();
-  }
-
-  void ResetSettings() {
-    SetTransitionTime(0.3f); // seconds
-    SetChannelBrightness(0.0f);
   }
 
   void SetTransitionTime(float aSeconds) {

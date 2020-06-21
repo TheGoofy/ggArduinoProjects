@@ -100,21 +100,22 @@ ggData& Data()
     GG_DEBUG();
     GG_DEBUG_PRINTF("allocating data\n");
     vData = new ggData(mHostName, 1);
+    DataReset();
   }
   return *vData;
 }
 
 
-void UpdateDisplay()
+void DataReset()
 {
-  GG_DEBUG();
-  Periphery().mDisplay.Clear();
-  Periphery().mDisplay.SetTitle(Data().mName.Get());
-  Periphery().mDisplay.SetText(0, WiFi.localIP().toString());
+  ggValueEEProm::cLazyWriter vLazyWriter;
+  Data().mName.Set(mHostName);
+  for (auto& vBrightness : Data().mCurrentScene.mBrightnesses) vBrightness = 0.5f;
+  for (auto& vColor : Data().mCurrentScene.mColors) vColor = ggColor::cHSV::DarkOrange();
 }
 
 
-void DataSetChannelBrightness(const float& aB0, const float& aB1, const float& aB2, const float& aB3, const float& aB4, const float& aB5)
+void DataSetBrightness(const float& aB0, const float& aB1, const float& aB2, const float& aB3, const float& aB4, const float& aB5)
 {
   GG_DEBUG();
   ggValueEEProm::cLazyWriter vLazyWriter;
@@ -160,18 +161,60 @@ void WebSocketsUpdateChannelBrightness(int aClientID = -1)
 }
 
 
+void DataSetColors(const ggColor::cHSV& aHSV, ggLocations::tEnum aLocations)
+{
+  GG_DEBUG();
+  ggValueEEProm::cLazyWriter vLazyWriter;
+  ggLocations::ForEach([&] (ggLocations::tEnum aLocation) {
+    if (ggLocations::Intersect(aLocation, aLocations)) {
+      Data().mCurrentScene.mColors[ggLocations::ToIndex(aLocation)] = aHSV;
+    }
+  });
+}
+
+
+void DataChangeColors(int aColorChannel, int aDelta)
+{
+  ggColor::cHSV vHSV = Data().mCurrentScene.mColors[0];
+  int vValue = vHSV.mChannels[aColorChannel];
+  switch (aColorChannel) {
+    case 0: vValue = (vValue + aDelta) & 0xff; break;
+    case 1: vValue = ggClamp<int>(vValue - 2 * aDelta, 0, 255); break;
+    case 2: vValue = ggClamp<int>(vValue + aDelta, 0, 255); break;
+  }
+  vHSV.mChannels[aColorChannel] = vValue;
+  DataSetColors(vHSV, ggLocations::eAll);
+}
+
+
+void PeripheryLEDRingSetColors()
+{
+  GG_DEBUG();
+  Periphery().mLEDRing.SetColors(Data().mCurrentScene.mColors);
+}
+
+
 void WebSocketsUpdateRingColorHSV(int aClientID = -1)
 {
   GG_DEBUG();
-  const ggColor::cHSV& vHSV0(Periphery().mLEDRing.GetColorHSV(ggLocations::eAL));
-  const ggColor::cHSV& vHSV1(Periphery().mLEDRing.GetColorHSV(ggLocations::eAR));
-  const ggColor::cHSV& vHSV2(Periphery().mLEDRing.GetColorHSV(ggLocations::eBL));
-  const ggColor::cHSV& vHSV3(Periphery().mLEDRing.GetColorHSV(ggLocations::eBR));
+  const ggColor::cHSV& vHSV0(Data().mCurrentScene.mColors[0]);
+  const ggColor::cHSV& vHSV1(Data().mCurrentScene.mColors[1]);
+  const ggColor::cHSV& vHSV2(Data().mCurrentScene.mColors[2]);
+  const ggColor::cHSV& vHSV3(Data().mCurrentScene.mColors[3]);
   WebSockets().UpdateRingColorHSV(vHSV0.mH, vHSV0.mS, vHSV0.mV,
                                   vHSV1.mH, vHSV1.mS, vHSV1.mV,
                                   vHSV2.mH, vHSV2.mS, vHSV2.mV,
                                   vHSV3.mH, vHSV3.mS, vHSV3.mV,
                                   aClientID);
+}
+
+
+void UpdateDisplay()
+{
+  GG_DEBUG();
+  Periphery().mDisplay.Clear();
+  Periphery().mDisplay.SetTitle(Data().mName.Get());
+  Periphery().mDisplay.SetText(0, WiFi.localIP().toString());
 }
 
 
@@ -301,6 +344,7 @@ void ConnectComponents()
         Data().mOn = false;
         Periphery().SetOff();
         Periphery().mLEDCenter.SetChannelBrightness(0.0f);
+        Periphery().mLEDRing.SetColors(ggColor::cHSV::Black());
         Periphery().mDisplay.SetOn(false);
         WebSockets().UpdateOn(false);
         break;
@@ -308,6 +352,7 @@ void ConnectComponents()
         Data().mOn = true;
         Periphery().SetOn();
         PeripheryLEDCenterSetChannelBrightness();
+        PeripheryLEDRingSetColors();
         Periphery().mDisplay.SetText(0, WiFi.localIP().toString());
         WebSockets().UpdateOn(true);
         break;
@@ -380,7 +425,8 @@ void ConnectComponents()
       case ggState::eEditColorChannel0:
       case ggState::eEditColorChannel1:
       case ggState::eEditColorChannel2:
-        Periphery().mLEDRing.ChangeColorChannel(ggState::GetColorChannelIndex(mLampState.GetState()), aValueDelta);
+        DataChangeColors(ggState::GetColorChannelIndex(mLampState.GetState()), aValueDelta);
+        PeripheryLEDRingSetColors();
         WebSocketsUpdateRingColorHSV();
         EditTimer().Start();
         break;
@@ -433,12 +479,13 @@ void ConnectComponents()
     mLampState.SetState(aOn ? ggState::eOn : ggState::eOff);
   });
   WebSockets().OnSetChannelBrightness([&] (float aB0, float aB1, float aB2, float aB3, float aB4, float aB5) {
-    DataSetChannelBrightness(aB0, aB1, aB2, aB3, aB4, aB5);
+    DataSetBrightness(aB0, aB1, aB2, aB3, aB4, aB5);
     PeripheryLEDCenterSetChannelBrightness();
     WebSocketsUpdateChannelBrightness();
   });
   WebSockets().OnSetRingColorHSV([&] (uint8_t aH, uint8_t aS, uint8_t aV, uint8_t aLocations) {
-    Periphery().mLEDRing.SetColor(ggColor::cHSV(aH, aS, aV), (ggLocations)aLocations);
+    DataSetColors(ggColor::cHSV(aH, aS, aV), (ggLocations::tEnum)aLocations);
+    PeripheryLEDRingSetColors();
     WebSocketsUpdateRingColorHSV();
   });
   
@@ -458,8 +505,7 @@ void ConnectComponents()
       GG_DEBUG_BLOCK("mWebServer.OnResetAll(...)");
       Periphery().mDisplay.SetText(0, String("Reset All..."));
       Periphery().mDisplay.Run(); // main "loop" is not running
-      Data().mName.Set(mHostName);
-      Periphery().ResetSettings();
+      DataReset();
       WiFiMgr().resetSettings();
       delay(1000);
     }
@@ -587,7 +633,7 @@ void setup()
   // update periphery depending on eeprom data
   if (mLampState.mState == ggState::eOn) {
     PeripheryLEDCenterSetChannelBrightness();
-    Periphery().mLEDRing.SetOn(true);
+    PeripheryLEDRingSetColors();
   }
 }
 

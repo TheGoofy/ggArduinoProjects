@@ -1,25 +1,13 @@
 #include <Adafruit_NeoPixel.h>
 #include "ggColor.h"
-#include "ggValueEEPromT.h"
-
-enum class ggLocations {
-  eAL = 0b00000001, // strip A, left  (or lower, or base, ...)
-  eAR = 0b00000010, // strip A, right (or upper, or top, ...)
-  eBL = 0b00000100, // strip B, left  (or lower, or base, ...)
-  eBR = 0b00001000, // strip B, right (or upper, or top, ...)
-  eA  = eAL | eAR,  // strip A (L+R)
-  eB  = eBL | eBR,  // strip B (L+R)
-  eL  = eAL | eBL,  // left (strips A+B)
-  eR  = eAR | eBR,  // right (strips A+B)
-  eAll = eA | eB
-};
+#include "ggLocations.h"
 
 template <uint16_t TNumLEDs>
 class ggLEDRing {
 
 public:
 
-  // WS2812 LED-Strip RGB channel mapping
+  // Front WS2812 LED-Strip RGB channel mapping
   //
   // Input   | R | G | B
   // --------+---+---+--
@@ -30,80 +18,49 @@ public:
   // NEO_BRG | G | B | R
   // NEO_BGR | G | R | B
 
-  ggLEDRing(int aPinA, int aPinB)
-  : mLEDsA(TNumLEDs, aPinA, NEO_BGR + NEO_KHZ800),
-    mLEDsB(TNumLEDs, aPinB, NEO_GBR + NEO_KHZ800),
-    mOn(false),
-    mHSV({ggColor::cHSV::DarkOrange(),
-          ggColor::cHSV::DarkBlue(),
-          ggColor::cHSV::DarkOrange(),
-          ggColor::cHSV::DarkBlue()}) {
+  ggLEDRing(int aPinA, uint16_t aTypeA,
+            int aPinB, uint16_t aTypeB)
+  : mLEDsA(TNumLEDs, aPinA, aTypeA + NEO_KHZ800),
+    mLEDsB(TNumLEDs, aPinB, aTypeB + NEO_KHZ800)
+  {
+    SetColors(ggColor::cHSV::Black());
   }
 
   void Begin() {
-    // Print(Serial);
     mLEDsA.begin();
     mLEDsB.begin();
     mLEDsA.clear();
     mLEDsB.clear();
-    mLEDsA.show();
-    mLEDsB.show();
+    Show();
   }
 
-  void ResetSettings() {
-    ggValueEEProm::cLazyWriter vLazyWriter;
-    SetColor(ggColor::cHSV::DarkOrange(), ggLocations::eL);
-    SetColor(ggColor::cHSV::DarkBlue(), ggLocations::eR);
+  const ggColor::cHSV& GetColorHSV(ggLocations::tEnum aLocations) const {
+    return GetColor(ggLocations::ToIndex(aLocations));
   }
 
-  bool GetOn() const {
-    return mOn;
-  }
-
-  void SetOn(bool aOn) {
-    if (mOn != aOn) {
-      mOn = aOn;
-      UpdateOutput();
-    }
-  }
-
-  void ToggleOnOff() {
-    SetOn(!GetOn());
-  }
-
-  const ggColor::cHSV& GetColorHSV(ggLocations aLocations) const {
-    return GetColor(GetLocationIndex(aLocations));
-  }
-
-  ggColor::cRGB GetColorRGB(ggLocations aLocations) const {
+  ggColor::cRGB GetColorRGB(ggLocations::tEnum aLocations) const {
     return ggColor::ToRGB(GetColorHSV(aLocations));
   }
 
-  void SetColor(const ggColor::cHSV& aHSV, ggLocations aLocations = ggLocations::eAll) {
+  void SetColors(const ggColor::cHSV& aHSV, ggLocations::tEnum aLocations = ggLocations::eAll) {
     bool vColorChanged = false;
-    ggValueEEProm::cLazyWriter vLazyWriter;
-    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eAL), vColorChanged);
-    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eAR), vColorChanged);
-    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eBL), vColorChanged);
-    SetColor(aHSV, GetLocationIndex(aLocations, ggLocations::eBR), vColorChanged);
+    SetColor(aHSV, ggLocations::ToIndex(aLocations, ggLocations::eAL), vColorChanged);
+    SetColor(aHSV, ggLocations::ToIndex(aLocations, ggLocations::eAR), vColorChanged);
+    SetColor(aHSV, ggLocations::ToIndex(aLocations, ggLocations::eBL), vColorChanged);
+    SetColor(aHSV, ggLocations::ToIndex(aLocations, ggLocations::eBR), vColorChanged);
     if (vColorChanged) UpdateOutput();
   }
 
-  void SetColor(const ggColor::cRGB& aRGB, ggLocations aLocations = ggLocations::eAll) {
+  void SetColors(const ggColor::cRGB& aRGB, ggLocations::tEnum aLocations = ggLocations::eAll) {
     SetColor(ggColor::ToHSV(aRGB), aLocations);
   }
 
-  void ChangeColorChannel(int aChannel, int aDelta, ggLocations aLocations = ggLocations::eAll) {
-    if (!GetOn()) return;
-    ggColor::cHSV vHSV = mHSV[0];
-    int vValue = vHSV.mChannels[aChannel];
-    switch (aChannel) {
-      case 0: vValue = (vValue + aDelta) & 0xff; break;
-      case 1: vValue = ggClamp<int>(vValue - 2 * aDelta, 0, 255); break;
-      case 2: vValue = ggClamp<int>(vValue + aDelta, 0, 255); break;
-    }
-    vHSV.mChannels[aChannel] = vValue;
-    SetColor(vHSV, aLocations);
+  template <typename TColors>
+  void SetColors(const TColors& aColors) {
+    int vIndex = 0;
+    bool vChanged = false;
+    for (const auto& vColor : aColors) SetColor(vColor, vIndex++, vChanged);
+    if (vChanged) UpdateOutput();
   }
 
   void DisplayColor(const ggColor::cRGB& aColor) {
@@ -139,11 +96,10 @@ public:
 
   void PrintDebug(const String& aName = "") const {
     ggDebug vDebug("ggLEDRing", aName);
-    vDebug.PrintF("mOn=%d\n", mOn);
-    vDebug.PrintF("mHSV[0]=%d/%d/%d\n", mHSV[0].Get().mH, mHSV[0].Get().mS, mHSV[0].Get().mV);
-    vDebug.PrintF("mHSV[1]=%d/%d/%d\n", mHSV[1].Get().mH, mHSV[1].Get().mS, mHSV[1].Get().mV);
-    vDebug.PrintF("mHSV[2]=%d/%d/%d\n", mHSV[2].Get().mH, mHSV[2].Get().mS, mHSV[2].Get().mV);
-    vDebug.PrintF("mHSV[3]=%d/%d/%d\n", mHSV[3].Get().mH, mHSV[3].Get().mS, mHSV[3].Get().mV);
+    vDebug.PrintF("mHSV[0]=%d/%d/%d\n", mHSV[0].mH, mHSV[0].mS, mHSV[0].mV);
+    vDebug.PrintF("mHSV[1]=%d/%d/%d\n", mHSV[1].mH, mHSV[1].mS, mHSV[1].mV);
+    vDebug.PrintF("mHSV[2]=%d/%d/%d\n", mHSV[2].mH, mHSV[2].mS, mHSV[2].mV);
+    vDebug.PrintF("mHSV[3]=%d/%d/%d\n", mHSV[3].mH, mHSV[3].mS, mHSV[3].mV);
     vDebug.PrintF("mLEDsA[0..%d]=\n", mLEDsA.numPixels() - 1);
     for (int vIndex = 0; vIndex < mLEDsA.numPixels(); vIndex++) {
       ggColor::cRGB vRGB(mLEDsA.getPixelColor(vIndex));
@@ -160,17 +116,6 @@ public:
 
 private:
 
-  inline static int GetLocationIndex(ggLocations aLocations, ggLocations aLocationToCheck = ggLocations::eAll) {
-    ggLocations vLocations = (ggLocations)((int)aLocations & (int)aLocationToCheck);
-    switch (vLocations) {
-      case ggLocations::eAL: return 0;
-      case ggLocations::eAR: return 1;
-      case ggLocations::eBL: return 2;
-      case ggLocations::eBR: return 3;
-      default: return -1;
-    }
-  }
-
   const ggColor::cHSV& GetColor(int aLocatonIndex) const {
     if ((0 <= aLocatonIndex) && (aLocatonIndex < 4)) return mHSV[aLocatonIndex];
     else return mHSV[0];
@@ -178,7 +123,7 @@ private:
 
   void SetColor(const ggColor::cHSV& aHSV, int aLocatonIndex, bool& aChanged) {
     if ((0 <= aLocatonIndex) && (aLocatonIndex < 4)) {
-      if (mHSV[aLocatonIndex].Get() != aHSV) {
+      if (mHSV[aLocatonIndex] != aHSV) {
         mHSV[aLocatonIndex] = aHSV;
         aChanged = true;
       }
@@ -228,24 +173,14 @@ private:
 
   void UpdateOutput() {
     GG_DEBUG();
-    GG_DEBUG_PRINTF("GetOn() = %d\n", GetOn());
-    if (GetOn()) {
-      FillGradient(mLEDsA, 0, mLEDsA.numPixels() - 1, mHSV[0].Get(), mHSV[1].Get());
-      FillGradient(mLEDsB, 0, mLEDsB.numPixels() - 1, mHSV[2].Get(), mHSV[3].Get());
-    }
-    else {
-      mLEDsA.clear();
-      mLEDsB.clear();
-    }
+    FillGradient(mLEDsA, 0, mLEDsA.numPixels() - 1, mHSV[0], mHSV[1]);
+    FillGradient(mLEDsB, 0, mLEDsB.numPixels() - 1, mHSV[2], mHSV[3]);
     Show();
   }
 
   // basic setup
   Adafruit_NeoPixel mLEDsA;
   Adafruit_NeoPixel mLEDsB;
-  bool mOn;
-  
-  // persistent settings
-  ggValueEEPromT<ggColor::cHSV> mHSV[4];
+  std::array<ggColor::cHSV, 4> mHSV;
   
 };
