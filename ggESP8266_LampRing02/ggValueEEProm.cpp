@@ -1,18 +1,24 @@
+#define M_DEBUGGING false
+
+
 #include "ggValueEEProm.h"
 #include <algorithm>
+#include "ggDebug.h"
 
 
 void ggValueEEProm::Begin(size_t aSize)
 {
+  GG_DEBUG();
+  GG_DEBUG_PRINTF("aSize = %d\n", aSize);
   EEPROM.begin(aSize);
   // use checksum of default-values as seed
   ChecksumSeed() = CalculateChecksumValues();
   if (EEPromDataValid()) {
-    // Serial.printf("%s - EEPROM Read\n", __PRETTY_FUNCTION__); Serial.flush();
+    GG_DEBUG_PRINTF("EEPROM Read\n");
     ReadData();
   }
   else {
-    // Serial.printf("%s - EEPROM Write\n", __PRETTY_FUNCTION__); Serial.flush();
+    GG_DEBUG_PRINTF("EEPROM Write\n");
     WriteHeader();
     WriteData();
     EEPROM.commit();
