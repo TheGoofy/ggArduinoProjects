@@ -77,6 +77,25 @@ public:
     return (mMicrosStart == mMicrosEnd) || (mValueStart == mValueEnd);
   }
 
+  inline ggTransitionT& operator = (const TValue& aValue) {
+    Set(aValue);
+    return *this;
+  }
+
+  inline ggTransitionT& operator += (const TValue& aValue) {
+    Set(mValueEnd + aValue);
+    return *this;
+  }
+
+  inline ggTransitionT& operator -= (const TValue& aValue) {
+    Set(mValueEnd - aValue);
+    return *this;
+  }
+
+  inline operator const TValue& () const {
+    return Get();
+  }
+
 private:
 
   TValue mValueStart;
