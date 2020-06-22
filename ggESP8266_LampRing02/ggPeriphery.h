@@ -57,13 +57,13 @@
 
 // LED strip settings
 #if !M_TEST_ENVIRONMENT
-  #define M_SWITCH_PSU_ON_DELAY 1.5f
+  #define M_SWITCH_PSU_ON_DELAY 2.0f
   #define M_LED_CENTER_NUM_STRIPS 6
   #define M_LED_RING_NUM_LEDS 114
   #define M_LED_RING_A_TYPE NEO_BGR
   #define M_LED_RING_B_TYPE NEO_GBR
 #else
-  #define M_SWITCH_PSU_ON_DELAY 0.5f
+  #define M_SWITCH_PSU_ON_DELAY 1.0f
   #define M_LED_CENTER_NUM_STRIPS 6
   #define M_LED_RING_NUM_LEDS 6
   #define M_LED_RING_A_TYPE NEO_BGR
