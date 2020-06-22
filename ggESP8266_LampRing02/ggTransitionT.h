@@ -42,7 +42,6 @@ public:
     if (aValue != mValueEnd) {
       mValueStart = Get();
       mValueEnd = aValue;
-      mValueDelta = mValueEnd - mValueStart;
       mMicrosStart = micros();
       mMicrosEnd = mMicrosStart + mMicrosDelta;
     }
@@ -60,8 +59,8 @@ public:
       mMicrosStart = mMicrosEnd;
       return mValueEnd;
     }
-    float vScale = (float)vMicrosPassed / (float)mMicrosDelta;
-    mValue = mValueStart + vScale * mValueDelta;
+    float vT = (float)vMicrosPassed / (float)mMicrosDelta;
+    mValue = ggInterpolate<TValue>(mValueStart, mValueEnd, vT);
     return mValue;
   }
 
@@ -75,6 +74,22 @@ public:
 
   inline bool Finished() const {
     return (mMicrosStart == mMicrosEnd) || (mValueStart == mValueEnd);
+  }
+
+  inline bool operator == (const TValue& aValue) const {
+    return mValueEnd == aValue;
+  }
+
+  inline bool operator == (const ggTransitionT& aOther) const {
+    return mValueEnd == aOther.mValueEnd;
+  }
+
+  inline bool operator != (const TValue& aValue) const {
+    return mValueEnd != aValue;
+  }
+
+  inline bool operator != (const ggTransitionT& aOther) const {
+    return mValueEnd != aOther.mValueEnd;
   }
 
   inline ggTransitionT& operator = (const TValue& aValue) {
@@ -100,7 +115,6 @@ private:
 
   TValue mValueStart;
   TValue mValueEnd;
-  TValue mValueDelta;
   mutable TValue mValue;
 
   mutable unsigned long mMicrosStart;

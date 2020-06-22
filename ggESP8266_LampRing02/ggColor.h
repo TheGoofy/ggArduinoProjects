@@ -199,3 +199,15 @@ namespace ggColor {
   }
 
 };
+
+template <>
+inline ggColor::cHSV ggInterpolate(const ggColor::cHSV& aHSV0, const ggColor::cHSV& aHSV1, float aT) {
+  int16_t vDeltaH = (int16_t)aHSV1.mH - (int16_t)aHSV0.mH;
+  int16_t vDeltaS = (int16_t)aHSV1.mS - (int16_t)aHSV0.mS;
+  int16_t vDeltaV = (int16_t)aHSV1.mV - (int16_t)aHSV0.mV;
+  if (vDeltaH >=  256/2) vDeltaH -= 256;
+  if (vDeltaH <= -256/2) vDeltaH += 256;
+  return ggColor::cHSV(aHSV0.mH + aT * vDeltaH,
+                       aHSV0.mS + aT * vDeltaS,
+                       aHSV0.mV + aT * vDeltaV);
+}

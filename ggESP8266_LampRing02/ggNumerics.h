@@ -101,3 +101,8 @@ TOut ggRound(const double aValue) {
 }
 
 float ggRoundToSD(float aValue, int aSignificantDigits = 3);
+
+template <typename T>
+inline T ggInterpolate(const T& aA, const T& aB, float aT) {
+  return aA + aT * (aB - aA);
+}
