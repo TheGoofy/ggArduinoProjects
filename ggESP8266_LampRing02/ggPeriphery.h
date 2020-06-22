@@ -102,6 +102,7 @@ struct ggPeriphery {
     mButton.Run();
     mEncoder.Run();
     mSwitchPSU.Run();
+    mLEDRing.Run();
     mLEDCenter.Run();
     mDisplay.Run();
   }

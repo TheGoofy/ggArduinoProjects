@@ -23,6 +23,7 @@ public:
   : mLEDsA(TNumLEDs, aPinA, aTypeA + NEO_KHZ800),
     mLEDsB(TNumLEDs, aPinB, aTypeB + NEO_KHZ800)
   {
+    SetTransitionTime(0.3f); // seconds
     SetColors(ggColor::cHSV::Black());
   }
 
@@ -32,6 +33,12 @@ public:
     mLEDsA.clear();
     mLEDsB.clear();
     Show();
+  }
+
+  void SetTransitionTime(float aSeconds) {
+    for (auto& vHSV : mHSV) {
+      vHSV.SetSeconds(aSeconds);
+    }
   }
 
   const ggColor::cHSV& GetColorHSV(ggLocations::tEnum aLocations) const {
@@ -53,6 +60,12 @@ public:
 
   void SetColors(const ggColor::cRGB& aRGB, ggLocations::tEnum aLocations = ggLocations::eAll) {
     SetColor(ggColor::ToHSV(aRGB), aLocations);
+  }
+
+  void SetColorsBlack() {
+    for (auto& vHSV : mHSV) {
+      vHSV = ggColor::cHSV(vHSV.GetEnd().mH, vHSV.GetEnd().mS, 0);
+    }
   }
 
   template <typename TColors>
@@ -96,10 +109,10 @@ public:
 
   void PrintDebug(const String& aName = "") const {
     ggDebug vDebug("ggLEDRing", aName);
-    vDebug.PrintF("mHSV[0]=%d/%d/%d\n", mHSV[0].mH, mHSV[0].mS, mHSV[0].mV);
-    vDebug.PrintF("mHSV[1]=%d/%d/%d\n", mHSV[1].mH, mHSV[1].mS, mHSV[1].mV);
-    vDebug.PrintF("mHSV[2]=%d/%d/%d\n", mHSV[2].mH, mHSV[2].mS, mHSV[2].mV);
-    vDebug.PrintF("mHSV[3]=%d/%d/%d\n", mHSV[3].mH, mHSV[3].mS, mHSV[3].mV);
+    vDebug.PrintF("mHSV[0]=%d/%d/%d\n", mHSV[0].GetEnd().mH, mHSV[0].GetEnd().mS, mHSV[0].GetEnd().mV);
+    vDebug.PrintF("mHSV[1]=%d/%d/%d\n", mHSV[1].GetEnd().mH, mHSV[1].GetEnd().mS, mHSV[1].GetEnd().mV);
+    vDebug.PrintF("mHSV[2]=%d/%d/%d\n", mHSV[2].GetEnd().mH, mHSV[2].GetEnd().mS, mHSV[2].GetEnd().mV);
+    vDebug.PrintF("mHSV[3]=%d/%d/%d\n", mHSV[3].GetEnd().mH, mHSV[3].GetEnd().mS, mHSV[3].GetEnd().mV);
     vDebug.PrintF("mLEDsA[0..%d]=\n", mLEDsA.numPixels() - 1);
     for (int vIndex = 0; vIndex < mLEDsA.numPixels(); vIndex++) {
       ggColor::cRGB vRGB(mLEDsA.getPixelColor(vIndex));
@@ -111,6 +124,19 @@ public:
       ggColor::cRGB vRGB(mLEDsB.getPixelColor(vIndex));
       vDebug.GetStream().printf("%d/%d/%d ", vRGB.mR, vRGB.mG, vRGB.mB);
       if ((vIndex % 5 == 4) || (vIndex + 1 == mLEDsB.numPixels())) vDebug.GetStream().printf("\n");
+    }
+  }
+
+  void Run() {
+    bool vTransitionFinished = true;
+    for (const auto& vHSV : mHSV) {
+      if (!vHSV.Finished()) {
+        vTransitionFinished = false;
+        break;
+      }
+    }
+    if (!vTransitionFinished) {
+      UpdateOutput();
     }
   }
 
@@ -181,6 +207,6 @@ private:
   // basic setup
   Adafruit_NeoPixel mLEDsA;
   Adafruit_NeoPixel mLEDsB;
-  std::array<ggColor::cHSV, 4> mHSV;
+  std::array<ggTransitionT<ggColor::cHSV>, 4> mHSV;
   
 };
