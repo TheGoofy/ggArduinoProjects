@@ -345,14 +345,14 @@ void ConnectComponents()
         Data().mOn = false;
         Periphery().mSwitchPSU.SetOff();
         Periphery().mLEDCenter.SetChannelBrightness(0.0f);
-        Periphery().mLEDRing.SetColors(ggColor::cHSV::Black());
+        Periphery().mLEDRing.SetColorsBlack();
         Periphery().mDisplay.SetOn(false);
         WebSockets().UpdateOn(false);
         break;
       case ggState::eOn:
         Data().mOn = true;
         Periphery().mSwitchPSU.SetOn();
-        PeripheryLEDCenterSetChannelBrightness();
+        // PeripheryLEDCenterSetChannelBrightness(); updated delayed when PSU is on
         // PeripheryLEDRingSetColors(); colors are updated delayed when PSU is on
         Periphery().mDisplay.SetText(0, WiFi.localIP().toString());
         WebSockets().UpdateOn(true);
@@ -436,6 +436,7 @@ void ConnectComponents()
 
   // PSU switch on is delayed => need to update color ring
   Periphery().mSwitchPSU.OnSwitchedOn([&] () {
+    PeripheryLEDCenterSetChannelBrightness();
     PeripheryLEDRingSetColors();
   });
 
@@ -639,7 +640,7 @@ void setup()
   // update periphery depending on eeprom data
   if (mLampState.mState == ggState::eOn) {
     Periphery().mSwitchPSU.SetOn();
-    PeripheryLEDCenterSetChannelBrightness();
+    // PeripheryLEDCenterSetChannelBrightness(); updated delayed when PSU is on
     // PeripheryLEDRingSetColors(); colors are updated delayed when PSU is on
   }
 }
