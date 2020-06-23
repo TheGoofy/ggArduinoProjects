@@ -38,6 +38,14 @@ public:
     }
   }
 
+  float GetSeconds() const {
+    return 0.000001f * mMicrosDelta;
+  }
+
+  unsigned long GetMicros() const {
+    return mMicrosDelta;
+  }
+
   void Set(const TValue& aValue) {
     if (aValue != mValueEnd) {
       mValueStart = Get();
@@ -118,7 +126,7 @@ private:
   mutable TValue mValue;
 
   mutable unsigned long mMicrosStart;
-  mutable unsigned long mMicrosEnd;
-  mutable unsigned long mMicrosDelta;
+  unsigned long mMicrosEnd;
+  unsigned long mMicrosDelta;
 
 };

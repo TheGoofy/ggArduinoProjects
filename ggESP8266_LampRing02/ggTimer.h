@@ -10,6 +10,14 @@ public:
     mTimeOutFunc(nullptr) {
   }
 
+  void SetTimeOut(float aTimeOutSeconds) {
+    mTimeOutMicroSeconds = 1000000.0f * aTimeOutSeconds + 0.5f;
+  }
+
+  float GetTimeOut() const {
+    return 0.000001f * mTimeOutMicroSeconds;
+  }
+
   void Start() {
     mLastMicroSeconds = micros();
     // slightly cheat if current time is "-1" by accident
@@ -18,6 +26,14 @@ public:
 
   void Stop() {
     mLastMicroSeconds = -1;
+  }
+
+  bool IsStarted() const {
+    return mLastMicroSeconds != -1;
+  }
+
+  bool IsStopped() const {
+    return mLastMicroSeconds == -1;
   }
 
   typedef std::function<void()> tTimeOutFunc;
