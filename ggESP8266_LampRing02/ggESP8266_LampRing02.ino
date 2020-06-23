@@ -352,6 +352,7 @@ void ConnectComponents()
       case ggState::eOn:
         Data().mOn = true;
         Periphery().mSwitchPSU.SetOn();
+        Periphery().mLEDRing.DisplayNormal();
         // PeripheryLEDCenterSetChannelBrightness(); updated delayed when PSU is on
         // PeripheryLEDRingSetColors(); colors are updated delayed when PSU is on
         Periphery().mDisplay.SetText(0, WiFi.localIP().toString());
