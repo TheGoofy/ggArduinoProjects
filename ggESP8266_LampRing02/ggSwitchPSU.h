@@ -3,6 +3,19 @@
 #include "ggOutput.h"
 #include "ggTimer.h"
 
+/**
+ * The power output of a PSU is not immediately available, after sending the signal to
+ * the "green" enable-line. Usually it takes a second (or maybe a bit less) until
+ * all output voltages (3.3V, 5V, 12V) are stable. Similarly before turning off the
+ * PSU, all connected devices should be shut down properly, before the output
+ * voltages are sinking to zero.
+ * 
+ * This class handles the enable-line, and triggers (optional) callbacks when the PSU 
+ * is switched on or off. When switching on, the enable-line is turned on immediately,
+ * and after a specified delay, a callback is triggered. When turning off, it waits for
+ * a specified delay before the enable-line is turned off, and another callback is
+ * triggered.
+ */
 class ggSwitchPSU
 {
 
@@ -11,14 +24,25 @@ public:
   ggSwitchPSU(int aPin, bool aInverted,
               float aDelayOn,
               float aDelayOff)
-  : mOutput(aPin, aInverted),
+  : mSwitchedOn(false),
+    mOutput(aPin, aInverted),
     mTimerOn(aDelayOn),
     mTimerOff(aDelayOff),
+    mSwitchedOnFunc(nullptr),
     mSwitchedOffFunc(nullptr)
   {
+    mTimerOn.OnTimeOut([&] () {
+      mSwitchedOn = true;
+      if (mSwitchedOnFunc != nullptr) {
+        mSwitchedOnFunc();
+      }
+    });
     mTimerOff.OnTimeOut([&] () {
+      mSwitchedOn = false;
       mOutput.Set(false);
-      if (mSwitchedOffFunc != nullptr) mSwitchedOffFunc();
+      if (mSwitchedOffFunc != nullptr) {
+        mSwitchedOffFunc();
+      }
     });
   }
 
@@ -43,14 +67,29 @@ public:
   }
 
   void SetOn() {
-    mOutput.Set(true);
-    mTimerOn.Start();
     mTimerOff.Stop();
+    if (!mSwitchedOn) {
+      mOutput.Set(true);
+      mTimerOn.Start();
+    }
+    else {
+      if (mSwitchedOnFunc != nullptr) {
+        mSwitchedOnFunc();
+      }
+    }
   }
 
   void SetOff() {
     mTimerOn.Stop();
-    mTimerOff.Start();
+    if (mSwitchedOn) {
+      mTimerOff.Start();
+    }
+    else {
+      mOutput.Set(false);
+      if (mSwitchedOffFunc != nullptr) {
+        mSwitchedOffFunc();
+      }
+    }
   }
 
   void SetOn(bool aOn) {
@@ -60,11 +99,15 @@ public:
   typedef std::function<void()> tSwitchFunc;
 
   void OnSwitchedOn(tSwitchFunc aSwitchFunc) {
-    mTimerOn.OnTimeOut(aSwitchFunc);
+    mSwitchedOnFunc = aSwitchFunc;
   }
 
   void OnSwitchedOff(tSwitchFunc aSwitchFunc) {
     mSwitchedOffFunc = aSwitchFunc;
+  }
+
+  bool IsSwitchedOn() const {
+    return mSwitchedOn;
   }
 
   void Run () {
@@ -82,9 +125,11 @@ public:
 
 private:
 
+  bool mSwitchedOn;
   ggOutput mOutput;
   ggTimer mTimerOn;
   ggTimer mTimerOff;
+  tSwitchFunc mSwitchedOnFunc;
   tSwitchFunc mSwitchedOffFunc;
 
 };
