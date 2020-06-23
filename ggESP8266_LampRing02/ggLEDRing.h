@@ -41,6 +41,17 @@ public:
     }
   }
 
+  float GetTransitionTimeMax() const {
+    float vTransitionTimeMax = 0.0f;
+    for (auto& vHSV : mHSV) {
+      float vTransitionTime = vHSV.GetSeconds();
+      if (vTransitionTimeMax < vTransitionTime) {
+        vTransitionTimeMax = vTransitionTime;
+      }
+    }
+    return vTransitionTimeMax;
+  }
+
   const ggColor::cHSV& GetColorHSV(ggLocations::tEnum aLocations) const {
     return GetColor(ggLocations::ToIndex(aLocations));
   }

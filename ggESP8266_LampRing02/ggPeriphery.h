@@ -58,12 +58,14 @@
 // LED strip settings
 #if !M_TEST_ENVIRONMENT
   #define M_SWITCH_PSU_ON_DELAY 2.0f
+  #define M_SWITCH_PSU_OFF_DELAY 1.0f
   #define M_LED_CENTER_NUM_STRIPS 6
   #define M_LED_RING_NUM_LEDS 114
   #define M_LED_RING_A_TYPE NEO_BGR
   #define M_LED_RING_B_TYPE NEO_GBR
 #else
   #define M_SWITCH_PSU_ON_DELAY 1.0f
+  #define M_SWITCH_PSU_OFF_DELAY 1.0f
   #define M_LED_CENTER_NUM_STRIPS 6
   #define M_LED_RING_NUM_LEDS 6
   #define M_LED_RING_A_TYPE NEO_BGR
@@ -82,7 +84,7 @@ struct ggPeriphery {
   ggPeriphery()
   : mButton(M_PIN_BUTTON, M_BUTTON_INVERT, true), // button, inverted (input signal low if pressed), enable pull-up
     mEncoder(M_PIN_ENCODER_A, M_PIN_ENCODER_B), // rotary encoder
-    mSwitchPSU(M_PIN_SWITCH_PSU, false, M_SWITCH_PSU_ON_DELAY), // PSU on/off, non-inverted, on-delay
+    mSwitchPSU(M_PIN_SWITCH_PSU, false, M_SWITCH_PSU_ON_DELAY, M_SWITCH_PSU_OFF_DELAY), // PSU on/off, non-inverted, on-delay, off-delay
     mLEDRing(M_PIN_LED_A_DATA, M_LED_RING_A_TYPE, M_PIN_LED_B_DATA, M_LED_RING_B_TYPE),
     mLEDCenter(M_PIN_I2C_SDA, M_PIN_I2C_SCL), // uses HW I2C
     mDisplay(M_PIN_I2C_SDA, M_PIN_I2C_SCL) // uses HW I2C

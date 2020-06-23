@@ -8,24 +8,49 @@ class ggSwitchPSU
 
 public:
 
-  ggSwitchPSU(int aPin, bool aInverted, float aDelayOn)
+  ggSwitchPSU(int aPin, bool aInverted,
+              float aDelayOn,
+              float aDelayOff)
   : mOutput(aPin, aInverted),
-    mTimer(aDelayOn)
+    mTimerOn(aDelayOn),
+    mTimerOff(aDelayOff),
+    mSwitchedOffFunc(nullptr)
   {
+    mTimerOff.OnTimeOut([&] () {
+      mOutput.Set(false);
+      if (mSwitchedOffFunc != nullptr) mSwitchedOffFunc();
+    });
   }
 
   void Begin() {
     mOutput.Begin();
   }
 
+  void SetDelayOn(float aDelayOn) {
+    mTimerOn.SetTimeOut(aDelayOn);
+  }
+
+  float GetDelayOn() const {
+    mTimerOn.GetTimeOut();
+  }
+
+  void SetDelayOff(float aDelayOff) {
+    mTimerOff.SetTimeOut(aDelayOff);
+  }
+
+  float GetDelayOff() const {
+    mTimerOff.GetTimeOut();
+  }
+
   void SetOn() {
     mOutput.Set(true);
-    mTimer.Start();
+    mTimerOn.Start();
+    mTimerOff.Stop();
   }
 
   void SetOff() {
-    mOutput.Set(false);
-    mTimer.Stop();
+    mTimerOn.Stop();
+    mTimerOff.Start();
   }
 
   void SetOn(bool aOn) {
@@ -33,23 +58,33 @@ public:
   }
 
   typedef std::function<void()> tSwitchFunc;
+
   void OnSwitchedOn(tSwitchFunc aSwitchFunc) {
-    mTimer.OnTimeOut(aSwitchFunc);
+    mTimerOn.OnTimeOut(aSwitchFunc);
+  }
+
+  void OnSwitchedOff(tSwitchFunc aSwitchFunc) {
+    mSwitchedOffFunc = aSwitchFunc;
   }
 
   void Run () {
-    mTimer.Run();
+    mTimerOn.Run();
+    mTimerOff.Run();
   }
 
   void PrintDebug(const String& aName = "") const {
     ggDebug vDebug("ggSwitchPSU", aName);
     mOutput.PrintDebug("mOutput");
-    mTimer.PrintDebug("mTimer");
+    mTimerOn.PrintDebug("mTimerOn");
+    mTimerOff.PrintDebug("mTimerOff");
+    vDebug.PrintF("mSwitchedOffFunc = 0x%08X\n", std::addressof(mSwitchedOffFunc));
   }
 
 private:
 
   ggOutput mOutput;
-  ggTimer mTimer;
+  ggTimer mTimerOn;
+  ggTimer mTimerOff;
+  tSwitchFunc mSwitchedOffFunc;
 
 };
