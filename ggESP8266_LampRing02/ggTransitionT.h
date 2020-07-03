@@ -5,21 +5,28 @@ class ggTransitionT {
 
 public:
 
-  ggTransitionT() :
+  typedef std::function<TValue (const TValue& aValueA,
+                                const TValue& aValueB,
+                                float aT)> tInterpolateFunc;
+
+  ggTransitionT(tInterpolateFunc aInterpolateFunc = ggInterpolate<TValue>) :
+    mInterpolateFunc(aInterpolateFunc),
     mMicrosStart(0),
     mMicrosEnd(0),
     mMicrosDelta(0) {
   }
 
   // note that maximum is 35 minutes (2^31 micros)
-  ggTransitionT(float aSeconds) :
+  ggTransitionT(float aSeconds, tInterpolateFunc aInterpolateFunc = ggInterpolate<TValue>) :
+    mInterpolateFunc(aInterpolateFunc),
     mMicrosStart(0),
     mMicrosEnd(0),
     mMicrosDelta(1000000.0f * aSeconds + 0.5f) {
   }
 
   // note that maximum is 35 minutes (2^31 micros)
-  ggTransitionT(unsigned long aMicros) :
+  ggTransitionT(unsigned long aMicros, tInterpolateFunc aInterpolateFunc = ggInterpolate<TValue>) :
+    mInterpolateFunc(aInterpolateFunc),
     mMicrosStart(0),
     mMicrosEnd(0),
     mMicrosDelta(aMicros) {
@@ -68,7 +75,7 @@ public:
       return mValueEnd;
     }
     float vT = (float)vMicrosPassed / (float)mMicrosDelta;
-    mValue = ggInterpolate<TValue>(mValueStart, mValueEnd, vT);
+    mValue = mInterpolateFunc(mValueStart, mValueEnd, vT);
     return mValue;
   }
 
@@ -120,6 +127,8 @@ public:
   }
 
 private:
+
+  tInterpolateFunc mInterpolateFunc;
 
   TValue mValueStart;
   TValue mValueEnd;
