@@ -117,13 +117,20 @@ void DataReset()
 }
 
 
-void DataLimitTotalBrightness()
+bool DataLimitTotalBrightness()
 {
   GG_DEBUG();
   float vBrightnessTotal = 0.0f;
   for (const ggData::tBrightness& vBrightness : Data().mCurrentScene.mBrightnesses) {
+    GG_DEBUG_PRINTF("vBrightness = %f\n", vBrightness.Get());
     vBrightnessTotal += vBrightness;
   }
+  for (const ggData::tColor& vColor : Data().mCurrentScene.mColors) {
+    float vColorBrightness = ((uint16_t)vColor.Get().mV * (uint16_t)(255 - (vColor.Get().mS >> 1))) / 65025.0f;
+    GG_DEBUG_PRINTF("vColorBrightness = %f\n", vColorBrightness);
+    vBrightnessTotal += 0.5f * vColorBrightness;
+  }
+  GG_DEBUG_PRINTF("vBrightnessTotal = %f\n", vBrightnessTotal);
   const float vBrightnessTotalMax = 3.0f;
   if (vBrightnessTotal > vBrightnessTotalMax) {
     ggValueEEProm::cLazyWriter vLazyWriter;
@@ -131,7 +138,9 @@ void DataLimitTotalBrightness()
     for (ggData::tBrightness& vBrightness : Data().mCurrentScene.mBrightnesses) {
       vBrightness *= vScale;
     }
+    return true;
   }
+  return false;
 }
 
 
@@ -189,6 +198,15 @@ void WebSocketsUpdateChannelBrightness(int aClientID = -1)
                                        Data().mCurrentScene.mBrightnesses[4],
                                        Data().mCurrentScene.mBrightnesses[5],
                                        aClientID);
+}
+
+
+void AdjustTotalBrightness()
+{
+  if (DataLimitTotalBrightness()) {
+    PeripheryLEDCenterSetChannelBrightness();
+    WebSocketsUpdateChannelBrightness();
+  }
 }
 
 
@@ -460,6 +478,7 @@ void ConnectComponents()
         DataChangeColors(ggState::GetColorChannelIndex(mLampState.GetState()), aValueDelta);
         PeripheryLEDRingSetColors();
         WebSocketsUpdateRingColorHSV();
+        AdjustTotalBrightness();
         EditTimer().Start();
         break;
     }
@@ -525,6 +544,7 @@ void ConnectComponents()
     DataSetColors(ggColor::cHSV(aH, aS, aV), (ggLocations::tEnum)aLocations);
     PeripheryLEDRingSetColors();
     WebSocketsUpdateRingColorHSV();
+    AdjustTotalBrightness();
   });
   
   // web server
