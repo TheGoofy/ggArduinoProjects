@@ -38,6 +38,18 @@ public:
     return *this;
   }
 
+  template <typename TFactor>
+  inline ggValueEEPromT& operator *= (const TFactor& aFactor) {
+    Set(mValue * aFactor);
+    return *this;
+  }
+
+  template <typename TDivisor>
+  inline ggValueEEPromT& operator /= (const TDivisor& aDivisor) {
+    Set(mValue / aDivisor);
+    return *this;
+  }
+
   inline const TValue& Get() const {
     return mValue;
   }
