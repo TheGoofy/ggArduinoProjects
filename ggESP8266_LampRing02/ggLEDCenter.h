@@ -1,6 +1,5 @@
 #pragma once
 
-#include "ggLog.h"
 #include "ggTransitionT.h"
 #include <Adafruit_PWMServoDriver.h>
 
@@ -13,7 +12,6 @@ public:
   ggLEDCenter(int aPinSDA, int aPinSCL)
   : mPinSDA(aPinSDA),
     mPinSCL(aPinSCL),
-    mLogTable(4095),
     mModulePWM(),
     mBrightnesses()
   {
@@ -108,7 +106,7 @@ private:
 
   inline void UpdateOutput(int aChannel) {
     int vChannelPWM = GetChannelPWM(aChannel);
-    int vValuePWM = mLogTable.Get(mBrightnesses[aChannel].Get());
+    int vValuePWM = ggRound<int>(4095.0f * mBrightnesses[aChannel].Get());
     AnalogWrite(vChannelPWM, vValuePWM);
   }
 
@@ -121,7 +119,6 @@ private:
   // basic setup
   const int mPinSDA;
   const int mPinSCL;
-  const ggLog mLogTable;
   Adafruit_PWMServoDriver mModulePWM;
   std::array<ggTransitionT<float>, TNumChannels> mBrightnesses;
   

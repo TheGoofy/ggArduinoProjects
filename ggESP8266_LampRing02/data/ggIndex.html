@@ -117,14 +117,22 @@
       WebSocketSendSetChannelBrightness();
     }
 
+    function IntensityToBrightness(aIntensity, aBase = 100.0) {
+      return (Math.pow(aBase, aIntensity) - 1.0) / (aBase - 1.0);
+    }
+
+    function BrightnessToIntensity(aBrightness, aBase = 100.0) {
+      return Math.log((aBase - 1.0) * aBrightness + 1.0) / Math.log(aBase);
+    }
+
     function WebSocketSendSetChannelBrightness() {
       mWebSocket.send('SetChannelBrightness('
-        + mBrightnessRange0.value + ','
-        + mBrightnessRange1.value + ','
-        + mBrightnessRange2.value + ','
-        + mBrightnessRange3.value + ','
-        + mBrightnessRange4.value + ','
-        + mBrightnessRange5.value + ')');
+        + IntensityToBrightness(mBrightnessRange0.value) + ','
+        + IntensityToBrightness(mBrightnessRange1.value) + ','
+        + IntensityToBrightness(mBrightnessRange2.value) + ','
+        + IntensityToBrightness(mBrightnessRange3.value) + ','
+        + IntensityToBrightness(mBrightnessRange4.value) + ','
+        + IntensityToBrightness(mBrightnessRange5.value) + ')');
     }
 
     function WebSocketSendSetRingColorHSV() {
@@ -276,12 +284,12 @@
     }
 
     function UpdateChannelBrightness(aB0, aB1, aB2, aB3, aB4, aB5) {
-      mBrightnessRange0.value = aB0;
-      mBrightnessRange1.value = aB1;
-      mBrightnessRange2.value = aB2;
-      mBrightnessRange3.value = aB3;
-      mBrightnessRange4.value = aB4;
-      mBrightnessRange5.value = aB5;
+      mBrightnessRange0.value = BrightnessToIntensity(aB0);
+      mBrightnessRange1.value = BrightnessToIntensity(aB1);
+      mBrightnessRange2.value = BrightnessToIntensity(aB2);
+      mBrightnessRange3.value = BrightnessToIntensity(aB3);
+      mBrightnessRange4.value = BrightnessToIntensity(aB4);
+      mBrightnessRange5.value = BrightnessToIntensity(aB5);
       UpdateBrightness(GetBrightness());
     }
 

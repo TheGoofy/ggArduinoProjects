@@ -13,6 +13,7 @@
 #include "ggWiFiConnection.h"
 #include "ggPeriphery.h"
 #include "ggData.h"
+#include "ggLookupTableT.h"
 #include "ggNullStream.h"
 #include "ggStreams.h"
 #include "ggTimer.h"
@@ -116,6 +117,24 @@ void DataReset()
 }
 
 
+void DataLimitTotalBrightness()
+{
+  GG_DEBUG();
+  float vBrightnessTotal = 0.0f;
+  for (const ggData::tBrightness& vBrightness : Data().mCurrentScene.mBrightnesses) {
+    vBrightnessTotal += vBrightness;
+  }
+  const float vBrightnessTotalMax = 3.0f;
+  if (vBrightnessTotal > vBrightnessTotalMax) {
+    ggValueEEProm::cLazyWriter vLazyWriter;
+    const float vScale = vBrightnessTotalMax / vBrightnessTotal;
+    for (ggData::tBrightness& vBrightness : Data().mCurrentScene.mBrightnesses) {
+      vBrightness *= vScale;
+    }
+  }
+}
+
+
 void DataSetBrightness(const float& aB0, const float& aB1, const float& aB2, const float& aB3, const float& aB4, const float& aB5)
 {
   GG_DEBUG();
@@ -126,17 +145,28 @@ void DataSetBrightness(const float& aB0, const float& aB1, const float& aB2, con
   Data().mCurrentScene.mBrightnesses[3] = aB3;
   Data().mCurrentScene.mBrightnesses[4] = aB4;
   Data().mCurrentScene.mBrightnesses[5] = aB5;
+  DataLimitTotalBrightness();
 }
 
 
-void DataChangeBrightness(const float& aBrightnessDelta)
+void DataChangeBrightness(const float& aBrightnessLogDelta)
 {
   GG_DEBUG();
+
+  static const float vLogBase = 100.0f;
+  static ggLookupTableT<float> vLinearToLog(0.0f, 1.0f, [] (const float& aInput) {
+    return (log((vLogBase - 1.0f) * aInput + 1.0f) / log(vLogBase));
+  });
+  static ggLookupTableT<float> vLogToLinear(0.0f, 1.0f, [] (const float& aInput) {
+    return (pow(vLogBase, aInput) - 1.0f) / (vLogBase - 1.0f);
+  });
+
   ggValueEEProm::cLazyWriter vLazyWriter;
   for (ggData::tBrightness& vBrightness : Data().mCurrentScene.mBrightnesses) {
-    float vBrightnessNew = vBrightness + aBrightnessDelta;
-    vBrightness = ggClamp(vBrightnessNew, 0.0f, 1.0f);
+    vBrightness = vLogToLinear(vLinearToLog(vBrightness) + aBrightnessLogDelta);
   }
+
+  DataLimitTotalBrightness();
 }
 
 

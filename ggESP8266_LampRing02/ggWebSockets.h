@@ -49,7 +49,13 @@ public:
   }
 
   void UpdateChannelBrightness(const float& aB0, const float& aB1, const float& aB2, const float& aB3, const float& aB4, const float& aB5, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateChannelBrightness(") + aB0 + "," + aB1 + "," + aB2 + "," + aB3 + "," + aB4 + "," + aB5 + ")", aClientID);
+    const int vPrecision = 6;
+    UpdateClientTXT(String("UpdateChannelBrightness(") + String(aB0, vPrecision) + ","
+                                                       + String(aB1, vPrecision) + ","
+                                                       + String(aB2, vPrecision) + ","
+                                                       + String(aB3, vPrecision) + ","
+                                                       + String(aB4, vPrecision) + ","
+                                                       + String(aB5, vPrecision) + ")", aClientID);
   }
 
   void UpdateRingColorHSV(uint8_t aH0, uint8_t aS0, uint8_t aV0,
