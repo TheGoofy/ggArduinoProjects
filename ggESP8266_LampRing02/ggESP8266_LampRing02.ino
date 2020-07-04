@@ -111,9 +111,9 @@ ggData& Data()
 void DataReset()
 {
   ggValueEEProm::cLazyWriter vLazyWriter;
-  Data().mName.Set(mHostName);
-  for (auto& vBrightness : Data().mCurrentScene.mBrightnesses) vBrightness = 0.5f;
-  for (auto& vColor : Data().mCurrentScene.mColors) vColor = ggColor::cHSV::DarkOrange();
+  Data().Name() = mHostName;
+  for (auto& vBrightness : Data().CurrentScene().mBrightnesses) vBrightness = 0.5f;
+  for (auto& vColor : Data().CurrentScene().mColors) vColor = ggColor::cHSV::DarkOrange();
 }
 
 
@@ -121,11 +121,11 @@ bool DataLimitTotalBrightness()
 {
   GG_DEBUG();
   float vBrightnessTotal = 0.0f;
-  for (const ggData::tBrightness& vBrightness : Data().mCurrentScene.mBrightnesses) {
+  for (const ggData::tBrightness& vBrightness : Data().CurrentScene().mBrightnesses) {
     GG_DEBUG_PRINTF("vBrightness = %f\n", vBrightness.Get());
     vBrightnessTotal += vBrightness;
   }
-  for (const ggData::tColor& vColor : Data().mCurrentScene.mColors) {
+  for (const ggData::tColor& vColor : Data().CurrentScene().mColors) {
     float vColorBrightness = ((uint16_t)vColor.Get().mV * (uint16_t)(255 - (vColor.Get().mS >> 1))) / 65025.0f;
     GG_DEBUG_PRINTF("vColorBrightness = %f\n", vColorBrightness);
     vBrightnessTotal += 0.5f * vColorBrightness;
@@ -135,7 +135,7 @@ bool DataLimitTotalBrightness()
   if (vBrightnessTotal > vBrightnessTotalMax) {
     ggValueEEProm::cLazyWriter vLazyWriter;
     const float vScale = vBrightnessTotalMax / vBrightnessTotal;
-    for (ggData::tBrightness& vBrightness : Data().mCurrentScene.mBrightnesses) {
+    for (ggData::tBrightness& vBrightness : Data().CurrentScene().mBrightnesses) {
       vBrightness *= vScale;
     }
     return true;
@@ -148,12 +148,12 @@ void DataSetBrightness(const float& aB0, const float& aB1, const float& aB2, con
 {
   GG_DEBUG();
   ggValueEEProm::cLazyWriter vLazyWriter;
-  Data().mCurrentScene.mBrightnesses[0] = aB0;
-  Data().mCurrentScene.mBrightnesses[1] = aB1;
-  Data().mCurrentScene.mBrightnesses[2] = aB2;
-  Data().mCurrentScene.mBrightnesses[3] = aB3;
-  Data().mCurrentScene.mBrightnesses[4] = aB4;
-  Data().mCurrentScene.mBrightnesses[5] = aB5;
+  Data().CurrentScene().mBrightnesses[0] = aB0;
+  Data().CurrentScene().mBrightnesses[1] = aB1;
+  Data().CurrentScene().mBrightnesses[2] = aB2;
+  Data().CurrentScene().mBrightnesses[3] = aB3;
+  Data().CurrentScene().mBrightnesses[4] = aB4;
+  Data().CurrentScene().mBrightnesses[5] = aB5;
   DataLimitTotalBrightness();
 }
 
@@ -171,7 +171,7 @@ void DataChangeBrightness(const float& aBrightnessLogDelta)
   });
 
   ggValueEEProm::cLazyWriter vLazyWriter;
-  for (ggData::tBrightness& vBrightness : Data().mCurrentScene.mBrightnesses) {
+  for (ggData::tBrightness& vBrightness : Data().CurrentScene().mBrightnesses) {
     vBrightness = vLogToLinear(vLinearToLog(vBrightness) + aBrightnessLogDelta);
   }
 
@@ -183,7 +183,7 @@ void PeripheryLEDCenterSetChannelBrightness()
 {
   GG_DEBUG();
   Periphery().mLEDCenter.ForEachChannel([] (int aChannel) {
-    Periphery().mLEDCenter.SetChannelBrightness(aChannel, Data().mCurrentScene.mBrightnesses[aChannel]);
+    Periphery().mLEDCenter.SetChannelBrightness(aChannel, Data().CurrentScene().mBrightnesses[aChannel]);
   });
 }
 
@@ -191,12 +191,12 @@ void PeripheryLEDCenterSetChannelBrightness()
 void WebSocketsUpdateChannelBrightness(int aClientID = -1)
 {
   GG_DEBUG();
-  WebSockets().UpdateChannelBrightness(Data().mCurrentScene.mBrightnesses[0],
-                                       Data().mCurrentScene.mBrightnesses[1],
-                                       Data().mCurrentScene.mBrightnesses[2],
-                                       Data().mCurrentScene.mBrightnesses[3],
-                                       Data().mCurrentScene.mBrightnesses[4],
-                                       Data().mCurrentScene.mBrightnesses[5],
+  WebSockets().UpdateChannelBrightness(Data().CurrentScene().mBrightnesses[0],
+                                       Data().CurrentScene().mBrightnesses[1],
+                                       Data().CurrentScene().mBrightnesses[2],
+                                       Data().CurrentScene().mBrightnesses[3],
+                                       Data().CurrentScene().mBrightnesses[4],
+                                       Data().CurrentScene().mBrightnesses[5],
                                        aClientID);
 }
 
@@ -216,7 +216,7 @@ void DataSetColors(const ggColor::cHSV& aHSV, ggLocations::tEnum aLocations)
   ggValueEEProm::cLazyWriter vLazyWriter;
   ggLocations::ForEach([&] (ggLocations::tEnum aLocation) {
     if (ggLocations::Intersect(aLocation, aLocations)) {
-      Data().mCurrentScene.mColors[ggLocations::ToIndex(aLocation)] = aHSV;
+      Data().CurrentScene().mColors[ggLocations::ToIndex(aLocation)] = aHSV;
     }
   });
 }
@@ -224,7 +224,7 @@ void DataSetColors(const ggColor::cHSV& aHSV, ggLocations::tEnum aLocations)
 
 void DataChangeColors(int aColorChannel, int aDelta)
 {
-  ggColor::cHSV vHSV = Data().mCurrentScene.mColors[0];
+  ggColor::cHSV vHSV = Data().CurrentScene().mColors[0];
   int vValue = vHSV.mChannels[aColorChannel];
   switch (aColorChannel) {
     case 0: vValue = (vValue + aDelta) & 0xff; break;
@@ -239,17 +239,17 @@ void DataChangeColors(int aColorChannel, int aDelta)
 void PeripheryLEDRingSetColors()
 {
   GG_DEBUG();
-  Periphery().mLEDRing.SetColors(Data().mCurrentScene.mColors);
+  Periphery().mLEDRing.SetColors(Data().CurrentScene().mColors);
 }
 
 
 void WebSocketsUpdateRingColorHSV(int aClientID = -1)
 {
   GG_DEBUG();
-  const ggColor::cHSV& vHSV0(Data().mCurrentScene.mColors[0]);
-  const ggColor::cHSV& vHSV1(Data().mCurrentScene.mColors[1]);
-  const ggColor::cHSV& vHSV2(Data().mCurrentScene.mColors[2]);
-  const ggColor::cHSV& vHSV3(Data().mCurrentScene.mColors[3]);
+  const ggColor::cHSV& vHSV0(Data().CurrentScene().mColors[0]);
+  const ggColor::cHSV& vHSV1(Data().CurrentScene().mColors[1]);
+  const ggColor::cHSV& vHSV2(Data().CurrentScene().mColors[2]);
+  const ggColor::cHSV& vHSV3(Data().CurrentScene().mColors[3]);
   WebSockets().UpdateRingColorHSV(vHSV0.mH, vHSV0.mS, vHSV0.mV,
                                   vHSV1.mH, vHSV1.mS, vHSV1.mV,
                                   vHSV2.mH, vHSV2.mS, vHSV2.mV,
@@ -262,7 +262,7 @@ void UpdateDisplay()
 {
   GG_DEBUG();
   Periphery().mDisplay.Clear();
-  Periphery().mDisplay.SetTitle(Data().mName.Get());
+  Periphery().mDisplay.SetTitle(Data().Name());
   Periphery().mDisplay.SetText(0, WiFi.localIP().toString());
 }
 
@@ -390,7 +390,7 @@ void ConnectComponents()
   mLampState.OnState([&] (ggState::tEnum aState) {
     switch (aState) {
       case ggState::eOff:
-        Data().mOn = false;
+        Data().On() = false;
         Periphery().mSwitchPSU.SetOff();
         Periphery().mLEDCenter.SetChannelBrightness(0.0f);
         Periphery().mLEDRing.SetColorsBlack();
@@ -398,7 +398,7 @@ void ConnectComponents()
         WebSockets().UpdateOn(false);
         break;
       case ggState::eOn:
-        Data().mOn = true;
+        Data().On() = true;
         Periphery().mSwitchPSU.SetOn();
         Periphery().mLEDRing.DisplayNormal();
         // PeripheryLEDCenterSetChannelBrightness(); updated delayed when PSU is on
@@ -516,8 +516,8 @@ void ConnectComponents()
   WebSockets().OnClientConnect([&] (int aClientID) { // need to update all sockets
     GG_DEBUG_BLOCK("WebSockets().OnClientConnect(...)");
     GG_DEBUG_PRINTF("aClientID = %d\n", aClientID);
-    WebSockets().UpdateName(Data().mName.Get(), aClientID);
-    WebSockets().UpdateOn(Data().mOn.Get(), aClientID);
+    WebSockets().UpdateName(Data().Name(), aClientID);
+    WebSockets().UpdateOn(Data().On(), aClientID);
     WebSocketsUpdateChannelBrightness(aClientID);
     WebSocketsUpdateRingColorHSV(aClientID);
   });
@@ -528,7 +528,7 @@ void ConnectComponents()
   WebSockets().OnSetName([&] (const String& aName) {
     GG_DEBUG_BLOCK("WebSockets().OnSetName(...)");
     GG_DEBUG_PRINTF("aName = %s\n", aName.c_str());
-    Data().mName.Set(aName);
+    Data().Name() = aName;
     WebSockets().UpdateName(aName);
     Periphery().mDisplay.SetTitle(aName);
   });
@@ -685,8 +685,8 @@ void setup()
   Periphery().Begin();
 
   // start with main lamp state "off" or "on"
-  mLampState.mState = Data().mOn ? ggState::eOn : ggState::eOff;
-  GG_DEBUG_PRINTF("Lamp Name: %s\n", Data().mName.Get().c_str());
+  mLampState.mState = Data().On() ? ggState::eOn : ggState::eOff;
+  GG_DEBUG_PRINTF("Lamp Name: %s\n", Data().Name().Get().c_str());
   
   // update periphery depending on eeprom data
   if (mLampState.mState == ggState::eOn) {

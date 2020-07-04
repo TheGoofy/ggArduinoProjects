@@ -3,7 +3,7 @@
 #include "ggValueEEPromString.h"
 
 template <uint16_t TStringLength,
-          uint16_t TNumScenes,
+          uint16_t TNumScenesMax,
           typename TBrightness,
           uint16_t TNumBrightnesses,
           typename TColor,
@@ -11,21 +11,13 @@ template <uint16_t TStringLength,
 
 class ggDataEEPromT {
 
+  static_assert(TNumScenesMax > 0, "max number of scenes size is too small");
+
 public:
 
   typedef ggValueEEPromString<TStringLength> tString;
   typedef ggValueEEPromT<TBrightness> tBrightness;
   typedef ggValueEEPromT<TColor> tColor;
-
-  ggDataEEPromT(const String& aName,
-                uint16_t aNumScenes = 1)
-  : mName(aName),
-    mOn(false),
-    mNumScenes(aNumScenes),
-    mScenes(),
-    mCurrentScene(mScenes[0])
-  {
-  }
 
   struct cScene {
     tString mName;
@@ -33,52 +25,47 @@ public:
     std::array<tColor, TNumColors> mColors;
   };
 
-  void SetSceneName(uint16_t aIndex,
-                    const String& aName) {
-    if (aIndex < TNumScenes && aIndex < mNumScenes) {
-      cScene& vScene = mScenes[aIndex];
-      vScene.mName = aName;
-    }
+  ggDataEEPromT(const String& aName,
+                uint16_t aNumScenes = 1)
+  : mName(aName),
+    mOn(false),
+    mScenes(),
+    mNumScenes(aNumScenes),
+    mCurrentSceneIndex(0)
+  {
   }
 
-  void SetSceneBrightnesses(uint16_t aIndex,
-                            const TBrightness& aBrightness) {
-    if (aIndex < TNumScenes && aIndex < mNumScenes) {
-      ggValueEEProm::cLazyWriter vLazyWriter;
-      cScene& vScene = mScenes[aIndex];
-      std::for_each(vScene.mBrightnesses.begin(), vScene.mBrightnesses.end(), [&] (tBrightness& aSceneBrightness) {
-        aSceneBrightness = aBrightness;
-      });
-    }
+  inline tString& Name() {
+    return mName;
   }
 
-  void SetSceneColors(uint16_t aIndex,
-                      const TColor& aColor) {
-    if (aIndex < TNumScenes && aIndex < mNumScenes) {
-      ggValueEEProm::cLazyWriter vLazyWriter;
-      cScene& vScene = mScenes[aIndex];
-      std::for_each(vScene.mColors.begin(), vScene.mColors.end(), [&] (tColor& aSceneColor) {
-        aSceneColor= aColor;
-      });
-    }
+  inline const tString& Name() const {
+    return mName;
   }
 
-  void SetScene(uint16_t aIndex,
-                const String& aName,
-                const TBrightness& aBrightness,
-                const TColor& aColor) {
-    ggValueEEProm::cLazyWriter vLazyWriter;
-    SetSceneName(aIndex, aName);
-    SetSceneBrightnesses(aIndex, aBrightness);
-    SetSceneColors(aIndex, aColor);
+  inline ggValueEEPromT<bool>& On() {
+    return mOn;
   }
+
+  inline const ggValueEEPromT<bool>& On() const {
+    return mOn;
+  }
+
+  inline cScene& CurrentScene() {
+    return mScenes[mCurrentSceneIndex];
+  }
+
+  inline const cScene& CurrentScene() const {
+    return mScenes[mCurrentSceneIndex];
+  }
+
+private:
 
   tString mName;
   ggValueEEPromT<bool> mOn;
-
   ggValueEEPromT<uint16_t> mNumScenes;
-  std::array<cScene, TNumScenes> mScenes;
+  ggValueEEPromT<uint16_t> mCurrentSceneIndex;
 
-  cScene& mCurrentScene;
+  std::array<cScene, TNumScenesMax> mScenes;
 
 };

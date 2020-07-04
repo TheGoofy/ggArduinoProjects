@@ -23,6 +23,11 @@ public:
     return mValue;
   }
 
+  inline ggValueEEPromT& operator = (const ggValueEEPromT& aOther) {
+    Set(aOther.mValue);
+    return *this;
+  }
+
   inline ggValueEEPromT& operator = (const TValue& aValue) {
     Set(aValue);
     return *this;

@@ -21,6 +21,20 @@ public:
     strncpy(tBase::mValue, mValueString.c_str(), TSize);
   }
 
+  inline ggValueEEPromString& operator = (const ggValueEEPromString& aOther) {
+    Set(aOther.mValueString);
+    return *this;
+  }
+
+  inline ggValueEEPromString& operator = (const String& aValue) {
+    Set(aValue);
+    return *this;
+  }
+
+  inline operator const String& () const {
+    return Get();
+  }
+
   void Set(const String& aValue) {
     if (mValueString != aValue) {
       mValueString = aValue;
@@ -30,7 +44,7 @@ public:
     }
   }
 
-  const String& Get() const {
+  inline const String& Get() const {
     return mValueString;
   }
 
