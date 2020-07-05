@@ -31,6 +31,7 @@
     }
 
     function onWebSocketOpen(aEvent) {
+      console.info('onWebSocketOpen() - ' + aEvent.data)
       mWebSocketStatus.innerHTML = 'connected';
       if (mWebSocketReConnectTimerID) {
         window.clearInterval(mWebSocketReConnectTimerID);
@@ -39,6 +40,7 @@
     }
 
     function onWebSocketClose(aEvent) {
+      console.warn('onWebSocketClose() - ' + aEvent.data)
       mWebSocketStatus.innerHTML = 'disconnected';
       if (!mWebSocketReConnectTimerID) {
         mWebSocketReConnectTimerID = window.setInterval(InitWebSocket, 5000);
@@ -46,16 +48,24 @@
     }
 
     function onWebSocketError(aEvent) {
+      console.error('onWebSocketError() - ' + aEvent.data)
       mWebSocketStatus.innerHTML = aEvent.data;
     }
 
     function onWebSocketMessage(aEvent) {
       try {
         // server sends actual function names, which can directly be executed by the client
+        console.log('onWebSocketMessage() - evaluating: ' + aEvent.data);
         eval(aEvent.data);
       }
       catch (vError) {
-        console.log('unable to evaluate: ' + aEvent.data);
+        console.error('onWebSocketMessage() - unable to evaluate: ' + aEvent.data);
+      }
+    }
+
+    function OnClickScene(aScene) {
+      if (!aScene.mSelected || !mOn.checked) {
+        mWebSocket.send('SetCurrentSceneIndex(' + aScene.mIndex + ')');
       }
     }
 
@@ -167,12 +177,16 @@
     }
 
     function InitHtmlElements() {
-      mName.onchange = function() {
-        mWebSocket.send('SetName(' + mName.value + ')');
-      }
-      mOn.onchange = function() {
-        mWebSocket.send('SetOn(' + mOn.checked + ')');
-      }
+      mName.onchange = function() { mWebSocket.send('SetName(' + mName.value + ')'); }
+      mOn.onchange = function() { mWebSocket.send('SetOn(' + mOn.checked + ')'); }
+      mScene0.mIndex = 0;
+      mScene1.mIndex = 1;
+      mScene2.mIndex = 2;
+      mScene3.mIndex = 3;
+      mScene0.onchange = function() { mWebSocket.send('SetSceneName(' + 0 + ',' + mScene0.value + ')'); };
+      mScene1.onchange = function() { mWebSocket.send('SetSceneName(' + 1 + ',' + mScene1.value + ')'); };
+      mScene2.onchange = function() { mWebSocket.send('SetSceneName(' + 2 + ',' + mScene2.value + ')'); };
+      mScene3.onchange = function() { mWebSocket.send('SetSceneName(' + 3 + ',' + mScene3.value + ')'); };
       mBrightnessRange.onchange = OnBrightnessRangeChange;
       mBrightnessRange.style.backgroundImage = 'linear-gradient(to right, #000 05%, #fff 95%)';
       mBrightnessRange0.onchange = OnChannelBrightnessRangeChange;
@@ -270,6 +284,29 @@
       mRingColorRangeV.disabled = !aOn || vNoButtonHSVSelected;
     }
 
+    function UpdateSceneName(aIndex, aName) {
+      document.getElementById('mScene' + aIndex).value = aName;
+    }
+
+    function UpdateSceneNames(aName0, aName1, aName2, aName3) {
+      mScene0.value = aName0;
+      mScene1.value = aName1;
+      mScene2.value = aName2;
+      mScene3.value = aName3;
+    }
+
+    function UpdateSceneButton(aScene, aIndex) {
+      aScene.mSelected = aScene.mIndex == aIndex;
+      aScene.style.border = aScene.mSelected ? '3px solid #fff' : '3px solid transparent';
+    }
+
+    function UpdateCurrentSceneIndex(aIndex) {
+      UpdateSceneButton(mScene0, aIndex);
+      UpdateSceneButton(mScene1, aIndex);
+      UpdateSceneButton(mScene2, aIndex);
+      UpdateSceneButton(mScene3, aIndex);
+    }
+
     function GetBrightness() {
       let vBrightness = 0.0;
       let vNumberOfChannels = ForEachChannel(function (aChannel) {
@@ -354,7 +391,7 @@
     <style>
       #mName { width: 97.5%; margin-top: 10px; margin-bottom: 10px; }
       #mName:focus { outline: none; }
-    </style>  
+    </style>
     <input id='mName' type='text' value='(na)' class='cRoundedCentered' maxlength='30'>
 
     <label class='switch' style='width:100%'>
@@ -363,7 +400,23 @@
     </label>
 
     <br>
-    <br>
+  
+    <style>
+      #mSceneTable { margin-left:auto; margin-right: auto; border-collapse: collapse; width: 100%; }
+      .cSceneButton { border-radius: 20px; height: 26px; color: white; background-color: #000;
+        border: 3px solid transparent; cursor: pointer; text-decoration: double; width: 98%; font-size: 1.1rem;
+        -webkit-transition: 0.3s; transition: opacity 0.3s; text-align: center; vertical-align: middle; }
+      .cSceneButton:disabled { opacity: 0.3; }
+      .cSceneButton:focus { outline: none; }
+    </style>
+    <div style="margin-top: 8px;"><table id='mSceneTable'>
+      <tr><td><input class="cSceneButton" id="mScene0" type="text" onclick='OnClickScene(this)' onblur="this.readOnly='true';" ondblclick="this.readOnly='';" readonly='true' value="Scene A"/></td></tr>
+      <tr><td><input class="cSceneButton" id="mScene1" type="text" onclick='OnClickScene(this)' onblur="this.readOnly='true';" ondblclick="this.readOnly='';" readonly='true' value="Scene B"/></td></tr>
+      <tr><td><input class="cSceneButton" id="mScene2" type="text" onclick='OnClickScene(this)' onblur="this.readOnly='true';" ondblclick="this.readOnly='';" readonly='true' value="Scene C"/></td></tr>
+      <tr><td><input class="cSceneButton" id="mScene3" type="text" onclick='OnClickScene(this)' onblur="this.readOnly='true';" ondblclick="this.readOnly='';" readonly='true' value="Scene D"/></td></tr>
+    </table></div>
+
+    <hr noshade>
 
     <style>
       #mBrightnessTable { margin-left:auto; margin-right: auto; border-collapse: collapse; width: 100%;}
@@ -389,7 +442,7 @@
       </tr>
     </table>
 
-    <br>
+    <hr noshade>
 
     <style>
       #mLocationTable { margin-left:auto; margin-right: auto; border-collapse: collapse; width: 100%; }

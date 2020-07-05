@@ -101,7 +101,7 @@ ggData& Data()
   if (vData == nullptr) {
     GG_DEBUG();
     GG_DEBUG_PRINTF("allocating data\n");
-    vData = new ggData(mHostName, 1);
+    vData = new ggData();
     DataReset();
   }
   return *vData;
@@ -112,8 +112,25 @@ void DataReset()
 {
   ggValueEEProm::cLazyWriter vLazyWriter;
   Data().Name() = mHostName;
-  for (auto& vBrightness : Data().CurrentScene().mBrightnesses) vBrightness = 0.5f;
+  Data().SetCurrentSceneIndex(0);
+  Data().CurrentScene().mName = "Default Scene";
+  for (auto& vBrightness : Data().CurrentScene().mBrightnesses) vBrightness = 0.35f;
   for (auto& vColor : Data().CurrentScene().mColors) vColor = ggColor::cHSV::DarkOrange();
+  Data().SetNumScenes(4);
+  for (uint16_t vSceneIndex = 0; vSceneIndex < Data().GetNumScenes(); vSceneIndex++) {
+    Data().Scene(vSceneIndex).mName = String("Scene ") + (char)('A' + vSceneIndex);
+  }
+}
+
+
+void WebSocketsUpdateSceneNames(int aClientID = -1)
+{
+  GG_DEBUG();
+  WebSockets().UpdateSceneNames(Data().Scene(0).mName,
+                                Data().Scene(1).mName,
+                                Data().Scene(2).mName,
+                                Data().Scene(3).mName,
+                                aClientID);
 }
 
 
@@ -518,6 +535,8 @@ void ConnectComponents()
     GG_DEBUG_PRINTF("aClientID = %d\n", aClientID);
     WebSockets().UpdateName(Data().Name(), aClientID);
     WebSockets().UpdateOn(Data().On(), aClientID);
+    WebSocketsUpdateSceneNames(aClientID);
+    WebSockets().UpdateCurrentSceneIndex(Data().GetCurrentSceneIndex(), aClientID);
     WebSocketsUpdateChannelBrightness(aClientID);
     WebSocketsUpdateRingColorHSV(aClientID);
   });
@@ -529,11 +548,28 @@ void ConnectComponents()
     GG_DEBUG_BLOCK("WebSockets().OnSetName(...)");
     GG_DEBUG_PRINTF("aName = %s\n", aName.c_str());
     Data().Name() = aName;
-    WebSockets().UpdateName(aName);
-    Periphery().mDisplay.SetTitle(aName);
+    WebSockets().UpdateName(Data().Name());
+    Periphery().mDisplay.SetTitle(Data().Name());
   });
   WebSockets().OnSetOn([&] (bool aOn) {
     mLampState.SetState(aOn ? ggState::eOn : ggState::eOff);
+  });
+  WebSockets().OnSetSceneName([&] (uint16_t aIndex, const String& aName) {
+    Data().Scene(aIndex).mName = aName;
+    WebSockets().UpdateSceneName(aIndex, Data().Scene(aIndex).mName);
+  });
+  WebSockets().OnSetCurrentSceneIndex([&] (uint16_t aIndex) {
+    Data().SetCurrentSceneIndex(aIndex);
+    if (mLampState.mState == ggState::eOn) {
+      PeripheryLEDCenterSetChannelBrightness();
+      PeripheryLEDRingSetColors();
+    }
+    else {
+      mLampState.SetState(ggState::eOn);
+    }
+    WebSockets().UpdateCurrentSceneIndex(Data().GetCurrentSceneIndex());
+    WebSocketsUpdateChannelBrightness();
+    WebSocketsUpdateRingColorHSV();
   });
   WebSockets().OnSetChannelBrightness([&] (float aB0, float aB1, float aB2, float aB3, float aB4, float aB5) {
     DataSetBrightness(aB0, aB1, aB2, aB3, aB4, aB5);

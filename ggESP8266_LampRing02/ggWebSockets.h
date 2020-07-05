@@ -9,12 +9,14 @@ class ggWebSockets {
 public:
 
   typedef std::function<void(int aClientNumber)> tClientConnectFunc;
+  typedef std::function<void(uint16_t, const String&)> tSetSceneNameFunc;
   typedef std::function<void(float, float, float, float, float, float)> tSetChannelBrightnessFunc;
   typedef std::function<void(uint8_t, uint8_t, uint8_t, uint8_t)> tSetRingColorHSVFunc;
-  typedef std::function<void(bool aValue)> tSetBoolValueFunc;
-  typedef std::function<void(uint32_t aClientNumber)> tSetUInt32ValueFunc;
-  typedef std::function<void(uint32_t, uint32_t, uint32_t)> tSet3UInt32ValueFunc;
-  typedef std::function<void(const String& aValue)> tSetStringValueFunc;
+  typedef std::function<void(bool)> tSetBoolFunc;
+  typedef std::function<void(uint16_t)> tSetUInt16Func;
+  typedef std::function<void(uint32_t)> tSetUInt32Func;
+  typedef std::function<void(uint32_t, uint32_t, uint32_t)> tSet3UInt32Func;
+  typedef std::function<void(const String&)> tSetStringFunc;
 
   ggWebSockets(int aPort)
   : mServer(aPort),
@@ -22,6 +24,8 @@ public:
     mClientDisconnectFunc(nullptr),
     mSetNameFunc(nullptr),
     mSetOnFunc(nullptr),
+    mSetSceneNameFunc(nullptr),
+    mSetCurrentSceneIndexFunc(nullptr),
     mSetChannelBrightnessFunc(nullptr),
     mSetRingColorHSVFunc(nullptr) {
   }
@@ -46,6 +50,21 @@ public:
 
   void UpdateOn(bool aOn, int aClientID = -1) {
     UpdateClientTXT(String("UpdateOn(") + aOn + ")", aClientID);
+  }
+
+  void UpdateSceneName(uint16_t aIndex, const String& aName, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateSceneName(") + aIndex + ",\"" + aName + "\")", aClientID);
+  }
+
+  void UpdateSceneNames(const String& aName0, const String& aName1, const String& aName2, const String& aName3, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateSceneNames(\"") + aName0 + "\","
+                                           + "\"" + aName1 + "\","
+                                           + "\"" + aName2 + "\","
+                                           + "\"" + aName3 + "\")", aClientID);
+  }
+
+  void UpdateCurrentSceneIndex(uint16_t aIndex, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateCurrentSceneIndex(") + aIndex + ")", aClientID);
   }
 
   void UpdateChannelBrightness(const float& aB0, const float& aB1, const float& aB2, const float& aB3, const float& aB4, const float& aB5, int aClientID = -1) {
@@ -77,12 +96,20 @@ public:
     mClientDisconnectFunc = aClientDisconnectFunc;
   }
 
-  void OnSetName(tSetStringValueFunc aSetNameFunc) {
+  void OnSetName(tSetStringFunc aSetNameFunc) {
     mSetNameFunc = aSetNameFunc;
   }
 
-  void OnSetOn(tSetBoolValueFunc aSetOnFunc) {
+  void OnSetOn(tSetBoolFunc aSetOnFunc) {
     mSetOnFunc = aSetOnFunc;
+  }
+
+  void OnSetSceneName(tSetSceneNameFunc aSetSceneNameFunc) {
+    mSetSceneNameFunc = aSetSceneNameFunc;
+  }
+
+  void OnSetCurrentSceneIndex(tSetUInt16Func aSetCurrentSceneIndexFunc) {
+    mSetCurrentSceneIndexFunc = aSetCurrentSceneIndexFunc;
   }
 
   void OnSetChannelBrightness(tSetChannelBrightnessFunc aSetChannelBrightnessFunc) {
@@ -147,19 +174,23 @@ private:
     ggFunctionParser vFunction(aText);
     GG_DEBUG_EXECUTE(vFunction.PrintDebug());
     if (vFunction.GetName() == "SetName" && vFunction.NumArgs() == 1) {
-      if (mSetNameFunc != nullptr) {
-        mSetNameFunc(vFunction.Arg(0));
-      }
+      if (mSetNameFunc != nullptr) mSetNameFunc(vFunction.Arg(0));
       return;
     }
     if (vFunction.GetName() == "SetOn" && vFunction.NumArgs() == 1) {
-      if (mSetOnFunc != nullptr) {
-        mSetOnFunc(vFunction.ArgBool(0));
-      }
+      if (mSetOnFunc != nullptr) mSetOnFunc(vFunction.ArgBool(0));
       return;
     }
-    if (vFunction.GetName() == "SetChannelBrightness") {
-      if (mSetChannelBrightnessFunc != nullptr && vFunction.NumArgs() == 6) {
+    if (vFunction.GetName() == "SetSceneName" && vFunction.NumArgs() == 2) {
+      if (mSetSceneNameFunc != nullptr) mSetSceneNameFunc(vFunction.ArgInt(0), vFunction.Arg(1));
+      return;
+    }
+    if (vFunction.GetName() == "SetCurrentSceneIndex" && vFunction.NumArgs() == 1) {
+      if (mSetCurrentSceneIndexFunc != nullptr) mSetCurrentSceneIndexFunc(vFunction.ArgInt(0));
+      return;
+    }
+    if (vFunction.GetName() == "SetChannelBrightness" && vFunction.NumArgs() == 6) {
+      if (mSetChannelBrightnessFunc != nullptr) {
         mSetChannelBrightnessFunc(vFunction.ArgFloat(0),
                                   vFunction.ArgFloat(1),
                                   vFunction.ArgFloat(2),
@@ -185,8 +216,10 @@ private:
 
   tClientConnectFunc mClientConnectFunc;
   tClientConnectFunc mClientDisconnectFunc;
-  tSetStringValueFunc mSetNameFunc;
-  tSetBoolValueFunc mSetOnFunc;
+  tSetStringFunc mSetNameFunc;
+  tSetBoolFunc mSetOnFunc;
+  tSetSceneNameFunc mSetSceneNameFunc;
+  tSetUInt16Func mSetCurrentSceneIndexFunc;
   tSetChannelBrightnessFunc mSetChannelBrightnessFunc;
   tSetRingColorHSVFunc mSetRingColorHSVFunc;
   
