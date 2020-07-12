@@ -8,11 +8,14 @@ class ggValueEEProm {
 
 public:
 
+  // reserves a specific amount of eeprom (4..4096 bytes)
+  //
   // reads values from eeprom or writes initial values.
   // eeprom is (re-)initialized, if ...
   // - ... number of values changes
   // - ... sequence (layput) of values changes
   // - ... any default value changes
+  // (i.e. if checksum changes https://en.wikipedia.org/wiki/BSD_checksum)
   static void Begin(size_t aSize = 512);
 
   class cLazyWriter {
@@ -63,6 +66,7 @@ private:
   static void ReadData();
   static void WriteData();
 
+  // https://en.wikipedia.org/wiki/BSD_checksum
   static inline void AddChecksum(uint16_t& aChecksum, uint16_t aData) {
     aChecksum = (aChecksum >> 1) + ((aChecksum & 1) << 15) + aData;
   }

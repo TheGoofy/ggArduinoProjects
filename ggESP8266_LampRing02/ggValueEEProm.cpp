@@ -3,6 +3,7 @@
 
 #include "ggValueEEProm.h"
 #include <algorithm>
+#include <assert.h>
 #include "ggDebug.h"
 
 
@@ -10,6 +11,8 @@ void ggValueEEProm::Begin(size_t aSize)
 {
   GG_DEBUG();
   GG_DEBUG_PRINTF("aSize = %d\n", aSize);
+  GG_DEBUG_PRINTF("EEPromNeeded = %d\n", sizeof(cHeader) + ValuesSize());
+  assert(aSize >= sizeof(cHeader) + ValuesSize());
   EEPROM.begin(aSize);
   // use checksum of default-values as seed
   ChecksumSeed() = CalculateChecksumValues();
