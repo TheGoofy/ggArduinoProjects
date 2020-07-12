@@ -4,6 +4,7 @@
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
+#include <LittleFS.h>
 
 #define M_DEBUGGING false
 #define M_TEST_ENVIRONMENT false
@@ -24,7 +25,7 @@ const String mHostName = "ESP-Lamp-" + String(ESP.getChipId(), HEX);
 
 
 // file system to use (for webserver and datalogger)
-FS* mFileSystem = &SPIFFS; // &LittleFS or &SPIFFS;
+FS* mFileSystem = &LittleFS; // &LittleFS or &SPIFFS;
 
 
 // ports
@@ -286,7 +287,7 @@ void UpdateDisplay()
 
 struct ggState {
 
-  typedef enum tEnum {
+  enum tEnum {
     eOff,
     eOn,
     eEditColorChannel0,
@@ -309,7 +310,7 @@ struct ggState {
 
 
 struct ggEvent {
-  typedef enum tEnum {
+  enum tEnum {
     eClick,
     eClickLong,
     eTimeout
