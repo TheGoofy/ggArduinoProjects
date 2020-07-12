@@ -35,6 +35,10 @@ public:
     Show();
   }
 
+  float GetTransitionTime() const {
+    return mHSV.front().GetSeconds();
+  }
+
   void SetTransitionTime(float aSeconds) {
     for (auto& vHSV : mHSV) {
       vHSV.SetSeconds(aSeconds);
@@ -69,14 +73,11 @@ public:
     if (vColorChanged) UpdateOutput();
   }
 
-  void SetColors(const ggColor::cRGB& aRGB, ggLocations::tEnum aLocations = ggLocations::eAll) {
-    SetColor(ggColor::ToHSV(aRGB), aLocations);
-  }
-
   void SetColorsBlack() {
     for (auto& vHSV : mHSV) {
       vHSV = ggColor::cHSV(vHSV.GetEnd().mH, vHSV.GetEnd().mS, 0);
     }
+    UpdateOutput();
   }
 
   template <typename TColors>

@@ -91,6 +91,15 @@ struct ggPeriphery {
   {
   }
 
+  float GetTransitionTime() const {
+    return std::max(mLEDRing.GetTransitionTime(), mLEDCenter.GetTransitionTime());
+  }
+
+  void SetTransitionTime(float aSeconds) {
+    mLEDRing.SetTransitionTime(aSeconds);
+    mLEDCenter.SetTransitionTime(aSeconds);
+  }
+
   void Begin() {
     mButton.Begin();
     mEncoder.Begin();

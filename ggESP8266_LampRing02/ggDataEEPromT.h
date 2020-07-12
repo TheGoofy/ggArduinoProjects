@@ -63,6 +63,14 @@ public:
     return mOn;
   }
 
+  inline ggValueEEPromT<float>& TransitionTime() {
+    return mTransitionTime;
+  }
+
+  inline const ggValueEEPromT<float>& TransitionTime() const {
+    return mTransitionTime;
+  }
+
   inline cScene& CurrentScene() {
     return mScenes[mCurrentSceneIndex];
   }
@@ -134,6 +142,7 @@ private:
 
   tString mName;
   ggValueEEPromT<bool> mOn;
+  ggValueEEPromT<float> mTransitionTime;
 
   ggValueEEPromT<uint16_t> mNumScenes;
   ggValueEEPromT<uint16_t> mCurrentSceneIndex;

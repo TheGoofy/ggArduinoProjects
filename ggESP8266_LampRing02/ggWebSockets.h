@@ -16,6 +16,7 @@ public:
   typedef std::function<void(uint16_t)> tSetUInt16Func;
   typedef std::function<void(uint32_t)> tSetUInt32Func;
   typedef std::function<void(uint32_t, uint32_t, uint32_t)> tSet3UInt32Func;
+  typedef std::function<void(float)> tSetFloatFunc;
   typedef std::function<void(const String&)> tSetStringFunc;
 
   ggWebSockets(int aPort)
@@ -27,7 +28,8 @@ public:
     mSetSceneNameFunc(nullptr),
     mSetCurrentSceneIndexFunc(nullptr),
     mSetChannelBrightnessFunc(nullptr),
-    mSetRingColorHSVFunc(nullptr) {
+    mSetRingColorHSVFunc(nullptr),
+    mSetTransitionTimeFunc(nullptr) {
   }
 
   void Begin() {
@@ -88,6 +90,10 @@ public:
                                                   + aH3 + "," + aS3 + "," + aV3 + ")", aClientID);
   }
 
+  void UpdateTransitionTime(float aTransitionTime, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateTransitionTime(") + aTransitionTime + ")", aClientID);
+  }
+
   void OnClientConnect(tClientConnectFunc aClientConnectFunc) {
     mClientConnectFunc = aClientConnectFunc;
   }
@@ -118,6 +124,10 @@ public:
 
   void OnSetRingColorHSV(tSetRingColorHSVFunc aSetRingColorHSVFunc) {
     mSetRingColorHSVFunc = aSetRingColorHSVFunc;
+  }
+
+  void OnSetTransitionTime(tSetFloatFunc aSetTransitionTimeFunc) {
+    mSetTransitionTimeFunc = aSetTransitionTimeFunc;
   }
 
 private:
@@ -209,6 +219,10 @@ private:
       }
       return;
     }
+    if (vFunction.GetName() == "SetTransitionTime" && vFunction.NumArgs() == 1) {
+      if (mSetTransitionTimeFunc != nullptr) mSetTransitionTimeFunc(vFunction.ArgFloat(0));
+      return;
+    }
     GG_DEBUG_PRINTF("Unhandled Function!\n");
   }
 
@@ -222,5 +236,6 @@ private:
   tSetUInt16Func mSetCurrentSceneIndexFunc;
   tSetChannelBrightnessFunc mSetChannelBrightnessFunc;
   tSetRingColorHSVFunc mSetRingColorHSVFunc;
+  tSetFloatFunc mSetTransitionTimeFunc;
   
 };

@@ -467,6 +467,24 @@
 
     <hr noshade>
 
+    <style>
+      .cTransitionTime { width: 58px; margin-left: 4px; margin-right: -2px; }
+      #mTransitionTime { }
+      #mTransitionTime:focus { outline: none; }
+    </style>
+    <script language='javascript' type='text/javascript'>
+      function UpdateTransitionTime(aTransitionTime) {
+        mTransitionTime.value = aTransitionTime;
+      }
+      function OnTransitionTimeChange() {
+        mWebSocket.send('SetTransitionTime(' + mTransitionTime.value + ')');
+      }
+    </script>
+    Transition Time:
+    <input class='cTransitionTime' id='mTransitionTime' type='number' onchange='OnTransitionTimeChange()' min='0' max='1800' step='0.05' value='0.3'/> s
+
+    <hr noshade>
+
     <div>Power: <span id='mOnValue'>(na)</span></div>
     <div>Brightness: <span id='mBrightnessValue'>(na)</span></div>
     <div>Color HSV: <span id='mRingColorValueHSV'>(na)</span></div>

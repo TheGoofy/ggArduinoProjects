@@ -113,6 +113,8 @@ void DataReset()
 {
   ggValueEEProm::cLazyWriter vLazyWriter;
   Data().Name() = mHostName;
+  Data().On() = false;
+  Data().TransitionTime() = 0.3f;
   Data().SetCurrentSceneIndex(0);
   Data().CurrentScene().mName = "Default Scene";
   for (auto& vBrightness : Data().CurrentScene().mBrightnesses) vBrightness = 0.35f;
@@ -409,6 +411,7 @@ void ConnectComponents()
     switch (aState) {
       case ggState::eOff:
         Data().On() = false;
+        Periphery().mSwitchPSU.SetDelayOff(M_SWITCH_PSU_OFF_DELAY + Periphery().GetTransitionTime());
         Periphery().mSwitchPSU.SetOff();
         Periphery().mLEDCenter.SetChannelBrightness(0.0f);
         Periphery().mLEDRing.SetColorsBlack();
@@ -540,6 +543,7 @@ void ConnectComponents()
     WebSockets().UpdateCurrentSceneIndex(Data().GetCurrentSceneIndex(), aClientID);
     WebSocketsUpdateChannelBrightness(aClientID);
     WebSocketsUpdateRingColorHSV(aClientID);
+    WebSockets().UpdateTransitionTime(Data().TransitionTime(), aClientID);
   });
   WebSockets().OnClientDisconnect([&] (int aClientID) {
     GG_DEBUG_BLOCK("WebSockets().OnClientDisonnect(...)");
@@ -582,6 +586,11 @@ void ConnectComponents()
     PeripheryLEDRingSetColors();
     WebSocketsUpdateRingColorHSV();
     AdjustTotalBrightness();
+  });
+  WebSockets().OnSetTransitionTime([&] (float aTransitionTime) {
+    Data().TransitionTime() = aTransitionTime;
+    Periphery().SetTransitionTime(Data().TransitionTime());
+    WebSockets().UpdateTransitionTime(Data().TransitionTime());
   });
   
   // web server
@@ -694,6 +703,7 @@ void setup()
   // initialize eeprom handler
   Data(); // creates data object
   ggValueEEProm::Begin();
+  Periphery().SetTransitionTime(Data().TransitionTime());
 
   // configure and start web-server
   WebServer().Begin();

@@ -27,6 +27,10 @@ public:
     UpdateOutput();
   }
 
+  float GetTransitionTime() const {
+    return mBrightnesses.front().GetSeconds();
+  }
+
   void SetTransitionTime(float aSeconds) {
     ForEachChannel([&] (int aChannel) {
       mBrightnesses[aChannel].SetSeconds(aSeconds);
