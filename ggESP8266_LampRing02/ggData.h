@@ -5,9 +5,10 @@
 
 typedef ggDataEEPromT<
   32,            // TStringLength
-  4,             // TNumScenes
+  4,             // TNumScenesMax
   float,         // TBrightness
   6,             // TNumBrightnesses
   ggColor::cHSV, // TColor
-  4              // TNumColors
+  4,             // TNumColors
+  12             // TNumAlarmsMax
 > ggData;

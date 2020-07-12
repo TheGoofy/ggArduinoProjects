@@ -7,7 +7,8 @@ template <uint16_t TStringLength,
           typename TBrightness,
           uint16_t TNumBrightnesses,
           typename TColor,
-          uint16_t TNumColors>
+          uint16_t TNumColors,
+          uint16_t TNumAlarmsMax>
 
 class ggDataEEPromT {
 
@@ -25,12 +26,24 @@ public:
     std::array<tColor, TNumColors> mColors;
   };
 
+  struct cAlarm {
+    bool mActive;
+    uint8_t mMin;
+    uint8_t mHour;
+    uint8_t mDays;
+    uint8_t mScene;
+    float mDuration;
+  };
+
+  typedef ggValueEEPromT<cAlarm> tAlarm;
+
   ggDataEEPromT()
   : mName(),
     mOn(false),
     mScenes(),
     mNumScenes(1),
-    mCurrentSceneIndex(0)
+    mCurrentSceneIndex(0),
+    mNumAlarms(0)
   {
   }
 
@@ -121,9 +134,12 @@ private:
 
   tString mName;
   ggValueEEPromT<bool> mOn;
+
   ggValueEEPromT<uint16_t> mNumScenes;
   ggValueEEPromT<uint16_t> mCurrentSceneIndex;
-
   std::array<cScene, TNumScenesMax> mScenes;
+
+  ggValueEEPromT<uint16_t> mNumAlarms;
+  std::array<tAlarm, TNumAlarmsMax> mAlarms;
 
 };
