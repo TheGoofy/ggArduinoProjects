@@ -48,6 +48,8 @@ void setup()
     Serial.printf(" - Lunchtime alarm! - active: %d\n", aAlarm.mActive);
   });
 
+  Serial.print(mAlarmClock.AlarmsToJson());
+
   Serial.println(mAlarmClock.GetTime("%d-%m-%Y %H:%M:%S"));
 }
 

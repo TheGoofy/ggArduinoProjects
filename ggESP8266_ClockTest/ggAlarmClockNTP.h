@@ -63,6 +63,14 @@ public:
       mAlarmFunc = aFunc;
     }
 
+    virtual String ToJson() const {
+      return String() +
+        "\"mActive\":" + mActive + ","
+        "\"mMin\":" + mMin + ","
+        "\"mHour\":" + mHour + ","
+        "\"mDays\":" + mDays;
+    }
+
   private:
 
     friend class ggAlarmClockNTP;
@@ -125,6 +133,16 @@ public:
         vAlarm.Check(GetTimeTM());
       }
     }
+  }
+
+  String AlarmsToJson() const {
+    String vAlarmsJson("\"mAlarms\":[\n");
+    for (auto vAlarmIt = mAlarms.begin(); vAlarmIt != mAlarms.end(); vAlarmIt++) {
+      vAlarmsJson += "  {" + vAlarmIt->ToJson() + "}";
+      vAlarmsJson += (std::next(vAlarmIt) != mAlarms.end()) ? ",\n" : "\n";
+    }
+    vAlarmsJson += "]\n";
+    return vAlarmsJson;
   }
 
 private:
