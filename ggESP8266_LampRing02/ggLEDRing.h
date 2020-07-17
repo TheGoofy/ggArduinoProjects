@@ -1,6 +1,7 @@
 #include <Adafruit_NeoPixel.h>
 #include "ggColor.h"
 #include "ggLocations.h"
+#include "ggLookupTableT.h"
 
 template <uint16_t TNumLEDs>
 class ggLEDRing {
@@ -195,6 +196,10 @@ private:
                            uint16_t aIndex1,
                            const ggColor::cHSV& aHSV0,
                            const ggColor::cHSV& aHSV1) {
+    static ggLookupTableT<int, 16> vHueLUT(0, 255, [] (int aInput) -> int {
+      float vAlpha = 3.0 * M_PI * aInput / 255.0f;
+      return ggRound<int>(aInput - 12.0f * sin(vAlpha));
+    });
     const uint16_t vRange = aIndex1 - aIndex0;
     int32_t vDeltaH = (int32_t)aHSV1.mH - (int32_t)aHSV0.mH;
     int32_t vDeltaS = (int32_t)aHSV1.mS - (int32_t)aHSV0.mS;
@@ -202,7 +207,7 @@ private:
     if (vDeltaH >=  256/2) vDeltaH -= 256;
     if (vDeltaH <= -256/2) vDeltaH += 256;
     for (uint16_t vIndex = aIndex0; vIndex <= aIndex1; vIndex++) {
-      ggColor::cHSV vHSV(aHSV0.mH + vIndex * vDeltaH / vRange,
+      ggColor::cHSV vHSV(vHueLUT((uint8_t)(aHSV0.mH + (vIndex * vDeltaH) / vRange)),
                          aHSV0.mS + vIndex * vDeltaS / vRange,
                          aHSV0.mV + vIndex * vDeltaV / vRange);
       aLEDs.setPixelColor(vIndex, ggColor::ToRGB(vHSV));
