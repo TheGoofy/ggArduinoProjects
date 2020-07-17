@@ -45,7 +45,7 @@ public:
   }
 
   inline TValue Get(const TValue& aInput) const {
-    float vInputIndex = (aInput - mInputMin) * (TSize - 1) / mInputRange;
+    float vInputIndex = (float)(aInput - mInputMin) * (float)(TSize - 1) / (float)mInputRange;
     int32_t vInputIndexA = floor(vInputIndex);
     if (vInputIndexA < 0) return mOutputs.front();
     int32_t vInputIndexB = vInputIndexA + 1;
@@ -53,7 +53,7 @@ public:
     float vInputIndexT = vInputIndex - vInputIndexA;
     const TValue& vOutputA = mOutputs[vInputIndexA];
     const TValue& vOutputB = mOutputs[vInputIndexB];
-    return  vOutputA + vInputIndexT * (vOutputB - vOutputA);;
+    return ggRound<TValue>(vOutputA + vInputIndexT * (vOutputB - vOutputA));
   }
 
   inline TValue operator () (const TValue& aInput) const {
@@ -65,7 +65,7 @@ private:
   void Init() {
     uint32_t vInputIndex = 0;
     for (auto& vOutput : mOutputs) {
-      TValue vInput = mInputMin + mInputRange * vInputIndex / (TSize - 1);
+      TValue vInput = ggRound<TValue>(mInputMin + mInputRange * (float)vInputIndex / (float)(TSize - 1));
       vOutput = mOutputFunc(vInput);
       vInputIndex++;
     }
