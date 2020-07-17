@@ -82,6 +82,17 @@ void setup()
   Serial.begin(115200);
   Serial.println();
 
+  {
+    Serial.printf("\nTesting 1:1 Int Transfer Function\n");
+    ggLookupTableT<int, 4> vLookupTable(-10, 10, [] (int aInput) { return aInput; });
+    Sweep(-15, 15, 31, [&] (int aInput) {
+      int vOutputA = vLookupTable.GetExact(aInput);
+      int vOutputB = vLookupTable.Get(aInput);
+      int vOutputC = vLookupTable.GetNN(aInput);
+      Serial.printf("%d\t%d\t%d\t%d\n", aInput, vOutputA, vOutputB, vOutputC);
+    });
+  }
+
   auto vLinearFunc = [] (const float& aInput) {
     return aInput;
   };
@@ -99,7 +110,7 @@ void setup()
   };
 
   {
-    Serial.printf("\nTesting 1:1 Transfer Function\n");
+    Serial.printf("\nTesting 1:1 Float Transfer Function\n");
     ggLookupTableT<float, 6> vLookupTable(0.0f, 1.0f, vLinearFunc);
     Sweep(-0.25f, 1.25f, 31, [&] (float aInput) {
       float vOutputA = vLookupTable.GetExact(aInput);
