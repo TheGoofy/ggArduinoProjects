@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ggClockNTP.h"
+#include <memory>
 
 class ggAlarmClockNTP : public ggClockNTP
 {
@@ -109,7 +110,7 @@ public:
     mutable bool mTimeMatch;
   };
 
-  typedef std::vector<cAlarm> tAlarms;
+  typedef std::vector<std::shared_ptr<cAlarm>> tAlarms;
 
   tAlarms& Alarms() {
     return mAlarms;
@@ -123,14 +124,14 @@ public:
                 uint8_t aHour,
                 uint8_t aDays,
                 tAlarmFunc aFunc) {
-    mAlarms.push_back(cAlarm(aMin, aHour, aDays, aFunc));
+    mAlarms.push_back(std::make_shared<cAlarm>(aMin, aHour, aDays, aFunc));
   }
 
   virtual void Run() override {
     ggClockNTP::Run();
     if (IsTimeValid()) {
       for (auto& vAlarm : mAlarms) {
-        vAlarm.Check(GetTimeTM());
+        vAlarm->Check(GetTimeTM());
       }
     }
   }
@@ -138,10 +139,10 @@ public:
   String AlarmsToJson() const {
     String vAlarmsJson("\"mAlarms\":[\n");
     for (auto vAlarmIt = mAlarms.begin(); vAlarmIt != mAlarms.end(); vAlarmIt++) {
-      vAlarmsJson += "  {" + vAlarmIt->ToJson() + "}";
+      vAlarmsJson += "  {" + (*vAlarmIt)->ToJson() + "}";
       vAlarmsJson += (std::next(vAlarmIt) != mAlarms.end()) ? ",\n" : "\n";
     }
-    vAlarmsJson += "]\n";
+    vAlarmsJson += "]";
     return vAlarmsJson;
   }
 

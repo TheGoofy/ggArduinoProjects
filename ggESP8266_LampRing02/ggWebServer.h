@@ -14,6 +14,10 @@ public:
 
   ggWebServer(int aPort, FS* aFileSystem)
   : mServer(aPort),
+    mAddAlarmFunc(nullptr),
+    mDelAlarmFunc(nullptr),
+    mGetAlarmsFunc(nullptr),
+    mSetAlarmFunc(nullptr),
     mDebugStreamFunc(nullptr),
     mResetAllFunc(nullptr),
     mRebootFunc(nullptr),
@@ -24,6 +28,11 @@ public:
   void Begin() {
     mServer.on("/", [&] () { OnHome(); });
     mServer.on("/home", [&] () { OnHome(); });
+    mServer.on("/alarms", [&] () { OnAlarms(); });
+    mServer.on("/AddAlarm", [&] () { OnAddAlarm(); });
+    mServer.on("/DelAlarm", [&] () { OnDelAlarm(); });
+    mServer.on("/GetAlarms", [&] () { OnGetAlarms(); });
+    mServer.on("/SetAlarm", [&] () { OnSetAlarm(); });
     mServer.on("/files", [&] () { OnFS(); });
     mServer.on("/debug", [&] () { OnDebug(); });
     mServer.on("/resetall", [&] () { OnResetAll(); });
@@ -39,6 +48,26 @@ public:
 
   typedef std::function<void()> tFunc;
   typedef std::function<void(Stream&)> tStreamFunc;
+
+  typedef std::function<bool()> tAddAlarmFunc;
+  void OnAddAlarm(tAddAlarmFunc aAddAlarmFunc) {
+    mAddAlarmFunc = aAddAlarmFunc;
+  }
+
+  typedef std::function<bool(int)> tDelAlarmFunc;
+  void OnDelAlarm(tDelAlarmFunc aDelAlarmFunc) {
+    mDelAlarmFunc = aDelAlarmFunc;
+  }
+
+  typedef std::function<String()> tGetAlarmsFunc;
+  void OnGetAlarms(tGetAlarmsFunc aGetAlarmsFunc) {
+    mGetAlarmsFunc = aGetAlarmsFunc;
+  }
+
+  typedef std::function<bool(const String&)> tSetAlarmFunc;
+  void OnSetAlarm(tSetAlarmFunc aSetAlarmFunc) {
+    mSetAlarmFunc = aSetAlarmFunc;
+  }
 
   void OnDebugStream(tStreamFunc aStreamFunc) {
     mDebugStreamFunc = aStreamFunc;
@@ -68,6 +97,7 @@ private:
     if (aFileName.endsWith(".jpg")) return "image/jpeg";
     if (aFileName.endsWith(".ico")) return "image/x-icon";
     if (aFileName.endsWith(".xml")) return "text/xml";
+    if (aFileName.endsWith(".json")) return "application/json";
     if (aFileName.endsWith(".pdf")) return "application/x-pdf";
     if (aFileName.endsWith(".zip")) return "application/x-zip";
     if (aFileName.endsWith(".gz")) return "application/x-gzip";
@@ -111,6 +141,67 @@ private:
     GG_DEBUG_PRINTF("local IP = %s\n", mServer.client().localIP().toString().c_str());
     GG_DEBUG_PRINTF("remote IP = %s\n", mServer.client().remoteIP().toString().c_str());
     HandleFile("/ggIndex.html");
+  }
+
+  void OnAlarms() {
+    GG_DEBUG();
+    HandleFile("/ggAlarms.html");
+  }
+
+  void OnAddAlarm() {
+    GG_DEBUG();
+    String vResponseText = "FAIL";
+    if (mServer.method() == HTTP_POST) {
+      if (mAddAlarmFunc != nullptr) {
+        if (mAddAlarmFunc()) {
+          vResponseText = "OK";
+        }
+      }
+    }
+    mServer.sendHeader("Access-Control-Allow-Origin", "*");
+    mServer.send(200, "text/plain", vResponseText);
+  }
+
+  void OnDelAlarm() {
+    GG_DEBUG();
+    String vResponseText = "FAIL";
+    if (mServer.method() == HTTP_POST) {
+      String vAlarmID = mServer.arg("aAlarmID");
+      if (vAlarmID != "" && mDelAlarmFunc != nullptr) {
+        if (mDelAlarmFunc(vAlarmID.toInt())) {
+          vResponseText = "OK";
+        }
+      }
+    }
+    mServer.sendHeader("Access-Control-Allow-Origin", "*");
+    mServer.send(200, "text/plain", vResponseText);
+  }
+
+  void OnGetAlarms() {
+    GG_DEBUG();
+    if (mGetAlarmsFunc != nullptr) {
+      if (mServer.method() == HTTP_GET) {
+        mServer.sendHeader("Access-Control-Allow-Origin", "*");
+        mServer.send(200, GetContentType(".json"), mGetAlarmsFunc());
+        return;
+      }
+    }
+    OnNotFound();
+  }
+
+  void OnSetAlarm() {
+    GG_DEBUG();
+    String vResponseText = "FAIL";
+    if (mServer.method() == HTTP_POST) {
+      String vAlarmJson = mServer.arg("aAlarmJson");
+      if (vAlarmJson != "" && mSetAlarmFunc != nullptr) {
+        if (mSetAlarmFunc(vAlarmJson)) {
+          vResponseText = "OK";
+        }
+      }
+    }
+    mServer.sendHeader("Access-Control-Allow-Origin", "*");
+    mServer.send(200, "text/plain", vResponseText);
   }
 
   static String GetNiceByteSize(size_t aSize) {
@@ -231,7 +322,13 @@ private:
 
   ESP8266WebServer mServer;
 
+  tAddAlarmFunc mAddAlarmFunc;
+  tDelAlarmFunc mDelAlarmFunc;
+  tGetAlarmsFunc mGetAlarmsFunc;
+  tSetAlarmFunc mSetAlarmFunc;
+
   tStreamFunc mDebugStreamFunc;
+  
   tFunc mResetAllFunc;
   tFunc mRebootFunc;
   tFunc mResetWifiFunc;

@@ -27,12 +27,31 @@ public:
   };
 
   struct cAlarm {
+    uint16_t mID;
     bool mActive;
     uint8_t mMin;
     uint8_t mHour;
     uint8_t mDays;
-    uint8_t mScene;
+    int8_t mSceneIndex;
     float mDuration;
+    bool operator == (const cAlarm& aOther) const {
+      return mID == aOther.mID
+          && mActive == aOther.mActive
+          && mMin == aOther.mMin
+          && mHour == aOther.mHour
+          && mDays == aOther.mDays
+          && mSceneIndex == aOther.mSceneIndex
+          && mDuration == aOther.mDuration;
+    }
+    bool operator != (const cAlarm& aOther) const {
+      return mID != aOther.mID
+          || mActive != aOther.mActive
+          || mMin != aOther.mMin
+          || mHour != aOther.mHour
+          || mDays != aOther.mDays
+          || mSceneIndex != aOther.mSceneIndex
+          || mDuration != aOther.mDuration;
+    }
   };
 
   typedef ggValueEEPromT<cAlarm> tAlarm;
@@ -126,6 +145,7 @@ public:
   }
 
   bool RemoveScene(uint16_t aIndex) {
+    GG_DEBUG();
     if ((0 < aIndex) && (aIndex < mNumScenes)) {
       ggValueEEProm::cLazyWriter vLazyWriter;
       mNumScenes -= 1;
@@ -138,7 +158,107 @@ public:
     return false;
   }
 
+  String GetSceneNamesJson() const {
+    String vSceneNamesJson = "\"mSceneNames\":[\n";
+    vSceneNamesJson += "  {\"mIndex\":-1,\"mName\":\"Off\"},\n";
+    for (uint16_t vIndex = 0; vIndex < mNumScenes; vIndex++) {
+      vSceneNamesJson += "  {\"mIndex\":" + String(vIndex) + ",\"mName\":\"" + mScenes[vIndex].mName.Get() + "\"}";
+      vSceneNamesJson += vIndex + 1 < mNumScenes ? ",\n" : "\n";
+    }
+    vSceneNamesJson += "]";
+    return vSceneNamesJson;
+  }
+
+  inline uint16_t GetNumAlarms() const {
+    return mNumAlarms;
+  }
+
+  inline uint16_t GetNumAlarmsMax() const {
+    return TNumAlarmsMax;
+  }
+
+  bool AddAlarm() {
+    GG_DEBUG();
+    if (mNumAlarms < TNumAlarmsMax) {
+      ggValueEEProm::cLazyWriter vLazyWriter;
+      uint16_t vID = GetNewAlarmID();
+      cAlarm vAlarm;
+      vAlarm.mID = vID;
+      vAlarm.mActive = false;
+      vAlarm.mMin = 59;
+      vAlarm.mHour = 23;
+      vAlarm.mDays = 0;
+      vAlarm.mSceneIndex = 0;
+      vAlarm.mDuration = 1.0f;
+      mAlarms[mNumAlarms] = vAlarm;
+      mAlarmIDs.insert(vID);
+      mNumAlarms += 1;
+      GG_DEBUG_PRINTF("vID = %d\n", vID);
+      GG_DEBUG_PRINTF("mNumAlarms = %d\n", mNumAlarms.Get());
+      return true;
+    }
+    return false;
+  }
+
+  bool RemoveAlarm(uint16_t aIndex) {
+    GG_DEBUG();
+    if ((0 <= aIndex) && (aIndex < mNumAlarms)) {
+      ggValueEEProm::cLazyWriter vLazyWriter;
+      mNumAlarms -= 1;
+      mAlarmIDs.erase(mAlarms[aIndex].Get().mID);
+      for (uint16_t vIndex = aIndex; vIndex < mNumAlarms; vIndex++) {
+        mAlarms[vIndex] = mAlarms[vIndex + 1];
+      }
+      GG_DEBUG_PRINTF("aIndex = %d\n", aIndex);
+      GG_DEBUG_PRINTF("mNumAlarms = %d\n", mNumAlarms.Get());
+      return true;
+    }
+    return false;
+  }
+
+  uint16_t GetAlarmIndex(uint16_t aID) const {
+    CheckAlarmIDs();
+    if (AlarmExists(aID)) {
+      for (uint16_t vIndex = 0; vIndex < mNumAlarms; vIndex++) {
+        if (mAlarms[vIndex].Get().mID == aID) return vIndex;
+      }
+    }
+    return -1;
+  }
+
+  bool RemoveAlarmID(uint16_t aID) {
+    return RemoveAlarm(GetAlarmIndex(aID));
+  }
+
+  inline tAlarm& Alarm(uint16_t aIndex) {
+    return aIndex < mNumAlarms ? mAlarms[aIndex] : mAlarms[0];
+  }
+
+  inline const tAlarm& Alarm(uint16_t aIndex) const {
+    return aIndex < mNumAlarms ? mAlarms[aIndex] : mAlarms[0];
+  }
+
 private:
+
+  void CheckAlarmIDs() const {
+    if (mAlarmIDs.size() != mNumAlarms) {
+      mAlarmIDs.clear();
+      for (uint16_t vIndex = 0; vIndex < mNumAlarms; vIndex++) {
+        mAlarmIDs.insert(mAlarms[vIndex].Get().mID);
+      }
+    }
+  }
+
+  bool AlarmExists(uint16_t aID) const {
+    return mAlarmIDs.find(aID) != mAlarmIDs.end();
+  }
+
+  uint16_t GetNewAlarmID() const {
+    uint16_t vID = 0;
+    CheckAlarmIDs();
+    while (AlarmExists(vID)) vID++;
+    return vID;
+  }
 
   tString mName;
   ggValueEEPromT<bool> mOn;
@@ -150,5 +270,6 @@ private:
 
   ggValueEEPromT<uint16_t> mNumAlarms;
   std::array<tAlarm, TNumAlarmsMax> mAlarms;
+  mutable std::set<uint16_t> mAlarmIDs;
 
 };

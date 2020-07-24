@@ -5,6 +5,7 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <LittleFS.h>
+#include <ArduinoJson.h>
 
 #define M_DEBUGGING false
 #define M_TEST_ENVIRONMENT false
@@ -13,6 +14,8 @@
 #include "ggWebSockets.h"
 #include "ggWiFiConnection.h"
 #include "ggPeriphery.h"
+#include "ggAlarmClockNTP.h"
+#include "ggLampAlarm.h"
 #include "ggData.h"
 #include "ggLookupTableT.h"
 #include "ggNullStream.h"
@@ -77,6 +80,14 @@ ggTimer& EditTimer()
   static ggTimer* vTimer = nullptr;
   if (vTimer == nullptr) vTimer = new ggTimer(10.0f); // timeout in 10 seconds
   return *vTimer;
+}
+
+
+ggAlarmClockNTP& AlarmClock()
+{
+  static ggAlarmClockNTP* vAlarmClock = nullptr;
+  if (vAlarmClock == nullptr) vAlarmClock = new ggAlarmClockNTP("ch.pool.ntp.org", "CET-1CEST-2,M3.5.0/02:00:00,M10.5.0/03:00:00");
+  return *vAlarmClock;
 }
 
 
@@ -388,6 +399,55 @@ public:
 ggLampState mLampState;
 
 
+void AlarmClockSetAlarms()
+{
+  AlarmClock().Alarms().clear();
+  for (uint16_t vIndex = 0; vIndex < Data().GetNumAlarms(); vIndex++) {
+    const auto& vDataAlarm = Data().Alarm(vIndex).Get();
+    std::shared_ptr<ggLampAlarm> vLampAlarm = std::make_shared<ggLampAlarm>();
+    vLampAlarm->mID = vDataAlarm.mID;
+    vLampAlarm->mActive = vDataAlarm.mActive;
+    vLampAlarm->mMin = vDataAlarm.mMin;
+    vLampAlarm->mHour = vDataAlarm.mHour;
+    vLampAlarm->mDays = vDataAlarm.mDays;
+    vLampAlarm->mSceneIndex = vDataAlarm.mSceneIndex;
+    vLampAlarm->mDuration = vDataAlarm.mDuration;
+    vLampAlarm->OnAlarm([] (ggAlarmClockNTP::cAlarm& aAlarm) {
+      GG_DEBUG_BLOCK("OnAlarm");
+      ggLampAlarm* vLampAlarm = static_cast<ggLampAlarm*>(&aAlarm);
+      if (vLampAlarm != nullptr) {
+        GG_DEBUG_PRINTF("mID = %d\n", vLampAlarm->mID);
+        if (vLampAlarm->mDays == ggAlarmClockNTP::eNoDay) { // once
+          uint16_t vAlarmIndex = Data().GetAlarmIndex(vLampAlarm->mID);
+          if (vAlarmIndex < Data().GetNumAlarms()) {
+            ggData::cAlarm vAlarm = Data().Alarm(vAlarmIndex);
+            vAlarm.mActive = false;
+            Data().Alarm(vAlarmIndex) = vAlarm;
+          }
+        }
+        if (vLampAlarm->mSceneIndex == -1) {
+          mLampState.SetState(ggState::eOff);
+        }
+        else {
+          Data().SetCurrentSceneIndex(vLampAlarm->mSceneIndex);
+          if (mLampState.mState == ggState::eOn) {
+            PeripheryLEDCenterSetChannelBrightness();
+            PeripheryLEDRingSetColors();
+          }
+          else {
+            mLampState.SetState(ggState::eOn);
+          }
+          WebSockets().UpdateCurrentSceneIndex(Data().GetCurrentSceneIndex());
+          WebSocketsUpdateChannelBrightness();
+          WebSocketsUpdateRingColorHSV();
+        }
+      }
+    });
+    AlarmClock().Alarms().push_back(vLampAlarm);
+  }
+}
+
+
 // wifimanager may be connected before any other comonent (in order to indicate AP-mode)
 void ConnectWifiManager()
 {
@@ -594,6 +654,43 @@ void ConnectComponents()
   });
   
   // web server
+  WebServer().OnAddAlarm([] () -> bool {
+    GG_DEBUG_BLOCK("mWebServer.OnAddAlarm(...)");
+    bool vAlarmAdded = Data().AddAlarm();
+    if (vAlarmAdded) AlarmClockSetAlarms();
+    return vAlarmAdded;
+  });
+  WebServer().OnDelAlarm([] (int aAlarmID) -> bool {
+    GG_DEBUG_BLOCK("mWebServer.OnDelAlarm(...)");
+    bool vAlarmDeleted = Data().RemoveAlarmID(aAlarmID);
+    if (vAlarmDeleted) AlarmClockSetAlarms();
+    return vAlarmDeleted;
+  });
+  WebServer().OnGetAlarms([] () -> String {
+    GG_DEBUG_BLOCK("mWebServer.OnGetAlarms(...)");
+    return "{" + AlarmClock().AlarmsToJson() + ",\n" + Data().GetSceneNamesJson() + "}";
+  });
+  WebServer().OnSetAlarm([] (const String& aAlarmJson) -> bool {
+    GG_DEBUG_BLOCK("mWebServer.OnSetAlarm(...)");
+    StaticJsonDocument<200> vAlarmJsonDoc;
+    DeserializationError vJsonError = deserializeJson(vAlarmJsonDoc, aAlarmJson);
+    GG_DEBUG_PRINTF("vJsonError = %s\n", vJsonError.c_str());
+    if (vJsonError) return false;
+    uint16_t vAlarmID = vAlarmJsonDoc["mID"].as<uint16_t>();
+    uint16_t vAlarmIndex = Data().GetAlarmIndex(vAlarmID);
+    if (vAlarmIndex >= Data().GetNumAlarms()) return false;
+    ggData::cAlarm vAlarm = Data().Alarm(vAlarmIndex);
+    if (vAlarm.mID != vAlarmID) return false;
+    vAlarm.mActive = vAlarmJsonDoc["mActive"].as<bool>();
+    vAlarm.mMin = vAlarmJsonDoc["mMin"].as<uint8_t>();
+    vAlarm.mHour = vAlarmJsonDoc["mHour"].as<uint8_t>();
+    vAlarm.mDays = vAlarmJsonDoc["mDays"].as<uint8_t>();
+    vAlarm.mSceneIndex = vAlarmJsonDoc["mSceneIndex"].as<int8_t>();
+    vAlarm.mDuration = vAlarmJsonDoc["mDuration"].as<float>();
+    Data().Alarm(vAlarmIndex) = vAlarm;
+    AlarmClockSetAlarms();
+    return true;
+  });
   WebServer().OnDebugStream([] (Stream& aStream) {
     ggStreams vStreams;
     vStreams.push_back(&aStream);
@@ -701,8 +798,11 @@ void setup()
   ConnectComponents();
 
   // initialize eeprom handler
-  Data(); // creates data object
-  ggValueEEProm::Begin();
+  Data(); // creates data object with default values
+  ggValueEEProm::Begin(); // loads data values from eeprom
+  AlarmClockSetAlarms();
+
+  AlarmClock().Begin();
   Periphery().SetTransitionTime(Data().TransitionTime());
 
   // configure and start web-server
@@ -746,6 +846,7 @@ void setup()
 
 void loop()
 {
+  AlarmClock().Run();
   DisplayTimer().Run();
   EditTimer().Run();
   Periphery().Run();

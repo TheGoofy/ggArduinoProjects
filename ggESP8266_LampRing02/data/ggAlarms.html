@@ -1,0 +1,384 @@
+﻿<!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01//EN' 'http://www.w3.org/TR/html4/strict.dtd'>
+<html>
+
+<head>
+  <title>ESP8266 Lamp Home</title>
+  <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+  <meta http-equiv='Content-Style-Type' content='text/css'/>
+  <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
+  <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
+  <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
+  <script language='javascript' type='text/javascript'>
+
+    var mHostURL = window.location.hostname;
+
+    function InitAll() {
+      if (mHostURL == '') {
+        mHostURL = window.prompt('Please enter server address', "192.168.0.150");
+      }
+      mHostURL = 'http://' + mHostURL + '/';
+      InitHtmlElements();
+    }
+  
+    function InitHtmlElements() {
+      HttpRequestGetAlarms();
+    }
+
+    var mAlarmsData = null;
+
+    function HttpRequestGetAlarms() {
+      var vAlarmsRequest = new XMLHttpRequest();
+      vAlarmsRequest.onreadystatechange = function() {
+        if (vAlarmsRequest.readyState == 4) {
+          mAlarmsData = JSON.parse(vAlarmsRequest.responseText);
+          mAlarmsData.mAlarms.sort(function (aAlarmA, aAlarmB) {
+            let vDeltaHour = aAlarmA.mHour - aAlarmB.mHour;
+            if (vDeltaHour != 0) return vDeltaHour;
+            let vDeltaMin = aAlarmA.mMin - aAlarmB.mMin;
+            if (vDeltaMin != 0) return vDeltaMin;
+            return aAlarmA.mID - aAlarmB.mID;
+          });
+          // mAlarmsJSON.innerHTML = vAlarmsRequest.responseText;
+          // mAlarmsJSON.hidden = false;
+          UpdateAlarmsTable();
+        }
+      }
+      vAlarmsRequest.open("GET", mHostURL + "GetAlarms", true);
+      vAlarmsRequest.send();
+    }
+
+    function HttpRequestPost(aPath, aQuery) {
+      var vAlarmsRequest = new XMLHttpRequest();
+      vAlarmsRequest.onreadystatechange = function() {
+        if (vAlarmsRequest.readyState == 4) {
+          if (vAlarmsRequest.responseText == 'OK') {
+            HttpRequestGetAlarms();
+          }
+        }
+      }
+      vAlarmsRequest.open("POST", mHostURL + aPath, true);
+      vAlarmsRequest.setRequestHeader("Content-Type", "application/x-www-form-urlencoded")
+      vAlarmsRequest.send(aQuery);
+    }
+
+    function HttpRequestAddAlarm() {
+      HttpRequestPost('AddAlarm');
+    }
+
+    function HttpRequestSetAlarm(aAlarm) {
+      let vAlarm = JSON.stringify(aAlarm);
+      let vAlarmEncoded = encodeURIComponent(vAlarm);
+      HttpRequestPost('SetAlarm', 'aAlarmJson=' + vAlarmEncoded);
+    }
+
+    function HttpRequestDelAlarm(aAlarmID) {
+      HttpRequestPost('DelAlarm', 'aAlarmID=' + aAlarmID);
+    }
+
+    function CreateAlarmsTableCellActive(aRow) {
+      let vCheckBox = document.createElement('input');
+      vCheckBox.type = 'checkbox';
+      vCheckBox.onchange = function () {
+        vCheckBox.mAlarm.mActive = vCheckBox.checked;
+        HttpRequestSetAlarm(vCheckBox.mAlarm);
+      }
+      let aCell = aRow.insertCell();
+      aCell.UpdateAlarm = function (aAlarm) {
+        if (aAlarm) vCheckBox.mAlarm = aAlarm;
+        vCheckBox.checked = vCheckBox.mAlarm.mActive;
+      }
+      aCell.appendChild(vCheckBox);
+    }
+
+    function TimeToString(aHour, aMin) {
+      let vTimeString = '';
+      if (aHour < 10) vTimeString += '0';
+      vTimeString += aHour + ':';
+      if (aMin < 10) vTimeString += '0';
+      vTimeString += aMin;
+      return vTimeString;
+    }
+
+    function CreateAlarmsTableCellTime(aRow) {
+      let vTime = document.createElement('input');
+      vTime.type = 'time';
+      vTime.defaultValue = '12:00';
+      vTime.onblur = function() {
+        vTimeValues = vTime.value.split(':');
+        vTime.mAlarm.mHour = parseInt(vTimeValues[0]);
+        vTime.mAlarm.mMin = parseInt(vTimeValues[1]);
+        HttpRequestSetAlarm(vTime.mAlarm);
+      }
+      let aCell = aRow.insertCell();
+      aCell.UpdateAlarm = function (aAlarm) {
+        if (aAlarm) vTime.mAlarm = aAlarm;
+        vTime.value = TimeToString(vTime.mAlarm.mHour, vTime.mAlarm.mMin);
+      }
+      aCell.appendChild(vTime);
+    }
+
+    const cDays = {
+      eNone: 0x00,
+      eSu: 0x01,
+      eMo: 0x02,
+      eTu: 0x04,
+      eWe: 0x08,
+      eTh: 0x10,
+      eFr: 0x20,
+      eSa: 0x40,
+      eAll: 0x7f
+    }
+
+    function CreateAlarmsTableCellOnce(aRow) {
+      let vCheckBox = document.createElement('input');
+      vCheckBox.type = 'checkbox';
+      vCheckBox.onchange = function () {
+        vCheckBox.mAlarm.mDays = vCheckBox.checked ? cDays.eNone : cDays.eAll;
+        vCheckBox.parentNode.parentNode.UpdateAlarm(); // ->cell->row
+        HttpRequestSetAlarm(vCheckBox.mAlarm);
+      }
+      let aCell = aRow.insertCell();
+      aCell.UpdateAlarm = function (aAlarm) {
+        if (aAlarm) vCheckBox.mAlarm = aAlarm;
+        vCheckBox.checked = vCheckBox.mAlarm.mDays == cDays.eNone;
+      }
+      aCell.appendChild(vCheckBox);
+    }
+
+    function CreateDayCheckBox(aDays) {
+      let vCheckBox = document.createElement('input');
+      vCheckBox.type = 'checkbox';
+      vCheckBox.onchange = function () {
+        if (vCheckBox.checked) vCheckBox.mAlarm.mDays |= aDays;
+        else vCheckBox.mAlarm.mDays &= ~aDays;
+        vCheckBox.parentNode.parentNode.UpdateAlarm(); // ->cell->row
+        HttpRequestSetAlarm(vCheckBox.mAlarm);
+      }
+      vCheckBox.UpdateAlarm = function (aAlarm) {
+        if (aAlarm) vCheckBox.mAlarm = aAlarm;
+        vCheckBox.checked = (vCheckBox.mAlarm.mDays & aDays) == aDays;
+      }
+      return vCheckBox;
+    }
+
+    function CreateAlarmsTableCellDays(aRow) {
+      let aCell = aRow.insertCell();
+      aCell.appendChild(CreateDayCheckBox(cDays.eMo));
+      aCell.appendChild(CreateDayCheckBox(cDays.eTu));
+      aCell.appendChild(CreateDayCheckBox(cDays.eWe));
+      aCell.appendChild(CreateDayCheckBox(cDays.eTh));
+      aCell.appendChild(CreateDayCheckBox(cDays.eFr));
+      aCell.appendChild(CreateDayCheckBox(cDays.eSa));
+      aCell.appendChild(CreateDayCheckBox(cDays.eSu));
+      aCell.UpdateAlarm = function (aAlarm) {
+        for (let vDayCheckBox of aCell.childNodes) {
+          vDayCheckBox.UpdateAlarm(aAlarm);
+        }
+      }
+    }
+
+    function CreateAlarmsTableCellScene(aRow) {
+      let vSelect = document.createElement('select');
+      for (let vIndex in mAlarmsData.mSceneNames) {
+        let vOption = document.createElement('option');
+        vOption.innerHTML = mAlarmsData.mSceneNames[vIndex].mName;
+        let vSceneIndex = mAlarmsData.mSceneNames[vIndex].mIndex;
+        vOption.mSceneIndex = vSceneIndex;
+        vSelect.appendChild(vOption);
+      }
+      vSelect.onchange = function () {
+        if (vSelect.selectedOptions.length == 1) {
+          let vOption = vSelect.selectedOptions[0];
+          vSelect.mAlarm.mSceneIndex = vOption.mSceneIndex;
+          HttpRequestSetAlarm(vSelect.mAlarm);
+        }
+      }
+      let aCell = aRow.insertCell();
+      aCell.UpdateAlarm = function (aAlarm) {
+        if (aAlarm) vSelect.mAlarm = aAlarm;
+        for (let vOption of vSelect.childNodes) {
+          if (vOption.mSceneIndex == vSelect.mAlarm.mSceneIndex) {
+            vSelect.selectedIndex = vOption.index;
+            break;
+          }
+        }
+      }
+      aCell.appendChild(vSelect);
+    }
+
+    function CreateAlarmsTableCellTransition(aRow) {
+      let vNumber = document.createElement('input');
+      vNumber.type = 'number';
+      vNumber.min = 0;
+      vNumber.max = 1800;
+      vNumber.step = 0.1;
+      vNumber.classList.add('cTransitionInput');
+      vNumber.onchange = function () {
+        vNumber.mAlarm.mDuration = parseFloat(vNumber.value);
+        HttpRequestSetAlarm(vNumber.mAlarm);
+      }
+      let aCell = aRow.insertCell();
+      aCell.UpdateAlarm = function (aAlarm) {
+        if (aAlarm) vNumber.mAlarm = aAlarm;
+        vNumber.value = vNumber.mAlarm.mDuration;
+      }
+      aCell.appendChild(vNumber);
+    }
+
+    function CreateAlarmsTableCellDelete(aRow) {
+      let vDeleteButton = document.createElement('img');
+      vDeleteButton.src = 'del.png';
+      vDeleteButton.width = 18;
+      vDeleteButton.classList.add('cDeleteButton');
+      vDeleteButton.onclick = function() {
+        if (confirm('Delete Alarm "' + vDeleteButton.mAlarm.mID + '"?')) {
+          HttpRequestDelAlarm(vDeleteButton.mAlarm.mID);
+        }
+      }
+      let aCell = aRow.insertCell();
+      aCell.UpdateAlarm = function (aAlarm) {
+        if (aAlarm) vDeleteButton.mAlarm = aAlarm;
+      }
+      aCell.appendChild(vDeleteButton);
+    }
+
+    function CreateAlarmsTableCells(aRow) {
+      CreateAlarmsTableCellActive(aRow);
+      CreateAlarmsTableCellTime(aRow);
+      CreateAlarmsTableCellOnce(aRow);
+      CreateAlarmsTableCellDays(aRow);
+      CreateAlarmsTableCellScene(aRow);
+      CreateAlarmsTableCellTransition(aRow);
+      CreateAlarmsTableCellDelete(aRow);
+      aRow.UpdateAlarm = function (aAlarm) {
+        for (let vCell of aRow.childNodes) {
+          vCell.UpdateAlarm(aAlarm);
+        }
+      }
+    }
+
+    function UpdateAlarmsTable() {
+      // adjust table size & keep first (header) and last ("add alarm") rows
+      while (mAlarmsTable.rows.length < 2 + mAlarmsData.mAlarms.length) {
+        vRow = mAlarmsTable.insertRow(mAlarmsTable.rows.length - 1);
+        CreateAlarmsTableCells(vRow);
+      }
+      while (mAlarmsTable.rows.length > 2 + mAlarmsData.mAlarms.length) {
+        mAlarmsTable.deleteRow(mAlarmsTable.rows.length - 2);
+      }
+      // update Alarm-Data: each row and each cell has implemented that function
+      for (let vAlarmIndex in mAlarmsData.mAlarms) {
+        let vRow = mAlarmsTable.rows[1 + parseInt(vAlarmIndex)];
+        vRow.UpdateAlarm(mAlarmsData.mAlarms[vAlarmIndex]);
+      }
+    }
+
+  </script>
+</head>
+
+<body onload='javascript:InitAll()'>
+  <div class='cMainBlockDiv'>
+
+    <b style='font-size:larger'>Alarms</b><br>
+
+    <hr noshade>
+
+    <script>
+      function OnAddAlarm() {
+        let vNumRows = mAlarmsTable.rows.length;
+        let vRow = mAlarmsTable.insertRow(vNumRows - 1);
+        let vCell = vRow.insertCell(0);
+        vCell.innerHTML = "goofy was here";
+      }
+    </script>
+    <style>
+      #mAlarmsTable {
+        border-collapse: collapse;
+      }
+      #mAlarmsTable tr {
+        border: none;
+      }
+      #mAlarmsTable tr:nth-child(odd) {
+        background-color: rgba(255, 255, 255, 0.2);
+      }
+      #mAlarmsTable th {
+        padding: 3px;
+        font-weight: normal;
+        background-color: black;
+      }
+      #mAlarmsTable td {
+        padding: 0px;
+      }
+      #mAlarmsTable th, #mAlarmsTable td {
+        text-align: center;
+        vertical-align: middle;
+        border-left: solid 1px;
+      }
+      #mAlarmsTable td:first-child, #mAlarmsTable th:first-child {
+        border-left: none;
+      }
+      .cTransitionInput {
+        width: 50px;
+      }
+      .cDeleteButton {
+        vertical-align: middle;
+      }
+    </style>
+    <table id="mAlarmsTable">
+      <tr>
+        <th>Active</th>
+        <th>HH:MM</th>
+        <th>Once</th>
+        <th>Mo Tu We Th Fr Sa Su</th>
+        <th>Scene</th>
+        <th>Transition</th>
+        <th></th>
+      </tr>
+    <!-- rows inserted by javascript function "UpdateAlarmsTable()"
+      <tr>
+        <td><input type="checkbox"></td>
+        <td><input type="time"></td>
+        <td><input type="checkbox"></td>
+        <td>
+          <input type="checkbox">
+          <input type="checkbox">
+          <input type="checkbox">
+          <input type="checkbox">
+          <input type="checkbox">
+          <input type="checkbox">
+          <input type="checkbox">
+        </td>
+        <td><select>
+          <option>Off</option>
+          <option>Scene A</option>
+          <option>Scene B</option>
+          <option>Scene C</option>
+        </select></td>
+        <td><input type="number" min="0" max="1800"></td>
+        <td><button>X</button></td>
+      </tr>
+    -->
+      <tr><td colspan='7'><button onclick="HttpRequestAddAlarm()" style="width: 100%; ">
+        <img src='add.png' width='20' style="vertical-align: middle;">
+        <span style="vertical-align: middle;">Add Alarm</span>
+      </button></td></tr>
+    </table>
+
+    <pre id='mAlarmsJSON' hidden>
+    </pre>
+
+    <hr noshade>
+
+    <a href='/'>[home]</a>
+    <a href='/alarms'>[alarms]</a>
+    <a href='/files'>[files]</a>
+    <a href='/debug'>[debug]</a>
+
+    <br>
+
+    (c) 2020, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
+
+  </div>
+</body>
+
+</html>
