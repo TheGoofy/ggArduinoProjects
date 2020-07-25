@@ -160,7 +160,7 @@ public:
 
   String GetSceneNamesJson() const {
     String vSceneNamesJson = "\"mSceneNames\":[\n";
-    vSceneNamesJson += "  {\"mIndex\":-1,\"mName\":\"Off\"},\n";
+    vSceneNamesJson += "  {\"mIndex\":-1,\"mName\":\"Power Off\"},\n";
     for (uint16_t vIndex = 0; vIndex < mNumScenes; vIndex++) {
       vSceneNamesJson += "  {\"mIndex\":" + String(vIndex) + ",\"mName\":\"" + mScenes[vIndex].mName.Get() + "\"}";
       vSceneNamesJson += vIndex + 1 < mNumScenes ? ",\n" : "\n";

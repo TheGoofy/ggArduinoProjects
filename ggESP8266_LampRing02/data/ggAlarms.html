@@ -31,6 +31,11 @@
       vAlarmsRequest.onreadystatechange = function() {
         if (vAlarmsRequest.readyState == 4) {
           mAlarmsData = JSON.parse(vAlarmsRequest.responseText);
+          mAlarmsData.mSceneNamesMap = new Map();
+          for (let vIndex in mAlarmsData.mSceneNames) {
+            let vSceneName = mAlarmsData.mSceneNames[vIndex];
+            mAlarmsData.mSceneNamesMap[vSceneName.mIndex] = vSceneName.mName;
+          }
           mAlarmsData.mAlarms.sort(function (aAlarmA, aAlarmB) {
             let vDeltaHour = aAlarmA.mHour - aAlarmB.mHour;
             if (vDeltaHour != 0) return vDeltaHour;
@@ -38,7 +43,7 @@
             if (vDeltaMin != 0) return vDeltaMin;
             return aAlarmA.mID - aAlarmB.mID;
           });
-          // mAlarmsJSON.innerHTML = vAlarmsRequest.responseText;
+          // mAlarmsJSON.innerHTML = JSON.stringify(mAlarmsData, null, 2);
           // mAlarmsJSON.hidden = false;
           UpdateAlarmsTable();
         }
@@ -103,6 +108,7 @@
       let vTime = document.createElement('input');
       vTime.type = 'time';
       vTime.defaultValue = '12:00';
+      vTime.classList.add('cTimeInput');
       vTime.onblur = function() {
         vTimeValues = vTime.value.split(':');
         vTime.mAlarm.mHour = parseInt(vTimeValues[0]);
@@ -231,7 +237,9 @@
       vDeleteButton.width = 18;
       vDeleteButton.classList.add('cDeleteButton');
       vDeleteButton.onclick = function() {
-        if (confirm('Delete Alarm "' + vDeleteButton.mAlarm.mID + '"?')) {
+        let vAlarmTime = TimeToString(vDeleteButton.mAlarm.mHour, vDeleteButton.mAlarm.mMin);
+        let vAlarmSceneName = mAlarmsData.mSceneNamesMap[vDeleteButton.mAlarm.mSceneIndex];
+        if (confirm("Delete Alarm '" + vAlarmSceneName + "' from " + vAlarmTime + "?")) {
           HttpRequestDelAlarm(vDeleteButton.mAlarm.mID);
         }
       }
@@ -313,9 +321,13 @@
         text-align: center;
         vertical-align: middle;
         border-left: solid 1px;
+        white-space: nowrap;
       }
       #mAlarmsTable td:first-child, #mAlarmsTable th:first-child {
         border-left: none;
+      }
+      .cTimeInput {
+        width: 70px;
       }
       .cTransitionInput {
         width: 50px;
