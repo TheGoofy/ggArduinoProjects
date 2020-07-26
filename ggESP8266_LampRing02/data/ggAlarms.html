@@ -8,9 +8,12 @@
   <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
   <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
   <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
-  <script language='javascript' type='text/javascript'>
+  <script type='text/javascript' src='ggWebSocket.js'></script>
+  <script type='text/javascript'>
 
     var mHostURL = window.location.hostname;
+    var mWebSocket = null;
+    var mAlarmsData = null;
 
     function InitAll() {
       if (mHostURL == '') {
@@ -18,34 +21,43 @@
       }
       mHostURL = 'http://' + mHostURL + '/';
       InitHtmlElements();
+      CreateWebSocket(this, 'mWebSocket', window.location.hostname, OnWebSocketMessage, 5000, mWebSocketStatus);
     }
   
     function InitHtmlElements() {
       HttpRequestGetAlarms();
     }
 
-    var mAlarmsData = null;
+    function OnWebSocketMessage(aData) {
+      eval(aData);
+    }
+
+    function UpdateAlarmsTable() {
+      HttpRequestGetAlarms();
+    }
 
     function HttpRequestGetAlarms() {
       var vAlarmsRequest = new XMLHttpRequest();
       vAlarmsRequest.onreadystatechange = function() {
         if (vAlarmsRequest.readyState == 4) {
-          mAlarmsData = JSON.parse(vAlarmsRequest.responseText);
-          mAlarmsData.mSceneNamesMap = new Map();
-          for (let vIndex in mAlarmsData.mSceneNames) {
-            let vSceneName = mAlarmsData.mSceneNames[vIndex];
-            mAlarmsData.mSceneNamesMap[vSceneName.mIndex] = vSceneName.mName;
+          if (vAlarmsRequest.responseText != '') {
+            mAlarmsData = JSON.parse(vAlarmsRequest.responseText);
+            mAlarmsData.mSceneNamesMap = new Map();
+            for (let vIndex in mAlarmsData.mSceneNames) {
+              let vSceneName = mAlarmsData.mSceneNames[vIndex];
+              mAlarmsData.mSceneNamesMap[vSceneName.mIndex] = vSceneName.mName;
+            }
+            mAlarmsData.mAlarms.sort(function (aAlarmA, aAlarmB) {
+              let vDeltaHour = aAlarmA.mHour - aAlarmB.mHour;
+              if (vDeltaHour != 0) return vDeltaHour;
+              let vDeltaMin = aAlarmA.mMin - aAlarmB.mMin;
+              if (vDeltaMin != 0) return vDeltaMin;
+              return aAlarmA.mID - aAlarmB.mID;
+            });
+            // mAlarmsJSON.innerHTML = JSON.stringify(mAlarmsData, null, 2);
+            // mAlarmsJSON.hidden = false;
+            RefreshAlarmsTable();
           }
-          mAlarmsData.mAlarms.sort(function (aAlarmA, aAlarmB) {
-            let vDeltaHour = aAlarmA.mHour - aAlarmB.mHour;
-            if (vDeltaHour != 0) return vDeltaHour;
-            let vDeltaMin = aAlarmA.mMin - aAlarmB.mMin;
-            if (vDeltaMin != 0) return vDeltaMin;
-            return aAlarmA.mID - aAlarmB.mID;
-          });
-          // mAlarmsJSON.innerHTML = JSON.stringify(mAlarmsData, null, 2);
-          // mAlarmsJSON.hidden = false;
-          UpdateAlarmsTable();
         }
       }
       vAlarmsRequest.open("GET", mHostURL + "GetAlarms", true);
@@ -56,8 +68,12 @@
       var vAlarmsRequest = new XMLHttpRequest();
       vAlarmsRequest.onreadystatechange = function() {
         if (vAlarmsRequest.readyState == 4) {
-          if (vAlarmsRequest.responseText == 'OK') {
-            HttpRequestGetAlarms();
+          if (vAlarmsRequest.responseText != 'OK') {
+            console.error(
+              'Something went wrong!' +
+              '\nresponseText = ' + vAlarmsRequest.responseText +
+              '\naPath = ' + aPath +
+              '\naQuery = ' + aQuery);
           }
         }
       }
@@ -265,7 +281,7 @@
       }
     }
 
-    function UpdateAlarmsTable() {
+    function RefreshAlarmsTable() {
       // adjust table size & keep first (header) and last ("add alarm") rows
       while (mAlarmsTable.rows.length < 2 + mAlarmsData.mAlarms.length) {
         vRow = mAlarmsTable.insertRow(mAlarmsTable.rows.length - 1);
@@ -346,7 +362,7 @@
         <th>Transition</th>
         <th></th>
       </tr>
-    <!-- rows inserted by javascript function "UpdateAlarmsTable()"
+    <!-- rows inserted by javascript function "RefreshAlarmsTable()"
       <tr>
         <td><input type="checkbox"></td>
         <td><input type="time"></td>
@@ -376,8 +392,8 @@
       </button></td></tr>
     </table>
 
-    <pre id='mAlarmsJSON' hidden>
-    </pre>
+    <pre id='mAlarmsJSON' hidden></pre>
+    <div hidden>Web Socket Status: <span id='mWebSocketStatus'>(na)</div>
 
     <hr noshade>
 

@@ -94,6 +94,10 @@ public:
     UpdateClientTXT(String("UpdateTransitionTime(") + aTransitionTime + ")", aClientID);
   }
 
+  void UpdateAlarmsTable(int aClientID = -1) {
+    UpdateClientTXT(String("UpdateAlarmsTable()"), aClientID);
+  }
+
   void OnClientConnect(tClientConnectFunc aClientConnectFunc) {
     mClientConnectFunc = aClientConnectFunc;
   }

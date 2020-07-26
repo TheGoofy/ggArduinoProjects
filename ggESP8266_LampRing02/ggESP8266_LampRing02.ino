@@ -423,6 +423,7 @@ void AlarmClockSetAlarms()
             ggData::cAlarm vAlarm = Data().Alarm(vAlarmIndex);
             vAlarm.mActive = false;
             Data().Alarm(vAlarmIndex) = vAlarm;
+            WebSockets().UpdateAlarmsTable();
           }
         }
         if (vLampAlarm->mSceneIndex == -1) {
@@ -657,13 +658,19 @@ void ConnectComponents()
   WebServer().OnAddAlarm([] () -> bool {
     GG_DEBUG_BLOCK("mWebServer.OnAddAlarm(...)");
     bool vAlarmAdded = Data().AddAlarm();
-    if (vAlarmAdded) AlarmClockSetAlarms();
+    if (vAlarmAdded) {
+      AlarmClockSetAlarms();
+      WebSockets().UpdateAlarmsTable();
+    }
     return vAlarmAdded;
   });
   WebServer().OnDelAlarm([] (int aAlarmID) -> bool {
     GG_DEBUG_BLOCK("mWebServer.OnDelAlarm(...)");
     bool vAlarmDeleted = Data().RemoveAlarmID(aAlarmID);
-    if (vAlarmDeleted) AlarmClockSetAlarms();
+    if (vAlarmDeleted) {
+      AlarmClockSetAlarms();
+      WebSockets().UpdateAlarmsTable();
+    }
     return vAlarmDeleted;
   });
   WebServer().OnGetAlarms([] () -> String {
@@ -689,6 +696,7 @@ void ConnectComponents()
     vAlarm.mDuration = vAlarmJsonDoc["mDuration"].as<float>();
     Data().Alarm(vAlarmIndex) = vAlarm;
     AlarmClockSetAlarms();
+    WebSockets().UpdateAlarmsTable();
     return true;
   });
   WebServer().OnDebugStream([] (Stream& aStream) {
