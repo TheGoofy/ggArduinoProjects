@@ -11,11 +11,13 @@
   <script type='text/javascript' src='ggWebSocket.js'></script>
   <script type='text/javascript'>
 
+    'use strict';
+
     var mWebSocket = null;
 
     function InitAll() {
       InitHtmlElements();
-      CreateWebSocket(this, 'mWebSocket', window.location.hostname, OnWebSocketMessage, 5000, mWebSocketStatus);
+      CreateWebSocket(window, 'mWebSocket', window.location.hostname, OnWebSocketMessage, 5000, mWebSocketStatus);
     }
 
     function OnWebSocketMessage(aData) {
@@ -171,7 +173,7 @@
     }
 
     function ToHex(aValue) {
-      var vHex = Number(aValue).toString(16);
+      let vHex = Number(aValue).toString(16);
       if (vHex.length < 2) vHex = '0' + vHex;
       return vHex;
     }
@@ -181,10 +183,10 @@
     }
 
     function MapTemperaturetoRGB(aR, aG, aB) {
-      var vR = [0.0, 0.0, 0.0]; // orange
-      var vG = [0.5, 0.1, 0.0]; // warm white (yellow)
-      var vB = [0.0, 0.1, 0.5]; // cold white (cyan)
-      var vSum = [vR[0] + vG[0] + vB[0],
+      let vR = [0.0, 0.0, 0.0]; // orange
+      let vG = [0.5, 0.1, 0.0]; // warm white (yellow)
+      let vB = [0.0, 0.1, 0.5]; // cold white (cyan)
+      let vSum = [vR[0] + vG[0] + vB[0],
                   vR[1] + vG[1] + vB[1],
                   vR[2] + vG[2] + vB[2]];
       return [(aR*vR[0] + aG*vG[0] + aB*vB[0]) / vSum[0],
@@ -193,16 +195,17 @@
     }
 
     function HSVtoRGB(aH, aS, aV, aMapRGB = MapRGBtoRGB) {
-      var vR = vG = vB = aV;
+      let vR, vG, vB;
+      vR = vG = vB = aV;
       if (aS != 0) {
         aH /= 42.501; // scale to 0..6
         aS /= 255; // scale to 0..1
         aV /= 255; // scale to 0..1
-        var vI = Math.floor(aH); // interval (region)
-        var vF = aH - vI; // factorial part of h
-        var vP = aV * (1 - aS           );
-        var vQ = aV * (1 - aS * (    vF));
-        var vT = aV * (1 - aS * (1 - vF));
+        let vI = Math.floor(aH); // interval (region)
+        let vF = aH - vI; // factorial part of h
+        let vP = aV * (1 - aS           );
+        let vQ = aV * (1 - aS * (    vF));
+        let vT = aV * (1 - aS * (1 - vF));
         switch (vI) {
           case 0:  vR = aV; vG = vT; vB = vP; break;
           case 1:  vR = vQ; vG = aV; vB = vP; break;

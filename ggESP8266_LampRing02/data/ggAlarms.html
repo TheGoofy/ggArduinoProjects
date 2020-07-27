@@ -11,6 +11,8 @@
   <script type='text/javascript' src='ggWebSocket.js'></script>
   <script type='text/javascript'>
 
+    'use strict';
+
     var mHostURL = window.location.hostname;
     var mWebSocket = null;
     var mAlarmsData = null;
@@ -21,7 +23,7 @@
       }
       mHostURL = 'http://' + mHostURL + '/';
       InitHtmlElements();
-      CreateWebSocket(this, 'mWebSocket', window.location.hostname, OnWebSocketMessage, 5000, mWebSocketStatus);
+      CreateWebSocket(window, 'mWebSocket', window.location.hostname, OnWebSocketMessage, 5000, mWebSocketStatus);
     }
   
     function InitHtmlElements() {
@@ -70,10 +72,10 @@
         if (vAlarmsRequest.readyState == 4) {
           if (vAlarmsRequest.responseText != 'OK') {
             console.error(
-              'Something went wrong!' +
-              '\nresponseText = ' + vAlarmsRequest.responseText +
-              '\naPath = ' + aPath +
-              '\naQuery = ' + aQuery);
+              `Something went wrong!\n` +
+              `responseText = ${vAlarmsRequest.responseText}\n` +
+              `aPath = ${aPath}\n` +
+              `aQuery = ${aQuery}`);
           }
         }
       }
@@ -126,7 +128,7 @@
       vTime.defaultValue = '12:00';
       vTime.classList.add('cTimeInput');
       vTime.onblur = function() {
-        vTimeValues = vTime.value.split(':');
+        let vTimeValues = vTime.value.split(':');
         vTime.mAlarm.mHour = parseInt(vTimeValues[0]);
         vTime.mAlarm.mMin = parseInt(vTimeValues[1]);
         HttpRequestSetAlarm(vTime.mAlarm);
@@ -255,7 +257,7 @@
       vDeleteButton.onclick = function() {
         let vAlarmTime = TimeToString(vDeleteButton.mAlarm.mHour, vDeleteButton.mAlarm.mMin);
         let vAlarmSceneName = mAlarmsData.mSceneNamesMap[vDeleteButton.mAlarm.mSceneIndex];
-        if (confirm("Delete Alarm '" + vAlarmSceneName + "' from " + vAlarmTime + "?")) {
+        if (confirm(`Delete Alarm '${vAlarmSceneName}' from ${vAlarmTime}?`)) {
           HttpRequestDelAlarm(vDeleteButton.mAlarm.mID);
         }
       }
@@ -284,7 +286,7 @@
     function RefreshAlarmsTable() {
       // adjust table size & keep first (header) and last ("add alarm") rows
       while (mAlarmsTable.rows.length < 2 + mAlarmsData.mAlarms.length) {
-        vRow = mAlarmsTable.insertRow(mAlarmsTable.rows.length - 1);
+        let vRow = mAlarmsTable.insertRow(mAlarmsTable.rows.length - 1);
         CreateAlarmsTableCells(vRow);
       }
       while (mAlarmsTable.rows.length > 2 + mAlarmsData.mAlarms.length) {
