@@ -32,11 +32,16 @@ public:
     }
   }
 
-  void Print(Stream& aStream) const {
-    aStream.print("Connected to: ");
-    aStream.println(WiFi.SSID());
-    aStream.print("IP address: ");
-    aStream.println(WiFi.localIP());
+  void PrintDebug(const String& aName = "") const {
+    unsigned long vQuality = 2 * (WiFi.RSSI() + 100);
+    if (vQuality > 100) vQuality = 100;
+    ggDebug vDebug("ggWiFiConnection", aName);
+    vDebug.PrintF("SSID = %s\n", WiFi.SSID().c_str());
+    vDebug.PrintF("RSSI = %ddBm\n", WiFi.RSSI());
+    vDebug.PrintF("RSSI quality = %d%%\n", vQuality);
+    vDebug.PrintF("IP = %s\n", WiFi.localIP().toString().c_str());
+    vDebug.PrintF("mConnected = %s\n", mConnected ? "true" : "false");
+    vDebug.PrintF("mConnectionFunc = 0x%08X\n", std::addressof(mConnectionFunc));
   }
 
 private:

@@ -158,7 +158,33 @@ public:
     return false;
   }
 
-  String GetSceneNamesJson() const {
+  String ScenesToJson() const {
+    String vScenesJson = "\"mScenes\":[\n"; // scenes begin
+    for (uint16_t vIndex = 0; vIndex < mNumScenes; vIndex++) {
+      const cScene& vScene = mScenes[vIndex];
+      vScenesJson += "  {\n"; // scene begin
+      vScenesJson += String("    \"mName\":\"") + vScene.mName.Get() + "\",\n";
+      vScenesJson += String("    \"mBrightnesses\":["); // brightnesses begin
+      for (int vBrightnessIndex = 0; vBrightnessIndex < TNumBrightnesses; vBrightnessIndex++) {
+        const TBrightness& vBrightness = vScene.mBrightnesses[vBrightnessIndex].Get();
+        vScenesJson += ::ToJson(vBrightness);
+        if (vBrightnessIndex + 1 < TNumBrightnesses) vScenesJson += ",";
+      }
+      vScenesJson += "],\n"; // brightnesses end
+      vScenesJson += String("    \"mColors\":["); // colors begin
+      for (int vColorIndex = 0; vColorIndex < TNumColors; vColorIndex++) {
+        const TColor& vColor = vScene.mColors[vColorIndex].Get();
+        vScenesJson += ::ToJson(vColor);
+        if (vColorIndex + 1 < TNumColors) vScenesJson += ",";
+      }
+      vScenesJson += "]\n"; // colors end
+      vScenesJson += vIndex + 1 < mNumScenes ? "  },\n" : "  }\n"; // scene end
+    }
+    vScenesJson += "]"; // scenes end
+    return vScenesJson;
+  }
+
+  String SceneNamesToJson() const {
     String vSceneNamesJson = "\"mSceneNames\":[\n";
     vSceneNamesJson += "  {\"mIndex\":-1,\"mName\":\"Power Off\"},\n";
     for (uint16_t vIndex = 0; vIndex < mNumScenes; vIndex++) {
@@ -236,6 +262,48 @@ public:
 
   inline const tAlarm& Alarm(uint16_t aIndex) const {
     return aIndex < mNumAlarms ? mAlarms[aIndex] : mAlarms[0];
+  }
+
+  String AlarmsToJson() const {
+    String vAlarmsJson = "\"mAlarms\":[\n";
+    for (uint16_t vIndex = 0; vIndex < mNumAlarms; vIndex++) {
+      const cAlarm& vAlarm = mAlarms[vIndex].Get();
+      vAlarmsJson += "  {";
+      vAlarmsJson += String("\"mID\":") + vAlarm.mID + ",";
+      vAlarmsJson += String("\"mActive\":") + (vAlarm.mActive ? "true" : "false") + ",";
+      vAlarmsJson += String("\"mMin\":") + vAlarm.mMin + ",";
+      vAlarmsJson += String("\"mHour\":") + vAlarm.mHour + ",";
+      vAlarmsJson += String("\"mDays\":") + vAlarm.mDays + ",";
+      vAlarmsJson += String("\"mSceneIndex\":") + vAlarm.mSceneIndex + ",";
+      vAlarmsJson += String("\"mDuration\":") + vAlarm.mDuration;
+      vAlarmsJson += vIndex + 1 < mNumAlarms ? "},\n" : "}\n";
+    }
+    vAlarmsJson += "]";
+    return vAlarmsJson;
+  }
+
+  String ToJson() const {
+    String vJson = "{\n";
+    vJson += String() + "\"mName\":\"" + mName.Get() + "\",\n";
+    vJson += String() + "\"mOn\":" + (mOn.Get() ? "true" : "false") + ",\n";
+    vJson += String() + "\"mTransitionTime\":" + mTransitionTime.Get() + ",\n";
+    vJson += String() + "\"mCurrentSceneIndex\":" + mCurrentSceneIndex.Get() + ",\n";
+    vJson += ScenesToJson() + ",\n";
+    vJson += AlarmsToJson() + "\n";
+    vJson += "}\n";
+    return vJson;
+  }
+
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggDataEEPromT", aName);
+    vDebug.PrintF("TStringLength = %d\n", TStringLength);
+    vDebug.PrintF("TNumScenesMax = %d\n", TNumScenesMax);
+    vDebug.PrintF("TNumBrightnesses = %d\n", TNumBrightnesses);
+    vDebug.PrintF("TNumColors = %d\n", TNumColors);
+    vDebug.PrintF("TNumAlarmsMax = %d\n", TNumAlarmsMax);
+    vDebug.PrintF("mNumScenes = %d\n", mNumScenes.Get());
+    vDebug.PrintF("mNumAlarms = %d\n", mNumAlarms.Get());
+    vDebug.PrintF("ToJson() => %s\n", ToJson().c_str());
   }
 
 private:

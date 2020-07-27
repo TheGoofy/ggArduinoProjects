@@ -7,7 +7,7 @@
 #include <vector>
 #include <functional>
 
-#include "ggStringConvertT.h"
+#include "ggStringConvert.h"
 #include "ggDebug.h"
 
 class ggDisplay {

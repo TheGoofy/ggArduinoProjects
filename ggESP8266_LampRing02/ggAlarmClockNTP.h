@@ -146,6 +146,12 @@ public:
     return vAlarmsJson;
   }
 
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggAlarmClockNTP", aName);
+    ggClockNTP::PrintDebug();
+    vDebug.PrintF("mAlarms = %s\n", AlarmsToJson().c_str());
+  }
+
 private:
 
   tAlarms mAlarms;

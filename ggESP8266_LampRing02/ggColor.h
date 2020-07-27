@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ggNumerics.h"
+#include "ggJsonConvert.h"
 
 namespace ggColor {
 
@@ -199,6 +200,16 @@ namespace ggColor {
   }
 
 };
+
+template <>
+String ToJson(const ggColor::cRGB& aRGB) {
+  return String("{\"mRGB\":[") + aRGB.mR + "," + aRGB.mG + "," + aRGB.mB + "]}";
+}
+
+template <>
+String ToJson(const ggColor::cHSV& aHSV) {
+  return String("{\"mHSV\":[") + aHSV.mH + "," + aHSV.mS + "," + aHSV.mV + "]}";
+}
 
 template <>
 inline ggColor::cHSV ggInterpolate(const ggColor::cHSV& aHSV0, const ggColor::cHSV& aHSV1, float aT) {

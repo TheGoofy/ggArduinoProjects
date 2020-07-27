@@ -74,6 +74,17 @@ public:
     }
   }
 
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggClockNTP", aName);
+    vDebug.PrintF("mServerNTP = %s\n", mServerNTP.c_str());
+    vDebug.PrintF("mTimeZoneInfo = %s\n", mTimeZoneInfo.c_str());
+    vDebug.PrintF("mMillisLast = %d\n", mMillisLast);
+    vDebug.PrintF("mTimeValidFunc = 0x%08X\n", std::addressof(mTimeValidFunc));
+    vDebug.PrintF("mTimeValid = %s\n", mTimeValid ? "true" : "false");
+    vDebug.PrintF("mTimeT = %d\n", mTimeT);
+    vDebug.PrintF("GetTime() => %s\n", GetTime("%d-%m-%Y %H:%M:%S").c_str());
+  }
+
 private:
 
   const String mServerNTP;
