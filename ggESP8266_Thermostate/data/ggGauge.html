@@ -1,0 +1,38 @@
+<!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01//EN' 'http://www.w3.org/TR/html4/strict.dtd'>
+<html>
+
+<head>
+  <title>ESP8266 Lamp Home</title>
+  <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+  <meta http-equiv='Content-Style-Type' content='text/css'/>
+  <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
+  <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
+  <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
+</head>
+
+<style>
+  body {
+    /*margin: 0;*/
+  }
+</style>
+<body>
+
+  <style>
+    #mGauge {
+      /*border:chocolate solid 10px;*/
+      /*background-color: brown;*/
+    }
+  </style>
+  <canvas id="mGauge" height="120">
+    Browser doesn't support canvas!
+  </canvas>
+  <script src="ggGauge.js"></script>
+  <script>
+    let mGauge = new ggGauge(document.getElementById("mGauge"));
+    mGauge.mValue.TimeDeltaMS = 500;
+    mGauge.Value = 26.5;
+  </script>
+
+</body>
+
+</html>
