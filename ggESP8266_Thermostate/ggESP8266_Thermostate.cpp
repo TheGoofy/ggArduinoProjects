@@ -12,6 +12,8 @@
 #include <ArduinoOTA.h>
 #include <LittleFS.h>
 
+#define M_DEBUGGING false
+
 // PCB version definition (ggPeriphery.h)
 // #define M_PCB_VERSION_V1
 // #define M_PCB_VERSION_V2
@@ -287,6 +289,7 @@ void ConnectComponents()
     ggDebug vDebug("mWebServer.OnDebugStream(...)");
     vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
     mPeriphery.PrintDebug("mPeriphery");
+    mWiFiConnection.PrintDebug("mWiFiConnection");
     mTemperatureController.PrintDebug("mTemperatureController");
     ggDebug::SetStream(Serial);
   });
@@ -343,18 +346,18 @@ void ConnectComponents()
   // periodically check (and repair) file system
   mTimerNTP.AddTimer(57, [] (uint32_t aPeriod) {
     GG_DEBUG();
-    vDebug.PrintF("Checking the file system...\n");
-    vDebug.PrintF("Current NTP time: %s\n", mTimerNTP.GetTime("%d-%m-%Y %H:%M:%S").c_str());
+    GG_DEBUG_PRINTF("Checking the file system...\n");
+    GG_DEBUG_PRINTF("Current NTP time: %s\n", mTimerNTP.GetTime("%d-%m-%Y %H:%M:%S").c_str());
     unsigned long vMicrosStart = micros();
 //    for some reason this crashes :-()
 //    if (!mFileSystem->check()) { 
-//      vDebug.PrintF("check failed\n");
+//      GG_DEBUG_PRINTF("check failed\n");
 //    }
     bool vResultGC = mFileSystem->gc();
-    vDebug.PrintF("GC returned \"%d\"\n", vResultGC);
+    GG_DEBUG_PRINTF("GC returned \"%d\"\n", vResultGC);
     unsigned long vMicrosEnd = micros();
     float vDuration = 0.001f * (vMicrosEnd - vMicrosStart);
-    vDebug.PrintF("Needed %0.0f ms for checking the file system\n", vDuration);
+    GG_DEBUG_PRINTF("Needed %0.0f ms for checking the file system\n", vDuration);
   });
 }
 
@@ -383,7 +386,7 @@ void setup()
 
   // initialize eeprom handler
   ggValueEEProm::Begin();
-  vDebug.PrintF("Device Name: %s\n", mName.Get().c_str());
+  GG_DEBUG_PRINTF("Device Name: %s\n", mName.Get().c_str());
 
   // start the file system
   mFileSystem->begin();
@@ -396,8 +399,8 @@ void setup()
   mWifiManager.setDebugOutput(false);
   mWifiManager.setConfigPortalTimeout(60); // 1 minute
   mWifiManager.autoConnect(mHostName.c_str());
-  vDebug.PrintF("Connected to: %s\n", WiFi.SSID().c_str());
-  vDebug.PrintF("IP address: %s\n", WiFi.localIP().toString().c_str());
+  GG_DEBUG_PRINTF("Connected to: %s\n", WiFi.SSID().c_str());
+  GG_DEBUG_PRINTF("IP address: %s\n", WiFi.localIP().toString().c_str());
   mWiFiConnection.Begin();
 
   // create and connect inputs, outputs, socket-events, ...
@@ -406,26 +409,26 @@ void setup()
 
   // NTP timer
   mTimerNTP.Begin();
-  vDebug.PrintF("Current NTP time: %s\n", mTimerNTP.GetTime("%d-%m-%Y %H:%M:%S").c_str());
+  GG_DEBUG_PRINTF("Current NTP time: %s\n", mTimerNTP.GetTime("%d-%m-%Y %H:%M:%S").c_str());
 
   // configure and start web-server
   mWebServer.Begin();
-  vDebug.PrintF("Web server started\n");
+  GG_DEBUG_PRINTF("Web server started\n");
 
   // configure and start web-sockets
   mWebSockets.Begin();
-  vDebug.PrintF("Web sockets started\n");
+  GG_DEBUG_PRINTF("Web sockets started\n");
 
   // start mdns
   MDNS.begin(mHostName.c_str());
   MDNS.addService("http", "tcp", mWebServerPort);
   MDNS.addService("ws", "tcp", mWebSocketsPort);
-  vDebug.PrintF("MDNS responder started\n");
+  GG_DEBUG_PRINTF("MDNS responder started\n");
 
   // over the air update
   ArduinoOTA.setHostname(mHostName.c_str());
   ArduinoOTA.begin();
-  vDebug.PrintF("OTA service started\n");
+  GG_DEBUG_PRINTF("OTA service started\n");
 
   // make sure all status and debug messages are sent before communication gets
   // interrupted, just in case hardware pins are needed for some different use.

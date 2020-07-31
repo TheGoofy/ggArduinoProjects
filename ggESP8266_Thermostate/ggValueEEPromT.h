@@ -3,26 +3,55 @@
 #include "ggValueEEProm.h"
 
 template <class TValue>
-class ggValueEEPromT : private ggValueEEProm {
+class ggValueEEPromT : protected ggValueEEProm {
 
 public:
 
   ggValueEEPromT()
   : ggValueEEProm(sizeof(TValue)),
-    mValue() {
+    mValue(),
+    mModified(true) {
   }
 
   ggValueEEPromT(const TValue& aValue)
   : ggValueEEProm(sizeof(TValue)),
-    mValue(aValue) {
+    mValue(aValue),
+    mModified(true) {
   }
 
   inline operator const TValue& () const {
     return mValue;
   }
 
+  inline ggValueEEPromT& operator = (const ggValueEEPromT& aOther) {
+    Set(aOther.mValue);
+    return *this;
+  }
+
   inline ggValueEEPromT& operator = (const TValue& aValue) {
     Set(aValue);
+    return *this;
+  }
+
+  inline ggValueEEPromT& operator += (const TValue& aValue) {
+    Set(mValue + aValue);
+    return *this;
+  }
+
+  inline ggValueEEPromT& operator -= (const TValue& aValue) {
+    Set(mValue - aValue);
+    return *this;
+  }
+
+  template <typename TFactor>
+  inline ggValueEEPromT& operator *= (const TFactor& aFactor) {
+    Set(mValue * aFactor);
+    return *this;
+  }
+
+  template <typename TDivisor>
+  inline ggValueEEPromT& operator /= (const TDivisor& aDivisor) {
+    Set(mValue / aDivisor);
     return *this;
   }
 
@@ -33,7 +62,8 @@ public:
   inline void Set(const TValue& aValue) {
     if (mValue != aValue) {
       mValue = aValue;
-      Write(true);
+      mModified = true;
+      if (!WriteLazy()) Write(true);
     }
   }
 
@@ -49,6 +79,7 @@ protected:
 
   virtual void Read() {
     EEPROM.get(mAddressEEProm, mValue);
+    mModified = false;
     // Serial.printf("%s - mValue = ", __PRETTY_FUNCTION__);
     // Serial.println(mValue);
     // Serial.flush();
@@ -56,6 +87,7 @@ protected:
 
   virtual void Write(bool aCommit) {
     EEPROM.put(mAddressEEProm, mValue);
+    mModified = false;
     // Serial.printf("%s - mValue = ", __PRETTY_FUNCTION__);
     // Serial.println(mValue);
     // Serial.flush();
@@ -66,5 +98,6 @@ protected:
   }
 
   TValue mValue;
+  bool mModified;
 
 };

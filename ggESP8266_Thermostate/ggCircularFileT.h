@@ -93,7 +93,7 @@ private:
     }
     else {
       GG_DEBUG();
-      vDebug.PrintF("failed to reset file \"%s\"\n", mFileName.c_str());
+      GG_DEBUG_PRINTF("failed to reset file \"%s\"\n", mFileName.c_str());
     }
   }
 
@@ -108,7 +108,7 @@ private:
     // hopefully there is now a file open for update
     if (!mFile) {
       GG_DEBUG();
-      vDebug.PrintF("failed to open file \"%s\"\n", mFileName.c_str());
+      GG_DEBUG_PRINTF("failed to open file \"%s\"\n", mFileName.c_str());
     }
     return mFile;
   }

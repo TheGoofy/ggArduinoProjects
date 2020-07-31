@@ -38,13 +38,13 @@ public:
     return Arg(aIndex).toFloat();
   }
 
-  void Print(Stream& aStream) const {
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggFunctionParser", aName);
     int vIndex = 0;
-    aStream.printf("mName = %s\n", mName.c_str());
+    vDebug.PrintF("mName = %s\n", mName.c_str());
     std::for_each(mArgs.begin(), mArgs.end(), [&] (const String& aArg) {
-      aStream.printf("mArgs[%d] = %s\n", vIndex++, aArg.c_str());
+      vDebug.PrintF("mArgs[%d] = %s\n", vIndex++, aArg.c_str());
     });
-    aStream.flush();
   }
 
 private:

@@ -1,18 +1,27 @@
+#define M_DEBUGGING false
+
+
 #include "ggValueEEProm.h"
 #include <algorithm>
+#include <assert.h>
+#include "ggDebug.h"
 
 
 void ggValueEEProm::Begin(size_t aSize)
 {
+  GG_DEBUG();
+  GG_DEBUG_PRINTF("aSize = %d\n", aSize);
+  GG_DEBUG_PRINTF("EEPromNeeded = %d\n", sizeof(cHeader) + ValuesSize());
+  assert(aSize >= sizeof(cHeader) + ValuesSize());
   EEPROM.begin(aSize);
   // use checksum of default-values as seed
   ChecksumSeed() = CalculateChecksumValues();
   if (EEPromDataValid()) {
-    // Serial.printf("%s - EEPROM Read\n", __PRETTY_FUNCTION__); Serial.flush();
+    GG_DEBUG_PRINTF("EEPROM Read\n");
     ReadData();
   }
   else {
-    // Serial.printf("%s - EEPROM Write\n", __PRETTY_FUNCTION__); Serial.flush();
+    GG_DEBUG_PRINTF("EEPROM Write\n");
     WriteHeader();
     WriteData();
     EEPROM.commit();
@@ -25,7 +34,11 @@ ggValueEEProm::ggValueEEProm(int aSize)
 {
   ValuesSize() += aSize;
   Values().push_back(this);
-  // Serial.printf("%s - mAddressEEProm=%d ValuesSize()=%d Values().size()=%d\n", __PRETTY_FUNCTION__, mAddressEEProm, ValuesSize(), Values().size()); Serial.flush();
+  #if M_DEBUGGING
+    Serial.printf("%s - Index=%d aSize=%d mAddressEEProm=%d EEPromNeeded=%d\n",
+      __PRETTY_FUNCTION__, Values().size() - 1, aSize, mAddressEEProm, sizeof(cHeader) + ValuesSize());
+    Serial.flush();
+  #endif
 }
 
 

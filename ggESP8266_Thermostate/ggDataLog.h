@@ -19,10 +19,10 @@ public:
     mLastTime(0),
     mLastSamples(nullptr) {
     GG_DEBUG();
-    vDebug.PrintF("aPeriod = %d\n", aPeriod);
-    vDebug.PrintF("aDuration = %d\n", aDuration);
-    vDebug.PrintF("number of data blocks = %d\n", mCircularFile.GetNumberOfDataBlocks());
-    vDebug.PrintF("aFileName = \"%s\"\n", aFileName.c_str());
+    GG_DEBUG_PRINTF("aPeriod = %d\n", aPeriod);
+    GG_DEBUG_PRINTF("aDuration = %d\n", aDuration);
+    GG_DEBUG_PRINTF("number of data blocks = %d\n", mCircularFile.GetNumberOfDataBlocks());
+    GG_DEBUG_PRINTF("aFileName = \"%s\"\n", aFileName.c_str());
   }
 
   uint32_t GetPeriod() const {
@@ -87,15 +87,15 @@ public:
     bool vSuccess = mCircularFile.Write(aTime, vMeasurements);
     if (!vSuccess) {
       GG_DEBUG();
-      vDebug.PrintF("aTime = %d\n", aTime);
-      vDebug.PrintF("writing \"%s\"\n", GetFileName().c_str());
-      vDebug.PrintF("failed to write file ... :-(\n");
+      GG_DEBUG_PRINTF("aTime = %d\n", aTime);
+      GG_DEBUG_PRINTF("writing \"%s\"\n", GetFileName().c_str());
+      GG_DEBUG_PRINTF("failed to write file ... :-(\n");
     }
   }
 
 private:
 
-  typedef struct cSample {
+  struct cSample {
     cSample() : mMean(0), mMin(0), mMax(0), mStdDev(0) {}
     int16_t mMean;
     int16_t mMin;
@@ -103,7 +103,7 @@ private:
     int16_t mStdDev;
   };
 
-  typedef struct cSamples {
+  struct cSamples {
     cSample mPressure;
     cSample mTemperature;
     cSample mHumidity;
@@ -170,8 +170,8 @@ private:
       bool vSuccess = mCircularFile.Read(mLastTime, *mLastSamples);
       if (!vSuccess) {
         GG_DEBUG();
-        vDebug.PrintF("reading \"%s\"\n", GetFileName().c_str());
-        vDebug.PrintF("failed to read file ... :-(\n");
+        GG_DEBUG_PRINTF("reading \"%s\"\n", GetFileName().c_str());
+        GG_DEBUG_PRINTF("failed to read file ... :-(\n");
       }
     }
     return *mLastSamples;

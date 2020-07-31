@@ -2,6 +2,7 @@
 
 #include <functional>
 #include "ggInput.h"
+#include "ggDebug.h"
 
 /**
  * button with software debouncing

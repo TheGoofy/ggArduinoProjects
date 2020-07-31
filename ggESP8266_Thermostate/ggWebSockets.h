@@ -162,17 +162,17 @@ private:
     switch (aEventType) {
       case WStype_CONNECTED: {
         GG_DEBUG();
-        vDebug.PrintF("aEventType = %s\n", ToString(aEventType));
-        vDebug.PrintF("remote IP = %s\n", mServer.remoteIP(aClientID).toString().c_str());
-        vDebug.PrintF("aPayLoad = %s\n", (char*)aPayLoad);
+        GG_DEBUG_PRINTF("aEventType = %s\n", ToString(aEventType));
+        GG_DEBUG_PRINTF("remote IP = %s\n", mServer.remoteIP(aClientID).toString().c_str());
+        GG_DEBUG_PRINTF("aPayLoad = %s\n", (char*)aPayLoad);
         if (mClientConnectFunc != nullptr) mClientConnectFunc(aClientID);
         break;
       }
       case WStype_DISCONNECTED: {
         GG_DEBUG();
-        vDebug.PrintF("aEventType = %s\n", ToString(aEventType));
-        vDebug.PrintF("remote IP = %s\n", mServer.remoteIP(aClientID).toString().c_str());
-        // vDebug.PrintF("aPayLoad = %s\n", (char*)aPayLoad);
+        GG_DEBUG_PRINTF("aEventType = %s\n", ToString(aEventType));
+        GG_DEBUG_PRINTF("remote IP = %s\n", mServer.remoteIP(aClientID).toString().c_str());
+        // GG_DEBUG_PRINTF("aPayLoad = %s\n", (char*)aPayLoad);
         if (mClientDisconnectFunc != nullptr) mClientDisconnectFunc(aClientID);
         break;
       }
