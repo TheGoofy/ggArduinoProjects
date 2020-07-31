@@ -104,8 +104,8 @@ class ggGauge {
   mRange = { mMin: -20, mMax: 40 };
   mDecimals = 1;
   mLabel = "°C";
-  mLabelFont = "14px Arial";
-  mTicksFont = "9px Arial";
+  mLabelFont = "13px Arial";
+  mTicksFont = "8px Arial";
   mTicksMargin = 4; // pixel
   mTicksSize = 0.25; // percent of radius
   mTicksMajor = [-20, -10, 0, 10, 20, 30, 40];
@@ -125,9 +125,12 @@ class ggGauge {
 
   constructor(aCanvas) {
     this.mContext = aCanvas.getContext("2d");
-    let vX = this.mContext.canvas.clientWidth / 2;
-    let vY = this.mContext.canvas.clientHeight / 2;
+    let vX = this.mContext.canvas.width / 2;
+    let vY = this.mContext.canvas.height / 2;
     this.mContext.translate(vX, vY);
+    let vScaleX = this.mContext.canvas.width / this.mContext.canvas.clientWidth;
+    let vScaleY = this.mContext.canvas.height / this.mContext.canvas.clientHeight;
+    this.mContext.scale(vScaleX, vScaleY);
     this.mValue = new ggTransition((this.mRange.mMin + this.mRange.mMax) / 2, 300);
   }
 
@@ -292,7 +295,7 @@ class ggGauge {
     let vValue = this.mValue.Value;
 
     // draw value (and label)
-    let vLabelPosition = new ggVector(vCenter.mX, vCenter.mY + vTickRadiusA * Math.sin(0.25 * Math.PI));
+    let vLabelPosition = new ggVector(vCenter.mX, vCenter.mY + 0.75 * vTickRadiusA);
     this.mContext.textAlign = "center";
     this.mContext.textBaseline = "middle";
     this.mContext.font = this.mLabelFont;
