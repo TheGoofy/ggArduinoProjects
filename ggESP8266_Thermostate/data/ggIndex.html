@@ -9,11 +9,12 @@
   <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
   <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+  <script type='text/javascript' src='ggWebSocket.js'></script>
   <script language='javascript' type='text/javascript'>
 
+    'use strict';
+
     var mWebSocket = null;
-    var mWebSocketServer = window.location.hostname;
-    var mWebSocketReConnectTimerID = 0;
 
     function InitAll() {
       InitHtmlElements();
@@ -24,43 +25,11 @@
     }
 
     function InitWebSocket() {
-      if (mWebSocketServer == '') {
-        mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.54");
-      }
-      mWebSocket = new WebSocket('ws://' + mWebSocketServer +':81/', ['arduino']);
-      mWebSocket.onopen = onWebSocketOpen;
-      mWebSocket.onclose = onWebSocketClose;
-      mWebSocket.onerror = onWebSocketError;
-      mWebSocket.onmessage = onWebSocketMessage;
+      CreateWebSocket(window, 'mWebSocket', window.location.hostname, OnWebSocketMessage, 5000, mWebSocketStatus, "192.168.0.52");
     }
 
-    function onWebSocketOpen(aEvent) {
-      mWebSocketStatus.innerHTML = 'connected';
-      if (mWebSocketReConnectTimerID) {
-        window.clearInterval(mWebSocketReConnectTimerID);
-        mWebSocketReConnectTimerID = 0;
-      }
-    }
-
-    function onWebSocketClose(aEvent) {
-      mWebSocketStatus.innerHTML = 'disconnected';
-      if (!mWebSocketReConnectTimerID) {
-        mWebSocketReConnectTimerID = window.setInterval(InitWebSocket, 5000);
-      }
-    }
-
-    function onWebSocketError(aEvent) {
-      mWebSocketStatus.innerHTML = aEvent.data;
-    }
-
-    function onWebSocketMessage(aEvent) {
-      try {
-        // server sends actual function names, which can directly be executed by the client
-        eval(aEvent.data);
-      }
-      catch (vError) {
-        console.log('unable to evaluate: ' + aEvent.data);
-      }
+    function OnWebSocketMessage(aData) {
+      eval(aData);
     }
 
     var tControlMode = {
