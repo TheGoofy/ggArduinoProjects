@@ -106,7 +106,7 @@ class ggGauge {
   mLabel = "°C";
   mLabelFont = "13px Arial";
   mTicksFont = "8px Arial";
-  mTicksMargin = 4; // pixel
+  mTicksMargin = 2; // pixel
   mTicksSize = 0.25; // percent of radius
   mTicksMajor = [-20, -10, 0, 10, 20, 30, 40];
   mTicksMajorWidth = 1.5;
@@ -123,7 +123,7 @@ class ggGauge {
   mDiameter;
   mContext;
 
-  constructor(aCanvas) {
+  constructor(aCanvas, aValue) {
     this.mContext = aCanvas.getContext("2d");
     let vX = this.mContext.canvas.width / 2;
     let vY = this.mContext.canvas.height / 2;
@@ -131,7 +131,7 @@ class ggGauge {
     let vScaleX = this.mContext.canvas.width / this.mContext.canvas.clientWidth;
     let vScaleY = this.mContext.canvas.height / this.mContext.canvas.clientHeight;
     this.mContext.scale(vScaleX, vScaleY);
-    this.mValue = new ggTransition((this.mRange.mMin + this.mRange.mMax) / 2, 300);
+    this.mValue = new ggTransition(aValue ? aValue : (this.mRange.mMin + this.mRange.mMax) / 2, 300);
   }
 
   set Value(aValue) {
