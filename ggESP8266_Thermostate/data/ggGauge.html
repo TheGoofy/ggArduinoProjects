@@ -1,15 +1,18 @@
-<!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01//EN' 'http://www.w3.org/TR/html4/strict.dtd'>
+<!DOCTYPE html>
 <html>
 
 <head>
-  <title>ESP8266 Lamp Home</title>
+  <title>ggGauge Canvas Test</title>
   <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
   <meta http-equiv='Content-Style-Type' content='text/css'/>
   <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
 </head>
 
 <body>
-  <canvas id="mGauge" height="120">
+  <style>
+    .cGauge { width: 120px; height: 120px; }
+  </style>
+  <canvas id="mGauge" class="cGauge" height="480" width="480">
     Browser doesn't support canvas!
   </canvas>
   <script src="ggGauge.js"></script>
@@ -17,6 +20,7 @@
     let mGauge = new ggGauge(document.getElementById("mGauge"));
     mGauge.mValue.TimeDeltaMS = 500;
     mGauge.Value = 26.5;
+    setInterval(function() { mGauge.Value = 60 * Math.random() - 20; }, 2000);
   </script>
 </body>
 

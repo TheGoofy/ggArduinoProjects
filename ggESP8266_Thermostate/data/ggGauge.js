@@ -106,7 +106,7 @@ class ggGauge {
   mLabel = "°C";
   mLabelFont = "13px Arial";
   mTicksFont = "8px Arial";
-  mTicksMargin = 2; // pixel
+  mTicksMargin = 3; // pixel
   mTicksSize = 0.25; // percent of radius
   mTicksMajor = [-20, -10, 0, 10, 20, 30, 40];
   mTicksMajorWidth = 1.5;
