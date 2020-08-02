@@ -238,7 +238,7 @@ class ggGaugeSVG {
     const vCenter = this.Center;
     const vRadius = this.Radius;
     let vGroupMain = this.CreateGroup();
-    vGroupMain.innerHTML = "<defs><filter id='shadow' x='-2' y='-2' width='4' height='4'><feDropShadow dx='1' dy='1' stdDeviation='1' flood-opacity='0.5'/></filter></defs>";
+    vGroupMain.innerHTML = "<filter id='shadow' x='-2' y='-2' width='4' height='4'><feDropShadow dx='1' dy='1' stdDeviation='1' flood-opacity='0.5'/></filter>";
 
     // gauge background
     let vCircle = this.CreateCircle(vCenter, vRadius);
