@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ggGauge SVG Test</title>
+  <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+  <meta http-equiv='Content-Style-Type' content='text/css'/>
+  <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
+</head>
+
+<body>
+  <svg id='mGaugeSVG' width="120" height="120">
+  </svg>
+  <script src="ggGaugeSVG.js"></script>
+  <script>
+    let mGauge = new ggGaugeSVG(document.getElementById("mGaugeSVG"), 11);
+    mGauge.Draw();
+    mGauge.Value = 26.5;
+    setInterval(function() { mGauge.Value = 60 * Math.random() - 20; }, 2000);
+  </script>
+</body>
+
+</html>
