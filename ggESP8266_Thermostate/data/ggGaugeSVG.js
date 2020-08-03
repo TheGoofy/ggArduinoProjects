@@ -64,7 +64,7 @@ class ggGaugeSVG {
   }
 
   set Value(aValue) {
-    let vValue = this.mValue;
+    let vValueOld = this.mValue;
     if (this.mValue != aValue) {
       this.mValue = aValue;
     }
@@ -72,9 +72,9 @@ class ggGaugeSVG {
       this.mValueSvg.innerHTML = aValue.toFixed(this.mDecimals);
     }
     if (this.mIndicatorSvg) {
-      let vAngleA = vValue ? this.GetAngle(vValue) : this.GetAngle(this.ValueLimited);
+      let vAngleA = vValueOld ? this.GetAngle(vValueOld) : this.GetAngle(this.ValueLimited);
       let vAngleB = this.GetAngle(this.ValueLimited);
-      this.SetRotation(this.mIndicatorSvg, this.Center, vAngleA, vAngleB);
+      this.AnimateElementRotation(this.mIndicatorSvg, this.Center, vAngleA, vAngleB);
     }
   }
 
@@ -220,25 +220,33 @@ class ggGaugeSVG {
     aObject.setAttributeNS(null, "style", aStyle);
   }
 
-  SetRotation(aElement, aCenter, aAngleA, aAngleB) {
+  AnimateElementRotation(aElement, aCenter, aAngleA, aAngleB) {
     let vAngleDegA = 180 * aAngleA / Math.PI;
     let vAngleDegB = 180 * aAngleB / Math.PI;
     aElement.setAttributeNS(null, "transform", `rotate(${vAngleDegA}, ${aCenter.mX}, ${aCenter.mY})`);
-    aElement.innerHTML = 
-      `<animateTransform attributeName='transform' attributeType='XML' type='rotate' ` +
-//      `from='${vAngleDegA} ${aCenter.mX} ${aCenter.mY}' ` +
-      `to='${vAngleDegB} ${aCenter.mX} ${aCenter.mY}' ` +
-      `dur='500ms' fill='freeze'/>`;
+    let vAnimateTransform = `<animateTransform 
+      attributeName='transform' type='rotate' 
+      to='${vAngleDegB} ${aCenter.mX} ${aCenter.mY}'
+      dur='500ms' fill='freeze'/>`;
+    aElement.innerHTML = vAnimateTransform;
     aElement.firstChild.beginElement();
-    // aElement.setAttributeNS(null, "transform", `rotate(${vAngleDeg}, ${aCenter.mX}, ${aCenter.mY})`);
   }
 
   Draw() {
 
+    // center and radius are relevant for all parts ...
     const vCenter = this.Center;
     const vRadius = this.Radius;
+
+    // main container
     let vGroupMain = this.CreateGroup();
-    vGroupMain.innerHTML = "<filter id='shadow' x='-2' y='-2' width='4' height='4'><feDropShadow dx='1' dy='1' stdDeviation='1' flood-opacity='0.5'/></filter>";
+
+    // shadow-filter (for indicator)
+    const vShadowFilterName = "ShadowFilter";
+    vGroupMain.innerHTML +=
+      `<filter id='${vShadowFilterName}' x='-2' y='-2' width='4' height='4'>
+         <feDropShadow dx='0.8' dy='1.2' stdDeviation='1' flood-opacity='0.5' flood-color='black'/>
+       </filter>`;
 
     // gauge background
     let vCircle = this.CreateCircle(vCenter, vRadius);
@@ -299,6 +307,7 @@ class ggGaugeSVG {
 
     // draw value (and label)
     let vGroupLabelAndValue = this.CreateGroup(vGroupMain);
+    vGroupLabelAndValue.setAttributeNS(null, "filter", `url(#${vShadowFilterName})`);
     let vLabelAndValueStyle = `font: ${this.mLabelFont}; fill: ${this.mLabelStyle}; stroke: none; stroke-width: 0; ` + 
                               `text-anchor: middle; alignment-baseline: middle;`;
     let vLabelPosition = new ggVector(vCenter.mX, vCenter.mY + 0.75 * vTickRadiusA - 0.12 * vRadius);
@@ -309,17 +318,16 @@ class ggGaugeSVG {
     this.SetStyle(this.mValueSvg, vLabelAndValueStyle);
 
     // draw indicator
-    this.mIndicatorSvg = this.CreateGroup(vGroupMain);
-    this.SetStyle(this.mIndicatorSvg, `stroke: ${this.mIndicatorStyle}; stroke-width: ${this.mIndicatorWidth}; fill: ${this.mIndicatorStyle};`);
-    this.mIndicatorSvg.setAttributeNS(null, "filter", "url(#shadow)");
-    this.mIndicatorSvg.appendChild(this.CreateCircle(vCenter, (vTicksLength - this.mIndicatorWidth) / 2));
+    let vGroupIndicator = this.CreateGroup(vGroupMain);
+    this.SetStyle(vGroupIndicator, `stroke: ${this.mIndicatorStyle}; stroke-width: ${this.mIndicatorWidth}; fill: ${this.mIndicatorStyle};`);
+    vGroupIndicator.setAttributeNS(null, "filter", `url(#${vShadowFilterName})`);
+    vGroupIndicator.appendChild(this.CreateCircle(vCenter, (vTicksLength - this.mIndicatorWidth) / 2));
     let vPositionIndicatorA = this.GetPosition(0, vTickRadiusA - vTicksLength / 3);
     let vPositionIndicatorB = this.GetPosition(0, -vTicksLength);
-    this.mIndicatorSvg = this.mIndicatorSvg.appendChild(this.CreateLine(vPositionIndicatorA, vPositionIndicatorB));
-    this.SetRotation(this.mIndicatorSvg, vCenter, this.GetAngle(this.ValueLimited), this.GetAngle(this.ValueLimited));
+    this.mIndicatorSvg = vGroupIndicator.appendChild(this.CreateLine(vPositionIndicatorA, vPositionIndicatorB));
+    this.AnimateElementRotation(this.mIndicatorSvg, vCenter, this.GetAngle(this.ValueLimited), this.GetAngle(this.ValueLimited));
 
-    // clear previously added children
-    // while (this.mSVG.firstChild) this.mSVG.removeChild(this.mSVG.firstChild);
+    // clear old graphics
     this.mSvg.innerHTML = "";
 
     // add new graphics
