@@ -5,7 +5,7 @@
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
 #include <LittleFS.h>
-#include <ArduinoJson.h>
+#include <ArduinoJson.h>      // https://github.com/bblanchon/ArduinoJson (by Benoit Blanchon)
 
 #define M_DEBUGGING false
 #define M_TEST_ENVIRONMENT false
