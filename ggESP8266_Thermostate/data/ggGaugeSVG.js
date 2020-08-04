@@ -15,6 +15,10 @@ class ggVector {
     return Math.hypot(this.mX, this.mY);
   }
 
+  toString() {
+    return `${this.mX},${this.mY}`;
+  }
+
   Add(aOther) {
     return new ggVector(this.mX + aOther.mX, this.mY + aOther.mY);
   }
@@ -42,7 +46,7 @@ class ggGaugeSVG {
   mTicksSize = 0.25; // percent of radius
   mTicksMajor = [-20, -10, 0, 10, 20, 30, 40];
   mTicksMajorWidth = 1.5;
-  mTicksMinor = 2;
+  mTicksMinor = 10;
   mTicksMinorWidth = 0.6;
   mTicksHighlights = [
     { mRange: { mMin: -20, mMax: 0 }, mStyle: "#8cf" },
@@ -186,6 +190,13 @@ class ggGaugeSVG {
     return vLine;
   }
 
+  CreatePolygon(aPoints) {
+    let vPolygon = document.createElementNS(this.mSvgNS, "polygon");
+    let vPointsString = aPoints.join(" ");
+    vPolygon.setAttributeNS(null, "points", vPointsString);
+    return vPolygon;
+  }
+
   CreateCircle(aCenter, aRadius) {
     let vCircle = document.createElementNS(this.mSvgNS, "circle");
     vCircle.setAttributeNS(null, "cx", aCenter.mX);
@@ -319,12 +330,19 @@ class ggGaugeSVG {
 
     // draw indicator
     let vGroupIndicator = this.CreateGroup(vGroupMain);
-    this.SetStyle(vGroupIndicator, `stroke: ${this.mIndicatorStyle}; stroke-width: ${this.mIndicatorWidth}; fill: ${this.mIndicatorStyle};`);
+    this.SetStyle(vGroupIndicator, `stroke: none; stroke-width: 0; fill: ${this.mIndicatorStyle};`);
     vGroupIndicator.setAttributeNS(null, "filter", `url(#${vShadowFilterName})`);
-    vGroupIndicator.appendChild(this.CreateCircle(vCenter, (vTicksLength - this.mIndicatorWidth) / 2));
-    let vPositionIndicatorA = this.GetPosition(0, vTickRadiusA - vTicksLength / 3);
-    let vPositionIndicatorB = this.GetPosition(0, -vTicksLength);
-    this.mIndicatorSvg = vGroupIndicator.appendChild(this.CreateLine(vPositionIndicatorA, vPositionIndicatorB));
+    const vIndicatorWidth2 = this.mIndicatorWidth / 2;
+    const vIndicatorPosA = vCenter.Add(new ggVector(-vTicksLength, 0));
+    const vIndicatorPosB = vCenter.Add(new ggVector(vTickRadiusA - vIndicatorWidth2 - vTicksLength / 3, 0));
+    vGroupIndicator.appendChild(this.CreateCircle(vCenter, vTicksLength / 2));
+    this.mIndicatorSvg = vGroupIndicator.appendChild(this.CreatePolygon([
+      vIndicatorPosA.Add(new ggVector(0, vIndicatorWidth2)),
+      vIndicatorPosB.Add(new ggVector(0, vIndicatorWidth2)),
+      vIndicatorPosB.Add(new ggVector(vIndicatorWidth2, 0)),
+      vIndicatorPosB.Add(new ggVector(0, -vIndicatorWidth2)),
+      vIndicatorPosA.Add(new ggVector(0, -vIndicatorWidth2))
+    ]));
     this.AnimateElementRotation(this.mIndicatorSvg, vCenter, this.GetAngle(this.ValueLimited), this.GetAngle(this.ValueLimited));
 
     // clear old graphics
