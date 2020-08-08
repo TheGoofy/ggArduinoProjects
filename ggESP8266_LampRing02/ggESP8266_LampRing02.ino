@@ -699,6 +699,10 @@ void ConnectComponents()
     WebSockets().UpdateAlarmsTable();
     return true;
   });
+  WebServer().OnGetTime([] () -> String {
+    GG_DEBUG_BLOCK("mWebServer.OnGetTime(...)");
+    return "{\"mTimeT\":" + String(AlarmClock().GetTimeT()) + "}";
+  });
   WebServer().OnDebugStream([] (Stream& aStream) {
     ggStreams vStreams;
     vStreams.push_back(&aStream);

@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ESP8266 Lamp Time</title>
+  <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+  <meta http-equiv='Content-Style-Type' content='text/css'/>
+  <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
+</head>
+
+<body>
+  <div class='cMainBlockDiv'>
+    <b style='font-size:larger'>Time</b><br>
+    <hr noshade>
+    <style>
+      #mClockTable {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      #mClockTable th, #mClockTable td {
+        text-align: center;
+      }
+    </style>
+    <table id="mClockTable">
+      <tr>
+        <td><svg id='mClockServerSVG' width="150" height="150"></svg></td>
+        <td><svg id='mClockClientSVG' width="150" height="150"></svg></td>
+      </tr>
+      <tr>
+        <td>Lamp</td>
+        <td>Local</td>
+      </tr>
+    </table>
+    
+    <script src="ggClockSVG.js"></script>
+    <script>
+
+      let mHostURL = window.location.hostname;
+      if (mHostURL == '') {
+        mHostURL = window.prompt('Please enter server address', "192.168.0.150");
+      }
+      mHostURL = 'http://' + mHostURL + '/';
+
+      let mTime = {};
+
+      function TimeValid() {
+        return mTime.mTimeT && mTime.mTimeT != 0;
+      }
+
+      function GetDate () {        
+        let vTimeT = mTime ? mTime.mTimeT : 0;
+        return vTimeT != 0 ? new Date(1000 * vTimeT) : false;
+      };
+
+      let mClockServer = new ggClockSVG(mClockServerSVG, GetDate);
+      let mClockClient = new ggClockSVG(mClockClientSVG);
+
+      function HttpRequestGetTime() {
+        var vHttpRequestGetTime = new XMLHttpRequest();
+        vHttpRequestGetTime.onreadystatechange = function() {
+          if (vHttpRequestGetTime.readyState == 4) {
+            if (vHttpRequestGetTime.responseText != '') {
+              let vTimeValid = TimeValid();
+              mTime = JSON.parse(vHttpRequestGetTime.responseText);
+              if (vTimeValid != TimeValid()) {
+                mClockServer.Update();
+              }
+            }
+          }
+        }
+        vHttpRequestGetTime.open("GET", mHostURL + "GetTime", true);
+        vHttpRequestGetTime.send();
+      }
+
+      HttpRequestGetTime();
+      setInterval(HttpRequestGetTime, 10000);
+
+    </script>
+
+    <hr noshade>
+    <a href='/'>[home]</a>
+    <a href='/alarms'>[alarms]</a>
+    <a href='/time'>[time]</a>
+    <a href='/files'>[files]</a>
+    <a href='/debug'>[debug]</a>
+    <br>
+    (c) 2020, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
+  </div>
+</body>
+
+</html>

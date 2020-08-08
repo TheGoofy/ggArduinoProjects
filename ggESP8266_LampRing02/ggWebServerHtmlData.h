@@ -1,7 +1,7 @@
 #pragma once
 
 char mWebServerHtmlFront[] PROGMEM = R"=====(
-<!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01//EN' 'http://www.w3.org/TR/html4/strict.dtd'>
+<!DOCTYPE html>
 <html>
 
   <head>
@@ -21,6 +21,7 @@ char mWebServerHtmlBack[] PROGMEM = R"=====(
       <hr noshade>
       <a href='/'>[home]</a>
       <a href='/alarms'>[alarms]</a>
+      <a href='/time'>[time]</a>
       <a href='/files'>[files]</a>
       <a href='/debug'>[debug]</a>
       <br>

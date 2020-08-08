@@ -18,6 +18,7 @@ public:
     mDelAlarmFunc(nullptr),
     mGetAlarmsFunc(nullptr),
     mSetAlarmFunc(nullptr),
+    mGetTimeFunc(nullptr),
     mDebugStreamFunc(nullptr),
     mResetAllFunc(nullptr),
     mRebootFunc(nullptr),
@@ -33,6 +34,8 @@ public:
     mServer.on("/DelAlarm", [&] () { OnDelAlarm(); });
     mServer.on("/GetAlarms", [&] () { OnGetAlarms(); });
     mServer.on("/SetAlarm", [&] () { OnSetAlarm(); });
+    mServer.on("/time", [&] () { OnTime(); });
+    mServer.on("/GetTime", [&] () { OnGetTime(); });
     mServer.on("/files", [&] () { OnFS(); });
     mServer.on("/debug", [&] () { OnDebug(); });
     mServer.on("/resetall", [&] () { OnResetAll(); });
@@ -67,6 +70,11 @@ public:
   typedef std::function<bool(const String&)> tSetAlarmFunc;
   void OnSetAlarm(tSetAlarmFunc aSetAlarmFunc) {
     mSetAlarmFunc = aSetAlarmFunc;
+  }
+
+  typedef std::function<String()> tGetTimeFunc;
+  void OnGetTime(tGetTimeFunc aGetTimeFunc) {
+    mGetTimeFunc = aGetTimeFunc;
   }
 
   void OnDebugStream(tStreamFunc aStreamFunc) {
@@ -204,6 +212,23 @@ private:
     mServer.send(200, "text/plain", vResponseText);
   }
 
+  void OnTime() {
+    GG_DEBUG();
+    HandleFile("/ggTime.html");
+  }
+
+  void OnGetTime() {
+    GG_DEBUG();
+    if (mGetTimeFunc != nullptr) {
+      if (mServer.method() == HTTP_GET) {
+        mServer.sendHeader("Access-Control-Allow-Origin", "*");
+        mServer.send(200, GetContentType(".json"), mGetTimeFunc());
+        return;
+      }
+    }
+    OnNotFound();
+  }
+
   static String GetNiceByteSize(size_t aSize) {
     String vNumber(aSize);
     int vDigits = vNumber.length();
@@ -239,7 +264,7 @@ private:
       vFiles.insert(cFile(vDir.fileName(), vDir.fileSize()));
       vTotalFileSize += vDir.fileSize();
     }
-    String vContent = "<script>document.title = 'ESP8266 Thermostate Files';</script>\n";
+    String vContent = "<script>document.title = 'ESP8266 Lamp Files';</script>\n";
     vContent += "<b style='font-size:larger'>Files</b><br>\n<hr noshade>\n";
     std::for_each(vFiles.begin(), vFiles.end(), [&] (const cFile& aFile) {
       vContent += aFile.GetHTML();
@@ -260,7 +285,7 @@ private:
   }
 
   void OnDebug() {
-    String vContent = "<script>document.title = 'ESP8266 Thermostate Debug';</script>\n";
+    String vContent = "<script>document.title = 'ESP8266 Lamp Debug';</script>\n";
     vContent += "<b style='font-size:larger'>Debug</b><br>\n<hr noshade>\n";
     vContent += "<a href='resetall' onclick='return confirm(\"Reset ALL settings and log data?\")'>[reset all]</a>\n";
     vContent += "<a href='resetwifi' onclick='return confirm(\"Reset WiFi settings?\")'>[reset wifi]</a>\n";
@@ -327,6 +352,8 @@ private:
   tGetAlarmsFunc mGetAlarmsFunc;
   tSetAlarmFunc mSetAlarmFunc;
 
+  tGetTimeFunc mGetTimeFunc;
+  
   tStreamFunc mDebugStreamFunc;
   
   tFunc mResetAllFunc;
