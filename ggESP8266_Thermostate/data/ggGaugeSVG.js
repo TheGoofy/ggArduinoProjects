@@ -19,11 +19,9 @@ class ggVector {
     return `${this.mX},${this.mY}`;
   }
 
-  Add(aOther) {
-    return new ggVector(this.mX + aOther.mX, this.mY + aOther.mY);
-  }
-
   static Add(aVectorA, aVectorB) {
+    if (typeof aVectorA === "undefined") return aVectorB;
+    if (typeof aVectorB === "undefined") return aVectorA;
     return new ggVector(aVectorA.mX + aVectorB.mX, aVectorA.mY + aVectorB.mY);
   }
 }
@@ -333,15 +331,15 @@ class ggGaugeSVG {
     this.SetStyle(vGroupIndicator, `stroke: none; stroke-width: 0; fill: ${this.mIndicatorStyle};`);
     vGroupIndicator.setAttributeNS(null, "filter", `url(#${vShadowFilterName})`);
     const vIndicatorWidth2 = this.mIndicatorWidth / 2;
-    const vIndicatorPosA = vCenter.Add(new ggVector(-vTicksLength, 0));
-    const vIndicatorPosB = vCenter.Add(new ggVector(vTickRadiusA - vIndicatorWidth2 - vTicksLength / 3, 0));
+    const vIndicatorPosA = ggVector.Add(vCenter, new ggVector(-vTicksLength, 0));
+    const vIndicatorPosB = ggVector.Add(vCenter, new ggVector(vTickRadiusA - vIndicatorWidth2 - vTicksLength / 3, 0));
     vGroupIndicator.appendChild(this.CreateCircle(vCenter, vTicksLength / 2));
     this.mIndicatorSvg = vGroupIndicator.appendChild(this.CreatePolygon([
-      vIndicatorPosA.Add(new ggVector(0, vIndicatorWidth2)),
-      vIndicatorPosB.Add(new ggVector(0, vIndicatorWidth2)),
-      vIndicatorPosB.Add(new ggVector(vIndicatorWidth2, 0)),
-      vIndicatorPosB.Add(new ggVector(0, -vIndicatorWidth2)),
-      vIndicatorPosA.Add(new ggVector(0, -vIndicatorWidth2))
+      ggVector.Add(vIndicatorPosA, new ggVector(0, vIndicatorWidth2)),
+      ggVector.Add(vIndicatorPosB, new ggVector(0, vIndicatorWidth2)),
+      ggVector.Add(vIndicatorPosB, new ggVector(vIndicatorWidth2, 0)),
+      ggVector.Add(vIndicatorPosB, new ggVector(0, -vIndicatorWidth2)),
+      ggVector.Add(vIndicatorPosA, new ggVector(0, -vIndicatorWidth2))
     ]));
     this.AnimateElementRotation(this.mIndicatorSvg, vCenter, this.GetAngle(this.ValueLimited), this.GetAngle(this.ValueLimited));
 
