@@ -1,0 +1,21 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ggClock SVG Test</title>
+  <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+  <meta http-equiv='Content-Style-Type' content='text/css'/>
+  <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
+</head>
+
+<body>
+  <svg id='mClockSVG' width="120" height="120">
+  </svg>
+  <script src="ggClockSVG.js"></script>
+  <script>
+    let mClock = new ggClockSVG(document.getElementById("mClockSVG"));
+    mClock.Draw();
+  </script>
+</body>
+
+</html>
