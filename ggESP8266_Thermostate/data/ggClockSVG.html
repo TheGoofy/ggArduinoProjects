@@ -9,12 +9,22 @@
 </head>
 
 <body>
-  <svg id='mClockSVG' width="120" height="120">
-  </svg>
+  <svg id='mClockSVG0' width="50" height="50"></svg>
+  <svg id='mClockSVG1' width="100" height="100"></svg>
+  <svg id='mClockSVG2' width="200" height="200"></svg>
   <script src="ggClockSVG.js"></script>
   <script>
-    let mClock = new ggClockSVG(document.getElementById("mClockSVG"));
-    mClock.Draw();
+    let mClock0 = new ggClockSVG(document.getElementById("mClockSVG0"));
+    let mClock1 = new ggClockSVG(document.getElementById("mClockSVG1"));
+    let mClock2 = new ggClockSVG(document.getElementById("mClockSVG2"));
+    let mGetDateUnreliable = function () {
+      if (Math.random() < 0.5) {
+        return new Date();
+      }
+    };
+    mClock0.GetDate = mGetDateUnreliable;
+    mClock1.GetDate = mGetDateUnreliable;
+    mClock2.GetDate = mGetDateUnreliable;
   </script>
 </body>
 

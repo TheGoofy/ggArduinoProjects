@@ -101,6 +101,11 @@ class ggSvg {
     aSvgObject.setAttributeNS(null, "style", aStyle);
   }
 
+  static SetRotation(aSvgObject, aCenter, aAngle) {
+    let vAngleDeg = 180 * aAngle / Math.PI;
+    aSvgObject.setAttributeNS(null, "transform", `rotate(${vAngleDeg}, ${aCenter.mX}, ${aCenter.mY})`);
+  }
+
   static AnimateRotation(aSvgObject, aCenter, aAngleA, aAngleB, aDuration = "1s") {
     let vAngleDegA = 180 * aAngleA / Math.PI;
     let vAngleDegB = 180 * aAngleB / Math.PI;
@@ -111,18 +116,10 @@ class ggSvg {
     vSvgAnimateTransform.setAttributeNS(null, "fill", "freeze");
     vSvgAnimateTransform.setAttributeNS(null, "to", `${vAngleDegB} ${aCenter.mX} ${aCenter.mY}`);
     vSvgAnimateTransform.setAttributeNS(null, "dur", `${aDuration}`);
-    //aSvgObject.innerHTML = "";
-    //aSvgObject.appendChild(vSvgAnimateTransform);
+    let vSvgAnimateTransformsExisting = aSvgObject.getElementsByTagName(vSvgAnimateTransform.nodeName);
+    if (vSvgAnimateTransformsExisting.length > 0) vSvgAnimateTransformsExisting[0].replaceWith(vSvgAnimateTransform);
+    else aSvgObject.appendChild(vSvgAnimateTransform);
     vSvgAnimateTransform.beginElement();
-    aSvgObject.replaceChild(vSvgAnimateTransform, aSvgObject.getElementById("animateTransform"));
-    /*
-    let vAnimateTransform = `<animateTransform 
-      attributeName='transform' type='rotate' 
-      to='${vAngleDegB} ${aCenter.mX} ${aCenter.mY}'
-      dur='${aDuration}' fill='freeze'/>`;
-    aSvgObject.innerHTML = vAnimateTransform;
-    aSvgObject.firstChild.beginElement();
-    */
   }
 }
 
@@ -132,13 +129,13 @@ class ggClockSVG {
   // public properties
   mBackgroundColor = "transparent";
   mFaceStyle = "white";
-  mHandSecondStyle = "#c00"; // drak red
-  mHandMinuteStyle = "black";
-  mHandHourStyle = "black";
+  mHandSecondStyle = "#d00"; // drak red
+  mHandMinuteStyle = "#000";
+  mHandHourStyle = "#000";
   // mLabels = ["12", "", "", "3", "", "", "6", "", "", "9", "", ""];
   // mLabels = ["12", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "11"];
   // mLabels = ["XII", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI"];
-  mLabelStyle = "black";
+  mLabelStyle = "#222";
   mLabelFont = "bold 13px arial"; // or "bold 14px Lucida Console" ...
   mTicksMargin = 0.03; // percent of radius
   mTicksHourLength = 0.24; // percent of radius
@@ -150,12 +147,25 @@ class ggClockSVG {
   mDiameter = null;
   mSvg = null;
 
+  mTimeMinute = 0;
+  mTimeHour = 0;
+
   mSvgHandSecond = null;
   mSvgHandMinute = null;
   mSvgHandHour = null;
 
   constructor(aSVG) {
     this.mSvg = aSVG;
+    this.CreateGraphics();
+    this.CreateTimer();
+  }
+
+  GetDate() {
+    return new Date();
+  }
+
+  static IsDateValid(aDate) {
+    return aDate && Object.prototype.toString.call(aDate) === "[object Date]" && !isNaN(aDate);
   }
 
   set Diameter(aDiameter) {
@@ -208,7 +218,34 @@ class ggClockSVG {
     return new ggVector(vX, vY);
   }
 
-  Draw() {
+  AnimateHandSecond(aSecondA, aSecondB, aDuration) {
+    ggSvg.AnimateRotation(
+      this.mSvgHandSecond,
+      this.Center,
+      this.GetAngleSecond(aSecondA),
+      this.GetAngleSecond(aSecondB),
+      aDuration);
+  }
+
+  AnimateHandMinute(aMinuteA, aMinuteB, aDuration) {
+    ggSvg.AnimateRotation(
+      this.mSvgHandMinute,
+      this.Center,
+      this.GetAngleMinute(aMinuteA),
+      this.GetAngleMinute(aMinuteB),
+      aDuration);
+  }
+
+  AnimateHandHour(aHourA, aHourB, aDuration) {
+    ggSvg.AnimateRotation(
+      this.mSvgHandHour,
+      this.Center,
+      this.GetAngleHour(aHourA),
+      this.GetAngleHour(aHourB),
+      aDuration);
+  }
+
+  CreateGraphics() {
 
     // center and radius are relevant for all parts ...
     const vCenter = this.Center;
@@ -218,11 +255,12 @@ class ggClockSVG {
     // main container
     let vGroupMain = ggSvg.CreateGroup();
 
-    // shadow-filter (for indicator)
-    const vShadowFilterName = "ShadowFilter";
+    // shadow-filter for hands (with unique ID)
+    const vShadowFilterName = this.mSvg.id + "_ShadowFilter";
+    const vShadowDeviation = 0.02 * vTickRadius;
     vGroupMain.innerHTML +=
       `<filter id='${vShadowFilterName}' x='-2' y='-2' width='4' height='4'>
-         <feDropShadow dx='0.8' dy='1.2' stdDeviation='1' flood-opacity='0.5' flood-color='black'/>
+         <feDropShadow dx='${1.0 * vShadowDeviation}' dy='${1.5 * vShadowDeviation}' stdDeviation='${vShadowDeviation}' flood-opacity='0.5' flood-color='black'/>
        </filter>`;
 
     // clock face background
@@ -276,7 +314,7 @@ class ggClockSVG {
       ggVector.Add(vHourPosA, new ggVector(0, -1.7 * this.mTicksHourWidth / 2 * vTickRadius))
     ]));
     ggSvg.SetStyle(this.mSvgHandHour, `fill: ${this.mHandHourStyle}; stroke-width: 0;`);
-    ggSvg.AnimateRotation(this.mSvgHandHour, vCenter, this.GetAngleHour(12), this.GetAngleHour(13.82));
+    ggSvg.SetRotation(this.mSvgHandHour, vCenter, this.GetAngleHour(0));
 
     // minute hand
     const vMinutePosA = ggVector.Add(vCenter, new ggVector(-this.mTicksHourLength * vTickRadius, 0));
@@ -288,7 +326,7 @@ class ggClockSVG {
       ggVector.Add(vMinutePosA, new ggVector(0, -1.3 * this.mTicksHourWidth / 2 * vTickRadius))
     ]));
     ggSvg.SetStyle(this.mSvgHandMinute, `fill: ${this.mHandMinuteStyle}; stroke-width: 0;`);
-    ggSvg.AnimateRotation(this.mSvgHandMinute, vCenter, this.GetAngleMinute(60), this.GetAngleMinute(49));
+    ggSvg.SetRotation(this.mSvgHandMinute, vCenter, this.GetAngleMinute(0));
 
     // second hand
     const vSecondPosA = ggVector.Add(vCenter, new ggVector(-1.6 * this.mTicksHourLength * vTickRadius, 0));
@@ -298,13 +336,45 @@ class ggClockSVG {
     let vSvgSecondHandHead = this.mSvgHandSecond.appendChild(ggSvg.CreateCircle(vSecondPosB, 0.8 * this.mTicksHourLength * vTickRadius / 2));
     ggSvg.SetStyle(vSvgSecondHandNeck, `stroke: ${this.mHandSecondStyle}; stroke-width: ${this.mTicksMinuteWidth * vTickRadius};`);
     ggSvg.SetStyle(this.mSvgHandSecond, `fill: ${this.mHandSecondStyle}; stroke-width: 0;`);
-    ggSvg.AnimateRotation(vSvgSecondHandNeck, vCenter, this.GetAngleSecond(0), this.GetAngleSecond(27));
-    ggSvg.AnimateRotation(vSvgSecondHandHead, vCenter, this.GetAngleSecond(0), this.GetAngleSecond(27));
+    ggSvg.SetRotation(this.mSvgHandSecond, vCenter, this.GetAngleSecond(0));
 
     // clear old graphics
     this.mSvg.innerHTML = "";
 
     // add new graphics
     this.mSvg.appendChild(vGroupMain);
+  }
+
+  CreateTimer() {
+    const vDurationMinuteMillis = 60000;
+    const vDurationMinuteStopMillis = 1000;
+    const vThisClock = this;
+    let vUpdateTimeFunction = function() {
+      let vDate = vThisClock.GetDate();
+      let vDateIsValid = ggClockSVG.IsDateValid(vDate);
+      if (!vDateIsValid) {
+        vDate = {
+          getMinutes: function() { return 0; },
+          getHours: function() { return 0; }
+        };
+      }
+      let vMinuteOld = vThisClock.mTimeMinute;
+      let vMinuteNew = vDate.getMinutes();      
+      let vHourOld = vThisClock.mTimeHour + vMinuteOld / 60;
+      let vHourNew = vDate.getHours() % 12 + vMinuteNew / 60;
+      if (vMinuteOld == 59 && vMinuteNew == 0) {
+        vMinuteNew = 60;
+        if (vDate.getHours() % 12 == 0) {
+          vHourNew += 12;
+        }
+      }
+      vThisClock.AnimateHandHour(vHourOld, vHourNew, 0.3);
+      vThisClock.AnimateHandMinute(vMinuteOld, vMinuteNew, 0.3);
+      vThisClock.AnimateHandSecond(0, vDateIsValid ? 60 : 0, `${vDurationMinuteMillis - vDurationMinuteStopMillis}ms`);
+      vThisClock.mTimeMinute = vDate.getMinutes();
+      vThisClock.mTimeHour = vDate.getHours() % 12;
+    }
+    vUpdateTimeFunction();
+    setInterval(vUpdateTimeFunction, vDurationMinuteMillis);
   }
 }
