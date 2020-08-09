@@ -71,6 +71,9 @@
                 mServerClock.Update();
               }
             }
+            else {
+              mServerTime = {};
+            }
           }
         }
         vHttpRequestGetTime.open("GET", mHostURL + "GetTime", true);
