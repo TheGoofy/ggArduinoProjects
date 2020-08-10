@@ -51,7 +51,7 @@
         return mServerTime.mTimeT && mServerTime.mTimeT != 0;
       }
 
-      function GetServerDate() {        
+      function GetServerDate() {
         if (TimeValid()) {
           let vTimeMS = 1000 * mServerTime.mTimeT;
           let vTimeDeltaMS = Date.now() - mServerTime.mUpdated.getTime();

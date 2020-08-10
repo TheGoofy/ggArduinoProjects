@@ -106,9 +106,14 @@ class ggSvg {
     aSvgObject.setAttributeNS(null, "transform", `rotate(${vAngleDeg}, ${aCenter.mX}, ${aCenter.mY})`);
   }
 
-  static AnimateRotation(aSvgObject, aCenter, aAngleA, aAngleB, aDuration = "1s") {
+  static AnimateRotation(aSvgObject, aCenter, aAngleA, aAngleB, aDuration = "1s", aMinimizeRotationAngle = false) {
     let vAngleDegA = 180 * aAngleA / Math.PI;
     let vAngleDegB = 180 * aAngleB / Math.PI;
+    if (aMinimizeRotationAngle) {
+      let vAngleDegDelta = vAngleDegB - vAngleDegA;
+      if (vAngleDegDelta > 180) vAngleDegA += 360;
+      else if (vAngleDegDelta < -180) vAngleDegA -= 360;
+    }
     aSvgObject.setAttributeNS(null, "transform", `rotate(${vAngleDegA}, ${aCenter.mX}, ${aCenter.mY})`);
     let vSvgAnimateTransform = document.createElementNS(this.mSvgNS, "animateTransform");
     vSvgAnimateTransform.setAttributeNS(null, "attributeName", "transform");
@@ -239,7 +244,8 @@ class ggClockSVG {
       this.Center,
       this.GetAngleMinute(aMinuteA),
       this.GetAngleMinute(aMinuteB),
-      aDuration);
+      aDuration,
+      true /*aMinimizeRotationAngle*/);
   }
 
   AnimateHandHour(aHourA, aHourB, aDuration) {
@@ -248,7 +254,8 @@ class ggClockSVG {
       this.Center,
       this.GetAngleHour(aHourA),
       this.GetAngleHour(aHourB),
-      aDuration);
+      aDuration,
+      true /*aMinimizeRotationAngle*/);
   }
 
   CreateGraphics() {
