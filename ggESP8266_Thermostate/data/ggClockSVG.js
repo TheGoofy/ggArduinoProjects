@@ -106,9 +106,14 @@ class ggSvg {
     aSvgObject.setAttributeNS(null, "transform", `rotate(${vAngleDeg}, ${aCenter.mX}, ${aCenter.mY})`);
   }
 
-  static AnimateRotation(aSvgObject, aCenter, aAngleA, aAngleB, aDuration = "1s") {
+  static AnimateRotation(aSvgObject, aCenter, aAngleA, aAngleB, aDuration = "1s", aMinimizeRotationAngle = false) {
     let vAngleDegA = 180 * aAngleA / Math.PI;
     let vAngleDegB = 180 * aAngleB / Math.PI;
+    if (aMinimizeRotationAngle) {
+      let vAngleDegDelta = vAngleDegB - vAngleDegA;
+      if (vAngleDegDelta > 180) vAngleDegA += 360;
+      else if (vAngleDegDelta < -180) vAngleDegA -= 360;
+    }
     aSvgObject.setAttributeNS(null, "transform", `rotate(${vAngleDegA}, ${aCenter.mX}, ${aCenter.mY})`);
     let vSvgAnimateTransform = document.createElementNS(this.mSvgNS, "animateTransform");
     vSvgAnimateTransform.setAttributeNS(null, "attributeName", "transform");
@@ -147,15 +152,22 @@ class ggClockSVG {
   mDiameter = null;
   mSvg = null;
 
+  mTimeSecond = 0;
   mTimeMinute = 0;
   mTimeHour = 0;
+  mTimerID = 0;
 
   mSvgHandSecond = null;
   mSvgHandMinute = null;
   mSvgHandHour = null;
 
-  constructor(aSVG) {
+  constructor(aSVG, aGetDateFunc) {
     this.mSvg = aSVG;
+    if (aGetDateFunc) this.GetDate = aGetDateFunc;
+    this.Update();
+  }
+
+  Update() {
     this.CreateGraphics();
     this.CreateTimer();
   }
@@ -218,13 +230,14 @@ class ggClockSVG {
     return new ggVector(vX, vY);
   }
 
-  AnimateHandSecond(aSecondA, aSecondB, aDuration) {
+  AnimateHandSecond(aSecondA, aSecondB, aDuration, aMinimizeRotationAngle) {
     ggSvg.AnimateRotation(
       this.mSvgHandSecond,
       this.Center,
       this.GetAngleSecond(aSecondA),
       this.GetAngleSecond(aSecondB),
-      aDuration);
+      aDuration,
+      aMinimizeRotationAngle);
   }
 
   AnimateHandMinute(aMinuteA, aMinuteB, aDuration) {
@@ -233,7 +246,8 @@ class ggClockSVG {
       this.Center,
       this.GetAngleMinute(aMinuteA),
       this.GetAngleMinute(aMinuteB),
-      aDuration);
+      aDuration,
+      true /*aMinimizeRotationAngle*/);
   }
 
   AnimateHandHour(aHourA, aHourB, aDuration) {
@@ -242,7 +256,8 @@ class ggClockSVG {
       this.Center,
       this.GetAngleHour(aHourA),
       this.GetAngleHour(aHourB),
-      aDuration);
+      aDuration,
+      true /*aMinimizeRotationAngle*/);
   }
 
   CreateGraphics() {
@@ -346,35 +361,55 @@ class ggClockSVG {
   }
 
   CreateTimer() {
-    const vDurationMinuteMillis = 60000;
-    const vDurationMinuteStopMillis = 1000;
-    const vThisClock = this;
-    let vUpdateTimeFunction = function() {
-      let vDate = vThisClock.GetDate();
+
+    let vInitializeHands = true;
+
+    let UpdateTime = () => {
+      let vDate = this.GetDate();
       let vDateIsValid = ggClockSVG.IsDateValid(vDate);
       if (!vDateIsValid) {
         vDate = {
-          getMinutes: function() { return 0; },
-          getHours: function() { return 0; }
+          getMilliseconds: () => 0,
+          getSeconds: () => 0,
+          getMinutes: () => 0,
+          getHours: () => 0
         };
       }
-      let vMinuteOld = vThisClock.mTimeMinute;
-      let vMinuteNew = vDate.getMinutes();      
-      let vHourOld = vThisClock.mTimeHour + vMinuteOld / 60;
-      let vHourNew = vDate.getHours() % 12 + vMinuteNew / 60;
+      let vSecondOld = this.mTimeSecond;
+      let vSecondNew = vInitializeHands ? vDate.getSeconds() : vDateIsValid ? 60 : 0;
+      let vMinuteOld = this.mTimeMinute;
+      let vMinuteNewPlus = vDate.getSeconds() >= 58 ? 1 : 0;
+      let vMinuteNew = vDate.getMinutes() + vMinuteNewPlus;
+      let vHourOld = this.mTimeHour + vMinuteOld / 60;
+      let vHourNewPlus = ((vDate.getSeconds() >= 58) && (vDate.getMinutes() >= 59)) ? 1 : 0;
+      let vHourNew = (vDate.getHours() + vHourNewPlus) % 12 + vMinuteNew / 60;
       if (vMinuteOld == 59 && vMinuteNew == 0) {
         vMinuteNew = 60;
-        if (vDate.getHours() % 12 == 0) {
+        if ((vDate.getHours() + vHourNewPlus) % 12 == 0) {
           vHourNew += 12;
         }
       }
-      vThisClock.AnimateHandHour(vHourOld, vHourNew, 0.3);
-      vThisClock.AnimateHandMinute(vMinuteOld, vMinuteNew, 0.3);
-      vThisClock.AnimateHandSecond(0, vDateIsValid ? 60 : 0, `${vDurationMinuteMillis - vDurationMinuteStopMillis}ms`);
-      vThisClock.mTimeMinute = vDate.getMinutes();
-      vThisClock.mTimeHour = vDate.getHours() % 12;
+      const vBaseAnimationDuration = 0.3;
+      const vFullMinuteStopDuration = 1.0;
+      let vTimeoutNextUpdate = vBaseAnimationDuration;
+      let vSecondAnimationDuration = vBaseAnimationDuration;
+      if (!vInitializeHands) {
+        vTimeoutNextUpdate = vSecondNew - vDate.getSeconds() - vDate.getMilliseconds() / 1000;
+        if (vTimeoutNextUpdate < vFullMinuteStopDuration + 1) vTimeoutNextUpdate += 60;
+        vSecondAnimationDuration = vTimeoutNextUpdate - vFullMinuteStopDuration;
+      }
+      // console.log(this.mSvg.id + " ==> " + vTimeoutNextUpdate + ", " + vSecondAnimationDuration);
+      this.AnimateHandSecond(vSecondOld, vSecondNew, vSecondAnimationDuration, vInitializeHands);
+      this.AnimateHandMinute(vMinuteOld, vMinuteNew, vBaseAnimationDuration);
+      this.AnimateHandHour(vHourOld, vHourNew, vBaseAnimationDuration);
+      this.mTimeSecond = vInitializeHands ? vDate.getSeconds() : 0;
+      this.mTimeMinute = vDate.getMinutes() + vMinuteNewPlus;
+      this.mTimeHour = (vDate.getHours() + vHourNewPlus) % 12;
+      if (this.mTimerID != 0) clearTimeout(this.mTimerID);
+      this.mTimerID = setTimeout(UpdateTime, 1000 * vTimeoutNextUpdate);
+      vInitializeHands = false;
     }
-    vUpdateTimeFunction();
-    setInterval(vUpdateTimeFunction, vDurationMinuteMillis);
+
+    UpdateTime();
   }
 }
