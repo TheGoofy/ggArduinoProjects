@@ -114,7 +114,7 @@ class ggSvg {
       if (vAngleDegDelta > 180) vAngleDegA += 360;
       else if (vAngleDegDelta < -180) vAngleDegA -= 360;
     }
-    aSvgObject.setAttributeNS(null, "transform", `rotate(${vAngleDegA}, ${aCenter.mX}, ${aCenter.mY})`);
+    this.SetRotation(aSvgObject, aCenter, aAngleA);
     let vSvgAnimateTransform = document.createElementNS(this.mSvgNS, "animateTransform");
     vSvgAnimateTransform.setAttributeNS(null, "attributeName", "transform");
     vSvgAnimateTransform.setAttributeNS(null, "type", "rotate");

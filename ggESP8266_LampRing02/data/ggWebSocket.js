@@ -5,10 +5,12 @@ function CreateWebSocket(
   aHostAddress,
   aMessageFunc,
   aReconnectTimeMS,
-  aStatusDiv)
+  aStatusDiv,
+  aDefaultAddress)
 {
   if (aHostAddress == '') {
-    aHostAddress = window.prompt('Please enter address of WebSocket server', "192.168.0.150");
+    if (!aDefaultAddress) aDefaultAddress = "192.168.0.150";
+    aHostAddress = window.prompt('Please enter address of WebSocket server', aDefaultAddress);
   }
 
   let vWebSocket = aParent[aWebSocketObjectName];
