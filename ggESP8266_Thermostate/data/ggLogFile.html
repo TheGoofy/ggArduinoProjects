@@ -135,6 +135,9 @@
               aLoadDataCallback(vDataView);
             } 
           }
+          else {
+            alert("Failed to load \"" + aFileName + "\"");
+          }
         }
         vReq.send(null);
       }
