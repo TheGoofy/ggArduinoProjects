@@ -132,18 +132,17 @@ class ggSvg {
 class ggGaugeSVG {
 
   // public properties
-  mBackgroundColor = "transparent";
   mFaceStyle = "white";
   mLabelStyle = "black";
   mIndicatorStyle = "#c00"; // drak red
-  mIndicatorWidth = 5;
+  mIndicatorWidth = 0.1;
   mRange = { mMin: -20, mMax: 40 };
   mDecimals = 1;
   mLabel = "°C";
   mLabelFont = "13px arial"; // "bold 14px Lucida Console";
-  mTicksFont = "8px arial";
+  mTicksFont = "9.5px arial";
   mTicksMargin = 3; // pixel
-  mTicksSize = 0.25; // percent of radius
+  mTicksSize = 0.2; // percent of radius
   mTicksMajor = [-20, -10, 0, 10, 20, 30, 40];
   mTicksMajorWidth = 1.5;
   mTicksMinor = 10;
@@ -352,10 +351,10 @@ class ggGaugeSVG {
     let vGroupIndicator = ggSvg.CreateGroup(vGroupMain);
     ggSvg.SetStyle(vGroupIndicator, `stroke: none; stroke-width: 0; fill: ${this.mIndicatorStyle};`);
     vGroupIndicator.setAttributeNS(null, "filter", `url(#${vShadowFilterName})`);
-    const vIndicatorWidth2 = this.mIndicatorWidth / 2;
-    const vIndicatorPosA = ggVector.Add(vCenter, new ggVector(-vTicksLength, 0));
+    const vIndicatorWidth2 = this.mIndicatorWidth / 2 * vRadius;
+    const vIndicatorPosA = ggVector.Add(vCenter, new ggVector(0.3 * (vTicksLength - vTickRadiusA), 0));
     const vIndicatorPosB = ggVector.Add(vCenter, new ggVector(vTickRadiusA - vIndicatorWidth2 - vTicksLength / 3, 0));
-    vGroupIndicator.appendChild(ggSvg.CreateCircle(vCenter, vTicksLength / 2));
+    vGroupIndicator.appendChild(ggSvg.CreateCircle(vCenter, 2.2 * vIndicatorWidth2));
     this.mIndicatorSvg = vGroupIndicator.appendChild(ggSvg.CreatePolygon([
       ggVector.Add(vIndicatorPosA, new ggVector(0, vIndicatorWidth2)),
       ggVector.Add(vIndicatorPosB, new ggVector(0, vIndicatorWidth2)),
