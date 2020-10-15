@@ -1,0 +1,115 @@
+<mWebServer.OnDebugStream(...)>
+  mHostName = ESP-SSR-b10a96
+  <ggPeriphery mPeriphery>
+    <ggButton mKey>
+      <ggInput>
+        <ggInputOutput>
+          mPin = 0
+        </ggInputOutput>
+        mInverted = 1
+        mEnablePullUp = 0
+        Get() = 0
+      </ggInput>
+      mDebounceMillis = 30
+      mPressed = 0
+      mMillis = 0
+      mMillisDelta = 0
+      mPressedForMillis = 5000
+      mPressedForDone = 1
+    </ggButton>
+    <ggOutputPWM mOutputPWM>
+      <ggOutput>
+        <ggInputOutput>
+          mPin = 3
+        </ggInputOutput>
+        mInverted = 1
+        Get() = 1
+      </ggOutput>
+      mCycleTime = 1000000
+      mCycleTimeHigh = 0
+      mCycleTimeLow = 1000000
+      mMicrosNext = 2372518842
+      Run() ... micros() = 2376751537
+    </ggOutputPWM>
+    <ggStatusLED mStatusLED>
+      <ggOutput mOutput>
+        <ggInputOutput>
+          mPin = 1
+        </ggInputOutput>
+        mInverted = 1
+        Get() = 0
+      </ggOutput>
+      mOTA = 0
+      mWarning = 0
+      mError = 0
+    </ggStatusLED>
+    <ggSensor mSensor>
+      <ggSampler mSampler>
+        mMicroSecondsSampleTime = 2000000
+        mMicroSecondsLastSample = 2376674224
+        mMicroSecondsDelta = 5586918
+      </ggSampler>
+      mPinSDA = 4
+      mPinSCL = 5
+      mStatus = Status OK
+      mPressure = 860.988708
+      mTemperature = 20.390728
+      mHumidity = 36.683601
+    </ggSensor>
+    <ggDisplay mDisplay>
+      GetAddressI2C() => 0x3C
+      mConnected = 0
+      mCursorY = 0
+      mUpdate = 1
+      <ggDisplay::cText mTitle>
+        mString = "Vella Heizung Kinderzimmer"
+        mAlign = cAlign::eLeft
+      </ggDisplay::cText>
+      <ggDisplay::cText mText[0]>
+        mString = "SSID: Grofunkel"
+        mAlign = cAlign::eLeft
+      </ggDisplay::cText>
+      <ggDisplay::cText mText[1]>
+        mString = "IP: 192.168.1.116"
+        mAlign = cAlign::eLeft
+      </ggDisplay::cText>
+      <ggDisplay::cText mText[2]>
+        mString = "Sensor: Status OK"
+        mAlign = cAlign::eLeft
+      </ggDisplay::cText>
+      <ggDisplay::cText mText[3]>
+        mString = "Web Sockets: 0/5"
+        mAlign = cAlign::eLeft
+      </ggDisplay::cText>
+    </ggDisplay>
+  </ggPeriphery>
+  <ggWiFiConnection mWiFiConnection>
+    SSID = Grofunkel
+    RSSI = -80dBm
+    RSSI quality = 40%
+    IP = 192.168.1.116
+    mConnected = true
+    mConnectionFunc = 0x3FFF0DF4
+  </ggWiFiConnection>
+  <ggController mTemperatureController>
+    mMode = eModePID
+    mInputValid = 1
+    mInputMicrosLast = 2376676120
+    mInputValue = 20.392162
+    mSetPointValue = 20.000000
+    mHysteresisValue = 1.000000
+    <ggSampler mSamplerPID>
+      mMicroSecondsSampleTime = 10000000
+      mMicroSecondsLastSample = 2376676707
+      mMicroSecondsDelta = 13631981
+    </ggSampler>
+    mPID = 0.150000 / 0.001500 / 50.000000
+    mOutputAnalog = 1
+    mOutputValue = 0.000000
+    mOutputMin = 0.000000
+    mOutputMax = 1.000000
+    mMicrosLast = 2376676743
+    mErrorLast = -0.392162
+    mErrorOutputI = -0.456685
+  </ggController>
+</mWebServer.OnDebugStream(...)>
