@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ggLineChart SVG Test</title>
+  <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+  <meta http-equiv='Content-Style-Type' content='text/css'/>
+  <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
+</head>
+
+<body>
+  <div style='padding:3px;background:transparent'>
+    <svg id='mLineChartSVG' width="500" height="300"></svg>
+  </div>
+  <script src="ggLineChartSVG.js"></script>
+  <script>
+    function GenerateValues(aCount = 20) {
+      let vValues = [];
+      let vValuesBase = 100.0 * Math.random() - 50.0;
+      let vValuesRange = 2.0 * Math.random();
+      let vTime = Date.now();
+      for (let vIndex = 0; vIndex < aCount; vIndex++) {
+        vTime += 1000 + 5000.0 * Math.random();
+        let vValue = vValuesBase + vValuesRange * (Math.random() - 0.5);
+        let vRange = vValuesRange * (0.5 + 0.5 * Math.random());
+        vValues.push([vTime, vValue, vValue - vRange, vValue + vRange]);
+      }
+      return vValues;
+    }
+    let mLineChart = new ggLineChartSVG(mLineChartSVG, GenerateValues(), false);
+    mLineChart.mBackgroundColor = "darkblue";
+    mLineChart.mAxisY.mLabel = "Random Values [%] (Min Mean Max)";
+    mLineChart.Draw();
+    // setInterval(function() { mLineChart.Values = GenerateValues(); }, 5000);
+  </script>
+</body>
+
+</html>
