@@ -8,8 +8,11 @@
     <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
     <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
     <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="ggLineChartSVG.js"></script>
+    <script src='ggWebSocket.js'></script>
     <script language='javascript' type='text/javascript'>
+
+      'use strict';
 
       var mWebSocket = null;
       var mWebSocketServer = window.location.hostname;
@@ -27,55 +30,19 @@
       var mOutputChart = null;
       
       function InitAll() {
-        InitHtmlElements();
         CreateCharts();
         InitWebSocket();
       }
 
       function InitWebSocket() {
-        if (mWebSocketServer == '') {
-          mWebSocketServer = window.prompt('Please enter address of WebSocket server', "192.168.0.88");
-        }
-        mWebSocket = new WebSocket('ws://' + mWebSocketServer +':81/', ['arduino']);
-        mWebSocket.onopen = onWebSocketOpen;
-        mWebSocket.onclose = onWebSocketClose;
-        mWebSocket.onerror = onWebSocketError;
-        mWebSocket.onmessage = onWebSocketMessage;
+        CreateWebSocket(window, 'mWebSocket', window.location.hostname, OnWebSocketMessage, 5000, mWebSocketStatus, "192.168.1.116");
       }
 
-      function onWebSocketOpen(aEvent) {
-        mWebSocketStatus.innerHTML = 'connected';
-        if (mWebSocketReConnectTimerID) {
-          window.clearInterval(mWebSocketReConnectTimerID);
-          mWebSocketReConnectTimerID = 0;
-        }
+      function OnWebSocketMessage(aData) {
+        // server sends actual function names, which can directly be executed by the client
+        eval(aData);
       }
 
-      function onWebSocketClose(aEvent) {
-        mWebSocketStatus.innerHTML = 'disconnected';
-        if (!mWebSocketReConnectTimerID) {
-          mWebSocketReConnectTimerID = window.setInterval(InitWebSocket, 5000);
-        }
-      }
-
-      function onWebSocketError(aEvent) {
-        console.log(aEvent);
-        mWebSocketStatus.innerHTML = aEvent.data;
-      }
-
-      function onWebSocketMessage(aEvent) {
-        try {
-          // server sends actual function names, which can directly be executed by the client
-          eval(aEvent.data);
-        }
-        catch (vError) {
-          console.log('unable to evaluate: ' + aEvent.data);
-        }
-      }
-
-      function InitHtmlElements() {
-      }
-      
       function UpdatePressure(aPressure) {
         mPressure = aPressure;
         mPressureChart.Add(aPressure);
@@ -120,99 +87,73 @@
         }
       }
 
-      // google.charts.load('current', {'packages':['line']});
-      google.charts.load('current', {'packages':['corechart']});
-
       class ggTimeChart {
 
         constructor(aContainer, aTitle, aUnit, aColor) {
-          this.mData = new google.visualization.DataTable({
-            cols: [{type: 'datetime', label: 'Time', pattern: 'HH:mm:ss dd.MM.yyyy'},
-                   {type: 'number', label: aUnit}]
-          });
-          this.mOptions = {
-            title: aTitle + ' [' + aUnit + ']',
-            titlePosition: 'in', // 'in', 'out', 'none'
-            titleTextStyle: { fontSize: 13, color: aColor, },
-            legend: { position: 'none' },
-            series: {
-              0: { color: aColor }
-            },
-            axisTitlesPosition: 'in', // 'in', 'out', 'none'
-            chartArea: { width: '98%',  height: '100%' },
-            hAxis: {
-              textPosition: 'in',
-              maxTextLines: 2,
-              textStyle: { fontSize: 12, color: '#888' },
-              format: 'HH:mm:ss\ndd.MM.yyyy',
-              gridlines: { color: '#eee' },
-            },
-            vAxis: {
-              textPosition: 'in',
-              textStyle: { fontSize: 12, color: aColor },
-            },
-            explorer: {
-              axis: 'horizontal',
-              keepInBounds: true,
-              zoomDelta: 0.8,
-            }
-          };
-          // this.mChart = new google.charts.Line(aContainer);
-          this.mChart = new google.visualization.LineChart(aContainer);
+          this.mValues = [];
+          this.mChart = new ggLineChartSVG(aContainer, [], false);
+          this.mChart.mPlotBackgroundColor = "";
+          this.mChart.mPlotLineColor = aColor;
+          this.mChart.mPlotRangeOpacity = 0.4;
+          this.mChart.mDisplayRange = false;
+          this.mChart.mAxisY.mLabel = aTitle + " [" + aUnit + "]";
+          this.mChart.mAxisY.mLabelColor = "white";
+          this.mChart.mAxisY.mTicksLabelColor = "white";
           this.mSamplesPerRow = 1;
           this.mSamples = 0;
           this.mTime = 0;
           this.mValue = 0;
-          this.mRowsMax = 1024;
+          this.mValueMin = 0;
+          this.mValueMax = 0;
+          this.mRowsMax = 512;
         }
 
         Add(aValue) {
           this.mTime += Date.now() / this.mSamplesPerRow;
           this.mValue += aValue / this.mSamplesPerRow;
+          if (this.mSamples == 0) {
+            this.mValueMin = aValue;
+            this.mValueMax = aValue;
+          }
+          else {
+            this.mValueMin = Math.min(aValue, this.mValueMin);
+            this.mValueMax = Math.max(aValue, this.mValueMax);
+          }
           this.mSamples++;
           if (this.mSamples == this.mSamplesPerRow) {
-            this.mData.addRow([new Date(this.mTime), this.mValue]);
+            this.mValues.push([this.mTime, this.mValue, this.mValueMin, this.mValueMax]);
             this.mSamples = 0;
             this.mTime = 0;
             this.mValue = 0;
-            if (this.mData.getNumberOfRows() >= this.mRowsMax) {
-              var vRowIndex;
-              for (vRowIndex = 0; vRowIndex < this.mRowsMax/2; vRowIndex++) {
-                var vTime = (this.mData.getValue(2*vRowIndex, 0).getTime() + this.mData.getValue(2*vRowIndex+1, 0).getTime()) / 2.0;
-                var vValue = (this.mData.getValue(2*vRowIndex, 1) + this.mData.getValue(2*vRowIndex+1, 1)) / 2.0;
-                this.mData.setValue(vRowIndex, 0, new Date(vTime));
-                this.mData.setValue(vRowIndex, 1, vValue);
+            this.mValueMin = 0;
+            this.mValueMax = 0;
+            if (this.mValues.length >= this.mRowsMax) {
+              for (let vRowIndex = 0; vRowIndex < this.mRowsMax/2; vRowIndex++) {
+                const vIndexSrcA = 2 * vRowIndex;
+                const vIndexSrcB = 2 * vRowIndex + 1;
+                var vTime = (this.mValues[vIndexSrcA][0] + this.mValues[vIndexSrcB][0]) / 2.0;
+                var vValue = (this.mValues[vIndexSrcA][1] + this.mValues[vIndexSrcB][1]) / 2.0;
+                var vValueMin = Math.min(this.mValues[vIndexSrcA][2], this.mValues[vIndexSrcB][2]);
+                var vValueMax = Math.max(this.mValues[vIndexSrcA][3], this.mValues[vIndexSrcB][3]);
+                this.mValues[vRowIndex][0] = vTime;
+                this.mValues[vRowIndex][1] = vValue;
+                this.mValues[vRowIndex][2] = vValueMin;
+                this.mValues[vRowIndex][3] = vValueMax;
               }
-              this.mData.removeRows(this.mRowsMax/2, this.mRowsMax/2);
               this.mSamplesPerRow *= 2;
+              this.mValues.splice(this.mRowsMax / 2);
             }
-            this.Draw();
+            this.mChart.Values = this.mValues;
           }
         }
 
-        Draw() {
-          if (this.mData.getNumberOfRows() < 2) return;
-          var vDateFormatter = new google.visualization.DateFormat({pattern: 'dd.MM.yyyy / HH:mm:ss'});
-          vDateFormatter.format(this.mData, 0);
-          // this.mChart.draw(this.mData, google.charts.Line.convertOptions(this.mOptions));
-          this.mChart.draw(this.mData, this.mOptions);
-        }
-      
       }
       
-      function DrawCharts() {
-        mPressureChart.Draw();
-        mTemperatureChart.Draw();
-        mHumidityChart.Draw();
-        mOutputChart.Draw();
-      }
-
       function CreateCharts() {
         mPressureChart = new ggTimeChart(document.getElementById('mPressureChartDiv'), 'Pressure', 'hPa', '#fa0');
         mTemperatureChart = new ggTimeChart(document.getElementById('mTemperatureChartDiv'), 'Temperature', '°C', '#09f');
         mHumidityChart = new ggTimeChart(document.getElementById('mHumidityChartDiv'), 'Humidity', '%', '#4a0');
         mOutputChart = new ggTimeChart(document.getElementById('mOutputChartDiv'), 'Output', '%', '#d05');
-        google.charts.setOnLoadCallback(DrawCharts);
       }
       
       function OnInputLogTable() {
@@ -228,9 +169,9 @@
       <hr noshade>
 
       <style>
-        .cTabs button { font-size: 110%; cursor: pointer; background-color:#ccc; border:none; outline:none; transition:0.3s; }
-        .cTabs button.selected { background-color:white; }
-        .cTabs button:hover { background-color:#fc0; }
+        .cTabs button { font-size: 110%; cursor: pointer; color: white; background-color:#888; border:none; outline:none; transition:0.3s; }
+        .cTabs button.selected { color: #ccc; background-color:black; }
+        .cTabs button:hover { color: #fc0; }
       </style>
       <div class='cTabs'>
         <button class='cTab selected'>Live</button>
@@ -239,17 +180,18 @@
       </div>
 
       <style>
-        .cChartDiv { width: 100%; height: 280px; }
+        .cChartDiv { width: 100%; height: 280px; margin: 0px; padding: 0px; }
         @media only screen and (max-width: 600px) { .cChartDiv { height: 180px; } }
+        .cChartHr { height: 5px; border-width: 0; color: gray; background-color: #444; margin: 0px }
       </style>
-      <div id='mCharts' style='padding:3px;background:white'>
-        <div class='cChartDiv' id='mTemperatureChartDiv'></div>
-        <hr noshade style="border:white">
-        <div class='cChartDiv' id='mHumidityChartDiv'></div>
-        <hr noshade style="border:white">
-        <div class='cChartDiv' id='mPressureChartDiv'></div>
-        <hr noshade style="border:white">
-        <div class='cChartDiv' id='mOutputChartDiv'></div>
+      <div id='mCharts' style='margin:0px;padding:5px;background-color:black;'>
+        <svg class='cChartDiv' id='mTemperatureChartDiv'></svg>
+        <hr class='cChartHr'>
+        <svg class='cChartDiv' id='mHumidityChartDiv'></svg>
+        <hr class='cChartHr'>
+        <svg class='cChartDiv' id='mPressureChartDiv'></svg>
+        <hr class='cChartHr'>
+        <svg class='cChartDiv' id='mOutputChartDiv'></svg>
       </div>
       
       <div id='mLogTableDiv' hidden>

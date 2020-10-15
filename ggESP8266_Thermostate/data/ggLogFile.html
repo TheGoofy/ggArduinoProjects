@@ -8,7 +8,7 @@
     <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
     <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
     <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
-    <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
+    <script src="ggLineChartSVG.js"></script>
     <script language='javascript' type='text/javascript'>
 
       var mHostName = window.location.hostname;
@@ -19,7 +19,7 @@
       
       function InitAll() {
         if (mHostName == '') {
-          mHostName = window.prompt('Please enter host name', "192.168.0.88");
+          mHostName = window.prompt('Please enter host name', "192.168.1.116");
         }
         // redraw charts, when window size changes
         window.onresize = function() {
@@ -36,61 +36,26 @@
         mDownloadCSV.onclick = DownloadCSV;
       }
       
-      // google.charts.load('current', {'packages':['line']});
-      google.charts.load('current', {'packages':['corechart']});
-
       class ggTimeChart {
 
         constructor(aContainer, aTitle, aUnit, aColor) {
-          this.mData = new google.visualization.DataTable({
-            cols: [{type: 'datetime', label: 'Time', pattern: 'HH:mm:ss dd.MM.yyyy'},
-                   {type: 'number', label: 'min'},
-                   {type: 'number', label: 'max'},
-                   {type: 'number', label: 'mean'}]
-          });
-          this.mOptions = {
-            title: aTitle + ' [' + aUnit + ']',
-            titlePosition: 'in', // 'in', 'out', 'none'
-            titleTextStyle: { fontSize: 13, color: aColor, },
-            legend: { position: 'in', textStyle: { color: aColor, fontSize: 12 } },
-            series: {
-              0: { color: aColor, lineDashStyle: [1, 2] },
-              1: { color: aColor, lineDashStyle: [1, 2] },
-              2: { color: aColor }
-            },
-            axisTitlesPosition: 'in', // 'in', 'out', 'none'
-            chartArea: { width: '98%',  height: '100%' },
-            hAxis: {
-              textPosition: 'in',
-              maxTextLines: 2,
-              textStyle: { fontSize: 12, color: '#888' },
-              format: 'HH:mm:ss\ndd.MM.yyyy',
-              gridlines: { color: '#eee' },
-            },
-            vAxis: {
-              textPosition: 'in',
-              textStyle: { fontSize: 12, color: aColor },
-            },
-            explorer: {
-              axis: 'horizontal',
-              keepInBounds: true,
-              zoomDelta: 0.8,
-            }
-          };
-          // this.mChart = new google.charts.Line(aContainer);
-          this.mChart = new google.visualization.LineChart(aContainer);
+          this.mValues = [];
+          this.mChart = new ggLineChartSVG(aContainer, [], false);
+          this.mChart.mPlotBackgroundColor = "";
+          this.mChart.mPlotLineColor = aColor;
+          this.mChart.mPlotRangeOpacity = 0.4;
+          this.mChart.mDisplayRange = false;
+          this.mChart.mAxisY.mLabel = aTitle + " [" + aUnit + "]";
+          this.mChart.mAxisY.mLabelColor = "white";
+          this.mChart.mAxisY.mTicksLabelColor = "white";
         }
 
-        Add(aDate, aValue, aValueMin, aValueMax, aRedraw) {
-          this.mData.addRow([aDate, aValueMin, aValueMax, aValue]);
-          if (aRedraw) this.Draw();
+        Add(aDate, aValue, aValueMin, aValueMax) {
+          this.mValues.push([aDate, aValue, aValueMin, aValueMax]);
         }
 
         RemoveRows() {
-          let vNumberOfRows = this.mData.getNumberOfRows();
-          if (vNumberOfRows > 0) {
-            this.mData.removeRows(0, vNumberOfRows);
-          }
+          this.mValues = [];
         }
 
         SetRows(aDataView, aIndexBegin, aPositionOffset, aValueOffset, aValueScale, aValueStdDevScale) {
@@ -108,17 +73,13 @@
             let vMin = aValueOffset + aValueScale * aDataView.getInt16(vValuePosition + 2, vLittleEndian);
             let vMax = aValueOffset + aValueScale * aDataView.getInt16(vValuePosition + 4, vLittleEndian);
             let vStdDev = aValueStdDevScale * aDataView.getInt16(vValuePosition + 6, vLittleEndian);
-            this.Add(vDate, vMean,  vMin, vMax, false);
+            this.Add(vDate, vMean, vMin, vMax);
           }
           this.Draw();
         }
 
         Draw() {
-          if (this.mData.getNumberOfRows() < 2) return;
-          var vDateFormatter = new google.visualization.DateFormat({pattern: 'dd.MM.yyyy / HH:mm:ss'});
-          vDateFormatter.format(this.mData, 0);
-          // this.mChart.draw(this.mData, google.charts.Line.convertOptions(this.mOptions));
-          this.mChart.draw(this.mData, this.mOptions);
+          this.mChart.Values = this.mValues;
         }
       
       }
@@ -143,7 +104,7 @@
       }
 
       function LoadCharts(aFileName) {
-        LoadData(aFileName, function (aDataView) {
+        LoadData(aFileName, function LoadDataCallback(aDataView) {
           let vIndexBegin = FindIndexBegin(aDataView);
           mPressureChart.SetRows(aDataView, vIndexBegin, 0, 800.0, 0.01, 0.001);
           mTemperatureChart.SetRows(aDataView, vIndexBegin, 8, 0.0, 0.01, 0.001);
@@ -164,7 +125,6 @@
         mTemperatureChart = new ggTimeChart(document.getElementById('mTemperatureChartDiv'), 'Temperature', '°C', '#09f');
         mHumidityChart = new ggTimeChart(document.getElementById('mHumidityChartDiv'), 'Humidity', '%', '#4a0');
         mOutputChart = new ggTimeChart(document.getElementById('mOutputChartDiv'), 'Output', '%', '#d05');
-        google.charts.setOnLoadCallback(DrawCharts);
         LoadCharts("ggData1D.dat");
       }
 
@@ -223,7 +183,7 @@
           if (vTab.className.includes("selected")) {
             let vFileNameCSV = vTab.value + '.csv';
             let vFileNameDAT = vTab.value + '.dat';
-            LoadData(vFileNameDAT, function (aDataView) {
+            LoadData(vFileNameDAT, function LoadDataCallback(aDataView) {
               const vSep = '\t';
               let vDataCSV = "time" + vSep +
                 "p_mean" + vSep + "p_min" + vSep + "p_max" + vSep + "p_stddev" + vSep + 
@@ -265,9 +225,9 @@
       <hr noshade>
 
       <style>
-        .cTabs button { font-size: 110%; cursor: pointer; background-color:#ccc; border:none; outline:none; transition:0.3s; }
-        .cTabs button.selected { background-color:white; }
-        .cTabs button:hover { background-color:#fc0; }
+        .cTabs button { font-size: 110%; cursor: pointer; color: white; background-color:#888; border:none; outline:none; transition:0.3s; }
+        .cTabs button.selected { color: #ccc; background-color:black; }
+        .cTabs button:hover { color: #fc0; }
       </style>
       <div class='cTabs'>
         <button class='cTab' onclick="OnTabClick(this)" value='ggData1H'>1H</button>
@@ -279,21 +239,22 @@
         <a id='mDownloadCSV' href="#">Download CSV</a>
         <a id='mDownloadCSV_hidden' hidden></a>
       </div>
-      
+
       <style>
-        .cChartDiv { width: 100%; height: 280px; }
+        .cChartDiv { width: 100%; height: 280px; margin: 0px; padding: 0px; }
         @media only screen and (max-width: 600px) { .cChartDiv { height: 180px; } }
+        .cChartHr { height: 5px; border-width: 0; color: gray; background-color: #444; margin: 0px }
       </style>
-      <div id='mCharts' style='padding:3px;background:white'>
-        <div class='cChartDiv' id='mTemperatureChartDiv'></div>
-        <hr noshade style="border:white">
-        <div class='cChartDiv' id='mHumidityChartDiv'></div>
-        <hr noshade style="border:white">
-        <div class='cChartDiv' id='mPressureChartDiv'></div>
-        <hr noshade style="border:white">
-        <div class='cChartDiv' id='mOutputChartDiv'></div>
+      <div id='mCharts' style='margin:0px;padding:5px;background-color:black;'>
+        <svg class='cChartDiv' id='mTemperatureChartDiv'></svg>
+        <hr class='cChartHr'>
+        <svg class='cChartDiv' id='mHumidityChartDiv'></svg>
+        <hr class='cChartHr'>
+        <svg class='cChartDiv' id='mPressureChartDiv'></svg>
+        <hr class='cChartHr'>
+        <svg class='cChartDiv' id='mOutputChartDiv'></svg>
       </div>
-      
+
       <hr noshade>
       <a href='/'>[home]</a>
       <a href='/loglive'>[log-live]</a>
