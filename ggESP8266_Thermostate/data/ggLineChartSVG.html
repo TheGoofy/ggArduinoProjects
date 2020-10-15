@@ -15,12 +15,13 @@
   <script src="ggLineChartSVG.js"></script>
   <script>
     function GenerateValues(aCount = 20) {
+      let vTime = Date.now();
+      let vTimeDelta = 1000.0 * Math.exp(15.0 * Math.random());
       let vValues = [];
       let vValuesBase = 100.0 * Math.random() - 50.0;
       let vValuesRange = 2.0 * Math.random();
-      let vTime = Date.now();
       for (let vIndex = 0; vIndex < aCount; vIndex++) {
-        vTime += 1000 + 5000.0 * Math.random();
+        vTime += vTimeDelta * (0.1 + Math.random());
         let vValue = vValuesBase + vValuesRange * (Math.random() - 0.5);
         let vRange = vValuesRange * (0.5 + 0.5 * Math.random());
         vValues.push([vTime, vValue, vValue - vRange, vValue + vRange]);
@@ -31,7 +32,7 @@
     mLineChart.mBackgroundColor = "darkblue";
     mLineChart.mAxisY.mLabel = "Random Values [%] (Min Mean Max)";
     mLineChart.Draw();
-    // setInterval(function() { mLineChart.Values = GenerateValues(); }, 5000);
+    setInterval(function() { mLineChart.Values = GenerateValues(); }, 5000);
   </script>
 </body>
 

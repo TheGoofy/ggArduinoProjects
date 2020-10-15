@@ -258,7 +258,7 @@ function TimeCeil(aMilliSeconds, aTimeTick) {
   if (aTimeTick.mSeconds != 0) {
     let vMilliSeconds = vDate.getMilliseconds() + 1000.0 * vDate.getSeconds();
     vDate.setSeconds(0);
-    vDate.setMilliseconds(aTimeTick.mSeconds * Math.ceil(vMilliSeconds / aTimeTick.mSeconds));
+    vDate.setMilliseconds(1000.0 * aTimeTick.mSeconds * Math.ceil(0.001 * vMilliSeconds / aTimeTick.mSeconds));
     return vDate.getTime();
   }
   vDate.setMilliseconds(0);
