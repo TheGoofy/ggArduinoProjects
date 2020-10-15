@@ -20,7 +20,7 @@ function CreateWebSocket(
     let vWebSocket = aParent[aWebSocketObjectName];
     
     vWebSocket.onopen = function (aEvent) {
-      console.info('OnWebSocketOpen()');
+      console.info('vWebSocket.onopen()');
       if (aStatusDiv) aStatusDiv.innerHTML = 'connected';
       if (aParent.mWebSocketReConnectTimerID) {
         window.clearInterval(aParent.mWebSocketReConnectTimerID);
@@ -29,7 +29,7 @@ function CreateWebSocket(
     };
     
     vWebSocket.onclose = function (aEvent) {
-      console.warn('OnWebSocketClose()');
+      console.warn('vWebSocket.onclose()');
       if (aStatusDiv) aStatusDiv.innerHTML = 'disconnected';
       if (!aParent.mWebSocketReConnectTimerID) {
         aParent.mWebSocketReConnectTimerID = window.setInterval(function () {
@@ -39,17 +39,17 @@ function CreateWebSocket(
     };
     
     vWebSocket.onerror = function (aEvent) {
-      console.error('OnWebSocketError()');
+      console.error('vWebSocket.onerror()');
       if (aStatusDiv) aStatusDiv.innerHTML = 'error';
     };
     
     vWebSocket.onmessage = function (aEvent) {
       try {
-        console.log('OnWebSocketMessage() - evaluating: ' + aEvent.data);
+        // console.log('OnWebSocketMessage() - evaluating: ' + aEvent.data);
         aMessageFunc(aEvent.data);
       }
       catch (vError) {
-        console.error('OnWebSocketMessage() - unable to evaluate: ' + aEvent.data);
+        console.error('vWebSocket.onmessage() - unable to evaluate: ' + aEvent.data);
       }
     };
   }
