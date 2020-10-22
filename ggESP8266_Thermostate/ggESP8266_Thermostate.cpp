@@ -7,6 +7,7 @@
 #include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets (by Markus Sattler)
 #include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager (by Tzapu)
 #include <BME280I2C.h>        // https://github.com/finitespace/BME280 (by Tyler Glenn)
+#include <U8g2lib.h>          // https://github.com/olikraus/u8g2 by oliver
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
@@ -146,14 +147,14 @@ void ConnectComponents()
   // display
   mPeriphery.mDisplay.OnConnection([] (bool aConnected) {
     // Maybe update web-sockets? (no need to display this event on the display)
-    ggDebug vDebug("mPeriphery.mDisplay.OnConnection(...)");
-    vDebug.PrintF("aConnected = %d\n", aConnected);
+    GG_DEBUG_BLOCK("mPeriphery.mDisplay.OnConnection(...)");
+    GG_DEBUG_PRINTF("aConnected = %d\n", aConnected);
   });
 
   // when a new client is conneted, it needs a complete update
   mWebSockets.OnClientConnect([&] (int aClientID) {
-    ggDebug vDebug("mWebSockets.OnClientConnect(...)");
-    vDebug.PrintF("aClientID = %d\n", aClientID);
+    GG_DEBUG_BLOCK("mWebSockets.OnClientConnect(...)");
+    GG_DEBUG_PRINTF("aClientID = %d\n", aClientID);
     mWebSockets.UpdateName(mName.Get(), aClientID);
     mWebSockets.UpdateSensorStatus(mPeriphery.mSensor.GetStatus(), aClientID);
     mWebSockets.UpdatePressure(mPeriphery.mSensor.GetPressure(), aClientID);
@@ -169,8 +170,8 @@ void ConnectComponents()
     UpdateDisplay();
   });
   mWebSockets.OnClientDisconnect([&] (int aClientID) {
-    ggDebug vDebug("mWebSockets.OnClientDisonnect(...)");
-    vDebug.PrintF("aClientID = %d\n", aClientID);
+    GG_DEBUG_BLOCK("mWebSockets.OnClientDisonnect(...)");
+    GG_DEBUG_PRINTF("aClientID = %d\n", aClientID);
     UpdateDisplay();
   });
 
@@ -202,8 +203,8 @@ void ConnectComponents()
 
   // connect sensor events
   mPeriphery.mSensor.OnStatusChanged([&] (const char* aStatus) {
-    ggDebug vDebug("mPeriphery.mSensor.OnStatusChanged");
-    vDebug.PrintF("aStatus = %s\n", aStatus);
+    GG_DEBUG_BLOCK("mPeriphery.mSensor.OnStatusChanged");
+    GG_DEBUG_PRINTF("aStatus = %s\n", aStatus);
     mTemperatureController.SetInputValid(mPeriphery.mSensor.StatusOK());
     mPeriphery.mStatusLED.SetError(!mPeriphery.mSensor.StatusOK());
     mWebSockets.UpdateSensorStatus(aStatus);
@@ -225,8 +226,8 @@ void ConnectComponents()
 
   // wifi events
   mWiFiConnection.OnConnection([&] (bool aConnected) {
-    ggDebug vDebug("mWiFiConnection.OnConnection");
-    vDebug.PrintF("aConnected = %d\n", aConnected);
+    GG_DEBUG_BLOCK("mWiFiConnection.OnConnection");
+    GG_DEBUG_PRINTF("aConnected = %d\n", aConnected);
     mPeriphery.mStatusLED.SetWarning(!aConnected);
     UpdateDisplay();
   });
@@ -286,8 +287,8 @@ void ConnectComponents()
     vStreams.push_back(&aStream);
     vStreams.push_back(&Serial);
     ggDebug::SetStream(vStreams);
-    ggDebug vDebug("mWebServer.OnDebugStream(...)");
-    vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
+    GG_DEBUG_BLOCK("mWebServer.OnDebugStream(...)");
+    GG_DEBUG_PRINTF("mHostName = %s\n", mHostName.c_str());
     mPeriphery.PrintDebug("mPeriphery");
     mWiFiConnection.PrintDebug("mWiFiConnection");
     mTemperatureController.PrintDebug("mTemperatureController");
@@ -379,8 +380,10 @@ void Run()
 void setup()
 {
   // serial communication (for debugging)
+  #if M_DEBUGGING
   Serial.begin(115200);
   Serial.println("");
+  #endif
   
   GG_DEBUG();
 
