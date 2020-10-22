@@ -82,7 +82,6 @@ struct ggPeriphery {
 
   void Run() {
     mKey.Run();
-    mOutputPWM.Run();
     mSensor.Run();
     mDisplay.Run();
   }
