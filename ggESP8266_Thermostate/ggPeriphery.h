@@ -6,6 +6,26 @@
 #include "ggSensor.h"
 #include "ggDisplay.h"
 
+// verbose pin description for ESP-12F
+#define M_PIN_GPIO_00_FLASH     0 // if low at boot, ESP will be in programming mode (boot fails if low)
+#define M_PIN_GPIO_01_TX        1 // usually used for serial communication (terminal), high at boot, debug at boot (boot fails if low)
+#define M_PIN_GPIO_02_ENBOOT    2 // must be pulled high at boot (boot fails if low)
+#define M_PIN_GPIO_03_RX        3 // usually used for serial communication (terminal), high at boot
+#define M_PIN_GPIO_04_SDA       4 // fast digital IO (no side-effects), recommended for i2c
+#define M_PIN_GPIO_05_SCL       5 // fast digital IO (no side-effects), recommended for i2c
+#define M_PIN_GPIO_06_SPI_CLK   6 //
+#define M_PIN_GPIO_07_SPI_MISO  7 //
+#define M_PIN_GPIO_08_SPI_MOSI  8 //
+#define M_PIN_GPIO_09_SPI_HD    9 // high at boot
+#define M_PIN_GPIO_10_SPI_WP   10 // high at boot
+#define M_PIN_GPIO_11_SPI_CS0  11 //
+#define M_PIN_GPIO_12          12 // fast digital IO (no side-effects)
+#define M_PIN_GPIO_13          13 // fast digital IO (no side-effects)
+#define M_PIN_GPIO_14          14 // fast digital IO (no side-effects)
+#define M_PIN_GPIO_15_SPI_CS   15 // pulled to ground (boot fails if high)
+#define M_PIN_GPIO_16_XPD_DCDC 16 // high at boot, used to wake up from deep sleep
+#define M_PIN_GPIO_ADC0        A0 // analog input (inefficient for digital IO)
+
 #if defined(M_PCB_VERSION_V1)
   #define M_PIN_KEY 0
   #define M_PIN_SSR 1
@@ -22,18 +42,18 @@
   #define M_PIN_LED 1
   #define M_PIN_DHT 2
 #elif defined (M_PCB_VERSION_V4)
-  #define M_PIN_KEY 0 // communication key (on / off / reset settings)
-  #define M_PIN_SSR 3 // SSR output
-  #define M_PIN_LED 1 // status LED
-  #define M_PIN_SDA 4 // sensor I2C data
-  #define M_PIN_SCL 5 // sensor I2C clock
+  #define M_PIN_KEY    M_PIN_GPIO_00_FLASH // communication key (on / off / reset settings)
+  #define M_PIN_SSR    M_PIN_GPIO_03_RX // SSR output
+  #define M_PIN_LED    M_PIN_GPIO_01_TX // status LED
+  #define M_PIN_SDA    M_PIN_GPIO_04_SDA // sensor I2C data
+  #define M_PIN_SCL    M_PIN_GPIO_05_SCL // sensor I2C clock
 #elif defined (M_PCB_VERSION_V5)
-  #define M_PIN_KEY 0 // communication key (on / off / reset settings)
-  #define M_PIN_SSR 14 // SSR output
-  #define M_PIN_SSR_SW 12 // sensor SSR manual key (switch on)
-  #define M_PIN_LED 13 // status LED
-  #define M_PIN_SDA 4 // sensor I2C data
-  #define M_PIN_SCL 5 // sensor I2C clock
+  #define M_PIN_KEY    M_PIN_GPIO_00_FLASH // communication key (on / off / reset settings)
+  #define M_PIN_SSR    M_PIN_GPIO_14 // SSR output
+  #define M_PIN_SSR_SW M_PIN_GPIO_12 // sensor SSR manual key (switch on)
+  #define M_PIN_LED    M_PIN_GPIO_13 // status LED
+  #define M_PIN_SDA    M_PIN_GPIO_04_SDA // sensor I2C data
+  #define M_PIN_SCL    M_PIN_GPIO_05_SCL // sensor I2C clock
 #endif // M_PCB_VERSION_X
 
 struct ggPeriphery {
