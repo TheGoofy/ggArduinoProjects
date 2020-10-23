@@ -21,4 +21,3 @@ float ggRoundToSD(float aValue, int aSignificantDigits)
 
   return vResult;
 }
-

@@ -37,7 +37,7 @@
 const String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
 
 // file system to use (for webserver and datalogger)
-FS* mFileSystem = &LittleFS; // &LittleFS or &SPIFFS;
+FS* mFileSystem = &SPIFFS; // &LittleFS or &SPIFFS;
 
 // runs AP, if no wifi connection
 WiFiManager mWifiManager;
