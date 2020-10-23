@@ -13,7 +13,7 @@ ggController::ggController()
   mInputMicrosLast(0),
   mInputValue(0.0f),
   mOutputValue(0.0f),
-  mSamplerPID(0.1f), // 0.1Hz (10s sampling time)
+  mSamplePeriod(10.0f),
   mControlP(0.4f),
   mControlI(0.004f),
   mControlD(12.0f),
@@ -131,8 +131,7 @@ void ggController::SetInput(float aInput)
   if (mInputValue != aInput) {
     unsigned long vMicros = micros();
     float vDelta = (vMicros - mInputMicrosLast) / 1000000.0f;
-    float vSamplePeriod = mSamplerPID.GetSamplePeriod();
-    float vInputWeight = vDelta / vSamplePeriod;
+    float vInputWeight = vDelta / mSamplePeriod;
     vInputWeight = ggClamp(vInputWeight, 0.1f, 0.9f);
     mInputValue = (1.0f - vInputWeight) * mInputValue + vInputWeight * aInput;
     mInputMicrosLast = vMicros;
@@ -181,15 +180,9 @@ void ggController::OnOutputChanged(tOutputChangedFunc aOutputChangedFunc)
 void ggController::Begin()
 {
   ResetControlStatePID();
-  mSamplerPID.OnSample([&] () {
+  mTickerPID.attach_ms(1000.0f * mSamplePeriod + 0.5f, [&] () {
     ControlOutput();
   });
-}
-
-
-void ggController::Run()
-{
-  mSamplerPID.Run();
 }
 
 
@@ -202,7 +195,7 @@ void ggController::PrintDebug(const String& aName) const
   vDebug.PrintF("mInputValue = %f\n", mInputValue);
   vDebug.PrintF("mSetPointValue = %f\n", mSetPointValue.Get());
   vDebug.PrintF("mHysteresisValue = %f\n", mHysteresisValue.Get());
-  mSamplerPID.PrintDebug("mSamplerPID");
+  vDebug.PrintF("mSamplePeriod = %f\n", mSamplePeriod);
   vDebug.PrintF("mPID = %f / %f / %f\n", mControlP.Get(), mControlI.Get(), mControlD.Get());
   vDebug.PrintF("mOutputAnalog = %d\n", mOutputAnalog.Get());
   vDebug.PrintF("mOutputValue = %f\n", mOutputValue);

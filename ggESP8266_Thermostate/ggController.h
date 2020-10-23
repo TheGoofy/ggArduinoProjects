@@ -2,6 +2,7 @@
 
 #include <functional>
 #include <Stream.h>
+#include <Ticker.h>
 
 #include "ggValueEEPromT.h"
 #include "ggStringConvertNumbers.h"
@@ -48,7 +49,6 @@ public:
   void OnOutputChanged(tOutputChangedFunc aOutputChangedFunc);
 
   void Begin();
-  void Run();
 
   void PrintDebug(const String& aName = "") const;
 
@@ -78,7 +78,8 @@ private:
   float mOutputValue;
 
   // PID controller
-  ggSampler mSamplerPID;
+  Ticker mTickerPID;
+  const float mSamplePeriod;
   ggValueEEPromT<float> mControlP;
   ggValueEEPromT<float> mControlI;
   ggValueEEPromT<float> mControlD;

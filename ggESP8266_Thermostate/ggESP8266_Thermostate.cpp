@@ -366,7 +366,6 @@ void ConnectComponents()
 void Run()
 {
   mPeriphery.Run();
-  mTemperatureController.Run();
   mWebServer.Run();
   mWebSockets.Run();
   mWiFiConnection.Run();
