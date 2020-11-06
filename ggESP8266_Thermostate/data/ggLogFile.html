@@ -19,7 +19,7 @@
       
       function InitAll() {
         if (mHostName == '') {
-          mHostName = window.prompt('Please enter host name', "192.168.1.116");
+          mHostName = window.prompt('Please enter host name', "192.168.0.250");
         }
         // redraw charts, when window size changes
         window.onresize = function() {
@@ -50,8 +50,10 @@
           this.mChart.mAxisY.mTicksLabelColor = "white";
         }
 
-        Add(aDate, aValue, aValueMin, aValueMax) {
-          this.mValues.push([aDate, aValue, aValueMin, aValueMax]);
+        Add(aDate, aValue, aValueMin, aValueMax, aValueStdDev) {
+          const vValueStdL = aValue - aValueStdDev / 2.0;
+          const vValueStdH = aValue + aValueStdDev / 2.0;
+          this.mValues.push([aDate, aValue, vValueStdL, vValueStdH, aValueMin, aValueMax]);
         }
 
         RemoveRows() {
@@ -73,7 +75,7 @@
             let vMin = aValueOffset + aValueScale * aDataView.getInt16(vValuePosition + 2, vLittleEndian);
             let vMax = aValueOffset + aValueScale * aDataView.getInt16(vValuePosition + 4, vLittleEndian);
             let vStdDev = aValueStdDevScale * aDataView.getInt16(vValuePosition + 6, vLittleEndian);
-            this.Add(vDate, vMean, vMin, vMax);
+            this.Add(vDate, vMean, vMin, vMax, vStdDev);
           }
           this.Draw();
         }
