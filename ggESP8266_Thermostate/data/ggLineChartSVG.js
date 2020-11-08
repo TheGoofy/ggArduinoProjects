@@ -396,25 +396,25 @@ class ggLineChartSVG {
   }
 
   OnWheel(aEvent) {
-    console.log({aEvent});
-    // console.log({x: aEvent.x, y: aEvent.y, dx: aEvent.deltaX, dy: aEvent.deltaY, dz: aEvent.deltaZ, dm: aEvent.deltaMode});
-    aEvent.preventDefault();
-    const vZoomScale = 1.1;
-    let vZoomX = this.mAxisX.mZoom;
-    if (aEvent.deltaX < 0) vZoomX *= vZoomScale;
-    if (aEvent.deltaX > 0) vZoomX /= vZoomScale;
-    vZoomX = Math.min(Math.max(1.0, vZoomX), 100.0);
-    let vZoomY = this.mAxisY.mZoom;
-    if (aEvent.deltaY < 0) vZoomY *= vZoomScale;
-    if (aEvent.deltaY > 0) vZoomY /= vZoomScale;
-    vZoomY = Math.min(Math.max(1.0, vZoomY), 100.0);
-    if (this.mAxisX.mZoom != vZoomX ||
-        this.mAxisY.mZoom != vZoomY) {
-      this.mAxisX.mZoom = vZoomX;
-      this.mAxisX.mOffset = (1.0 - vZoomX) * aEvent.clientX;
-      this.mAxisY.mZoom = vZoomY;
-      this.mAxisY.mOffset = (1.0 - vZoomY) * aEvent.clientY;
-      this.Draw();
+    if (aEvent.altKey) {
+      aEvent.preventDefault();
+      let vAxis = aEvent.shiftKey ? this.mAxisY : this.mAxisX;
+      let vZoom = vAxis.mZoom;
+      const vZoomScale = 1.1;
+      if (aEvent.deltaY < 0) vZoom *= vZoomScale;
+      if (aEvent.deltaY > 0) vZoom /= vZoomScale;
+      vZoom = Math.min(Math.max(1.0, vZoom), 100.0);
+      if (vAxis.mZoom != vZoom) {
+        const vOffsetClient = aEvent.shiftKey ? this.mSvg.clientHeight - aEvent.offsetY : aEvent.offsetX;
+        vAxis.mZoom = vZoom;
+        if (aEvent.shiftKey) {
+          vAxis.mOffset = (vZoom - 1.0) * (this.mSvg.clientHeight - aEvent.offsetY);
+        }
+        else {
+          vAxis.mOffset = (1.0 - vZoom) * aEvent.offsetX;
+        }
+        this.Draw();
+      }
     }
   }
 
