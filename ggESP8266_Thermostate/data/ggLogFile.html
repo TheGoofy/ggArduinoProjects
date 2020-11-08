@@ -77,10 +77,10 @@
             let vStdDev = aValueStdDevScale * aDataView.getInt16(vValuePosition + 6, vLittleEndian);
             this.Add(vDate, vMean, vMin, vMax, vStdDev);
           }
-          this.Draw();
-        }
-
-        Draw() {
+          this.mChart.mAxisX.mZoom = 1.0;
+          this.mChart.mAxisX.mOffset = 0.0;
+          this.mChart.mAxisY.mZoom = 1.0;
+          this.mChart.mAxisY.mOffset = 0.0;
           this.mChart.Values = this.mValues;
         }
       
@@ -116,10 +116,10 @@
       }
       
       function DrawCharts() {
-        mPressureChart.Draw();
-        mTemperatureChart.Draw();
-        mHumidityChart.Draw();
-        mOutputChart.Draw();
+        mPressureChart.mChart.Draw();
+        mTemperatureChart.mChart.Draw();
+        mHumidityChart.mChart.Draw();
+        mOutputChart.mChart.Draw();
       }
 
       function CreateCharts() {
