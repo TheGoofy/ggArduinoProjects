@@ -541,27 +541,36 @@ class ggLineChartSVG {
     }
 
     // data points
-    const vPoints = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[1])]);
-    const vSvgPlotLine = ggSvg.CreatePolyline(vPoints);
-    ggSvg.SetStyle(vSvgPlotLine, `stroke:${this.mPlotLineColor}; stroke-width:${this.mPlotLineWidth}; stroke-linejoin:bevel; fill:none;`);
-    const vPointsStdL = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[2])]);
-    const vPointsStdH = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[3])]);
-    const vPointsStdDev = vPointsStdL.concat(vPointsStdH.reverse());
-    const vSvgPlotStdDev = ggSvg.CreatePolygon(vPointsStdDev);
-    ggSvg.SetStyle(vSvgPlotStdDev, `fill:${this.mPlotLineColor}; fill-opacity:${this.mPlotRangeOpacity};  stroke-width:0;`);
-    const vPointsMin = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[4])]);
-    const vPointsMax = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[5])]);
-    const vPointsMinMax = vPointsMin.concat(vPointsMax.reverse());
-    const vSvgPlotMinMax = ggSvg.CreatePolygon(vPointsMinMax);
-    ggSvg.SetStyle(vSvgPlotMinMax, `fill:${this.mPlotLineColor}; fill-opacity:${this.mPlotRangeOpacity};  stroke-width:0;`);
+    let vSvgPlotLine = null;
+    if (vValues[0].length >= 2) {
+      const vPoints = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[1])]);
+      vSvgPlotLine = ggSvg.CreatePolyline(vPoints);
+      ggSvg.SetStyle(vSvgPlotLine, `stroke:${this.mPlotLineColor}; stroke-width:${this.mPlotLineWidth}; stroke-linejoin:bevel; fill:none;`);
+    }
+    let vSvgPlotStdDev = null;
+    if (vValues[0].length >= 4) {
+      const vPointsStdL = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[2])]);
+      const vPointsStdH = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[3])]);
+      const vPointsStdDev = vPointsStdL.concat(vPointsStdH.reverse());
+      vSvgPlotStdDev = ggSvg.CreatePolygon(vPointsStdDev);
+      ggSvg.SetStyle(vSvgPlotStdDev, `fill:${this.mPlotLineColor}; fill-opacity:${this.mPlotRangeOpacity};  stroke-width:0;`);
+    }
+    let vSvgPlotMinMax = null;
+    if (vValues[0].length >= 6) {
+      const vPointsMin = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[4])]);
+      const vPointsMax = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[5])]);
+      const vPointsMinMax = vPointsMin.concat(vPointsMax.reverse());
+      vSvgPlotMinMax = ggSvg.CreatePolygon(vPointsMinMax);
+      ggSvg.SetStyle(vSvgPlotMinMax, `fill:${this.mPlotLineColor}; fill-opacity:${this.mPlotRangeOpacity};  stroke-width:0;`);
+    }
 
     // compile SVG-objects (z-order)
     vSgvGroupMain.appendChild(vSvgPlotBackground);
     vSgvGroupMain.appendChild(vSvgLinesX);
     vSgvGroupMain.appendChild(vSvgLinesY);
-    vSgvGroupMain.appendChild(vSvgPlotMinMax);
-    vSgvGroupMain.appendChild(vSvgPlotStdDev);
-    vSgvGroupMain.appendChild(vSvgPlotLine);
+    if (vSvgPlotMinMax) vSgvGroupMain.appendChild(vSvgPlotMinMax);
+    if (vSvgPlotStdDev) vSgvGroupMain.appendChild(vSvgPlotStdDev);
+    if (vSvgPlotLine) vSgvGroupMain.appendChild(vSvgPlotLine);
     vSgvGroupMain.appendChild(vSvgLabelsX);
     vSgvGroupMain.appendChild(vSvgLabelsY);
 
