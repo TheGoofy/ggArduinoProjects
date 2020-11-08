@@ -320,6 +320,8 @@ class ggLineChartSVG {
     mTicksLineWidth: 1.0,
     mTicksLabelFont: "10px arial",
     mTicksLabelColor: "white",
+    mOffset: 0.0,
+    mZoom: 1.0,
   };
   mAxisY = {
     mLabel: "",
@@ -330,6 +332,8 @@ class ggLineChartSVG {
     mTicksLineWidth: 1.0,
     mTicksLabelFont: "10px arial",
     mTicksLabelColor: "white",
+    mOffset: 0.0,
+    mZoom: 1.0,
   };
   
   // "private" members
@@ -341,6 +345,7 @@ class ggLineChartSVG {
     this.mSvg = aSVG;
     this.mValues = aValues;
     this.mValues.sort((aValueA, aValueB) => aValueA[0] - aValueB[0]);
+    this.mSvg.onwheel = aEvent => this.OnWheel(aEvent);
     if (aDraw) this.Draw();
   }
 
@@ -376,6 +381,41 @@ class ggLineChartSVG {
   get RightBottom() {
     return new ggVector(this.mSvg.clientLeft + this.mSvg.clientWidth,
                         this.mSvg.clientTop + this.mSvg.clientHeight);
+  }
+
+  IsInsideClientX(aPointX) {
+    const vMinX = this.mSvg.clientLeft;
+    const vMaxX = vMinX + this.mSvg.clientWidth;
+    return vMinX <= aPointX && aPointX <= vMaxX;
+  }
+
+  IsInsideClientY(aPointY) {
+    const vMinY = this.mSvg.clientTop;
+    const vMaxY = vMinY + this.mSvg.clientHeight;
+    return vMinY <= aPointY && aPointY <= vMaxY;
+  }
+
+  OnWheel(aEvent) {
+    if (aEvent.altKey) {
+      aEvent.preventDefault();
+      let vAxis = aEvent.shiftKey ? this.mAxisY : this.mAxisX;
+      let vZoom = vAxis.mZoom;
+      const vZoomScale = 1.1;
+      if (aEvent.deltaY < 0) vZoom *= vZoomScale;
+      if (aEvent.deltaY > 0) vZoom /= vZoomScale;
+      vZoom = Math.min(Math.max(1.0, vZoom), 100.0);
+      if (vAxis.mZoom != vZoom) {
+        const vOffsetClient = aEvent.shiftKey ? this.mSvg.clientHeight - aEvent.offsetY : aEvent.offsetX;
+        vAxis.mZoom = vZoom;
+        if (aEvent.shiftKey) {
+          vAxis.mOffset = (vZoom - 1.0) * (this.mSvg.clientHeight - aEvent.offsetY);
+        }
+        else {
+          vAxis.mOffset = (1.0 - vZoom) * aEvent.offsetX;
+        }
+        this.Draw();
+      }
+    }
   }
 
   Draw() {
@@ -427,20 +467,20 @@ class ggLineChartSVG {
     const vValueMinX = vValuesRange.mMin[0];
     const vValueMaxX = vValuesRange.mMax[0];
     const vValueRangeX = vValueMaxX - vValueMinX;
-    const vTickDeltaX = RoundToTime(vValueRangeX * this.mAxisX.mTicksSpacing / this.mSvg.clientWidth);
-    const vScaleX = vValueRangeX != 0 ? (this.RightBottom.mX - this.LeftTop.mX - vAxisYLabelSizeX) / vValueRangeX : 1;
-    const vOffsetX = vAxisYLabelSizeX + this.LeftTop.mX - vScaleX * vValueMinX;
+    const vTickDeltaX = RoundToTime(vValueRangeX * this.mAxisX.mTicksSpacing / this.mAxisX.mZoom / this.mSvg.clientWidth);
+    const vScaleX = this.mAxisX.mZoom * (vValueRangeX != 0 ? (this.RightBottom.mX - this.LeftTop.mX - vAxisYLabelSizeX) / vValueRangeX : 1);
+    const vOffsetX = vAxisYLabelSizeX + this.LeftTop.mX - vScaleX * vValueMinX + this.mAxisX.mOffset;
     const GetPlotPointX = aValueX => vScaleX * aValueX + vOffsetX;
     const vValueMinY = Math.min(...vValuesRange.mMin.slice(1));
     const vValueMaxY = Math.max(...vValuesRange.mMax.slice(1));
     const vValueRangeY = vValueMinY != vValueMaxY ? vValueMaxY - vValueMinY : 1.0;
-    const vTickDeltaY = RoundToMultipleOfBase10(vValueRangeY * this.mAxisY.mTicksSpacing / this.mSvg.clientHeight, mRoundFactors20);
+    const vTickDeltaY = RoundToMultipleOfBase10(vValueRangeY * this.mAxisY.mTicksSpacing / this.mAxisY.mZoom / this.mSvg.clientHeight, mRoundFactors20);
     const vPlotMinY = vTickDeltaY * Math.floor(vValueMinY / vTickDeltaY);
     const vPlotMaxY = vTickDeltaY * Math.ceil(vValueMaxY / vTickDeltaY);
     const vPlotRangeY = vPlotMaxY - vPlotMinY;
     const vNumTicksY = Math.floor((vPlotRangeY / vTickDeltaY) + 0.5);
-    const vScaleY = vPlotRangeY != 0 ? (this.LeftTop.mY - this.RightBottom.mY) / vPlotRangeY : 1;
-    const vOffsetY = this.RightBottom.mY - vScaleY * vPlotMinY;
+    const vScaleY = this.mAxisY.mZoom * (vPlotRangeY != 0 ? (this.LeftTop.mY - this.RightBottom.mY) / vPlotRangeY : 1);
+    const vOffsetY = this.RightBottom.mY - vScaleY * vPlotMinY + this.mAxisY.mOffset;
     const GetPlotPointY = aValueY => vScaleY * aValueY + vOffsetY;
 
     // x-axis: labels and gridlines
@@ -454,15 +494,17 @@ class ggLineChartSVG {
       if (vTickX >= vValueMinX) {
         const vPointA = new ggVector(GetPlotPointX(vTickX), GetPlotPointY(vPlotMinY));
         const vPointB = new ggVector(GetPlotPointX(vTickX), GetPlotPointY(vPlotMaxY));
-        vSvgLinesX.appendChild(ggSvg.CreateLine(vPointA, vPointB));
-        if (!vIsFirstTickX) {
-          const vDate = new Date(vTickX);
-          const vRightBottom = this.RightBottom;
-          const vLabelPositionX = vPointA.mX - this.mAxisX.mTicksLineWidth / 2.0 - 1.0
-          vSvgLabelsX.appendChild(ggSvg.CreateSpan(vLabelPositionX, vRightBottom.mY, 0, "-1em", vDate.toLocaleTimeString()));
-          vSvgLabelsX.appendChild(ggSvg.CreateSpan(vLabelPositionX, vRightBottom.mY, 0, "0em", vDate.toLocaleDateString()));
+        if (this.IsInsideClientX(vPointA.mX) || this.IsInsideClientX(vPointB.mX)) {
+          vSvgLinesX.appendChild(ggSvg.CreateLine(vPointA, vPointB));
+          if (!vIsFirstTickX) {
+            const vDate = new Date(vTickX);
+            const vRightBottom = this.RightBottom;
+            const vLabelPositionX = vPointA.mX - this.mAxisX.mTicksLineWidth / 2.0 - 1.0
+            vSvgLabelsX.appendChild(ggSvg.CreateSpan(vLabelPositionX, vRightBottom.mY, 0, "-1em", vDate.toLocaleTimeString()));
+            vSvgLabelsX.appendChild(ggSvg.CreateSpan(vLabelPositionX, vRightBottom.mY, 0, "0em", vDate.toLocaleDateString()));
+          }
+          vIsFirstTickX = false;  
         }
-          vIsFirstTickX = false;
       }
       vTickX = TimeAdd(vTickX, vTickDeltaX);
     }
@@ -478,9 +520,11 @@ class ggLineChartSVG {
       let vTickY = vPlotMinY + vTickIndexY * vTickDeltaY;
       const vPointA = new ggVector(GetPlotPointX(vValueMinX), GetPlotPointY(vTickY));
       const vPointB = new ggVector(GetPlotPointX(vValueMaxX), GetPlotPointY(vTickY));
-      vSvgLinesY.appendChild(ggSvg.CreateLine(vPointA, vPointB));
-      const vLabelPositionY = vPointA.mY + this.mAxisY.mTicksLineWidth / 2.0 + 1.0;
-      vSvgLabelsY.appendChild(ggSvg.CreateSpan(vPointA.mX, vLabelPositionY, 0, "0.7em", vTickY.toFixed(vTickDecimalsY)));
+      if (this.IsInsideClientY(vPointA.mY) || this.IsInsideClientY(vPointB.mY)) {
+        vSvgLinesY.appendChild(ggSvg.CreateLine(vPointA, vPointB));
+        const vLabelPositionY = vPointA.mY + this.mAxisY.mTicksLineWidth / 2.0 + 1.0;
+        vSvgLabelsY.appendChild(ggSvg.CreateSpan(vPointA.mX, vLabelPositionY, 0, "0.7em", vTickY.toFixed(vTickDecimalsY)));
+      }
     }
 
     // data range x and y
@@ -496,19 +540,25 @@ class ggLineChartSVG {
 
     // data points
     const vPoints = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[1])]);
-    const vPointsMin = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[2])]);
-    const vPointsMax = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[3])]);
-    const vPointsRange = vPointsMin.concat(vPointsMax.reverse());
-    const vSvgPlotRange = ggSvg.CreatePolygon(vPointsRange);
-    ggSvg.SetStyle(vSvgPlotRange, `fill:${this.mPlotLineColor}; fill-opacity:${this.mPlotRangeOpacity};  stroke-width:0;`);
     const vSvgPlotLine = ggSvg.CreatePolyline(vPoints);
     ggSvg.SetStyle(vSvgPlotLine, `stroke:${this.mPlotLineColor}; stroke-width:${this.mPlotLineWidth}; stroke-linejoin:bevel; fill:none;`);
+    const vPointsStdL = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[2])]);
+    const vPointsStdH = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[3])]);
+    const vPointsStdDev = vPointsStdL.concat(vPointsStdH.reverse());
+    const vSvgPlotStdDev = ggSvg.CreatePolygon(vPointsStdDev);
+    ggSvg.SetStyle(vSvgPlotStdDev, `fill:${this.mPlotLineColor}; fill-opacity:${this.mPlotRangeOpacity};  stroke-width:0;`);
+    const vPointsMin = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[4])]);
+    const vPointsMax = vValues.map(vValue => [GetPlotPointX(vValue[0]), GetPlotPointY(vValue[5])]);
+    const vPointsMinMax = vPointsMin.concat(vPointsMax.reverse());
+    const vSvgPlotMinMax = ggSvg.CreatePolygon(vPointsMinMax);
+    ggSvg.SetStyle(vSvgPlotMinMax, `fill:${this.mPlotLineColor}; fill-opacity:${this.mPlotRangeOpacity};  stroke-width:0;`);
 
     // compile SVG-objects (z-order)
     vSgvGroupMain.appendChild(vSvgPlotBackground);
     vSgvGroupMain.appendChild(vSvgLinesX);
     vSgvGroupMain.appendChild(vSvgLinesY);
-    vSgvGroupMain.appendChild(vSvgPlotRange);
+    vSgvGroupMain.appendChild(vSvgPlotMinMax);
+    vSgvGroupMain.appendChild(vSvgPlotStdDev);
     vSgvGroupMain.appendChild(vSvgPlotLine);
     vSgvGroupMain.appendChild(vSvgLabelsX);
     vSgvGroupMain.appendChild(vSvgLabelsY);

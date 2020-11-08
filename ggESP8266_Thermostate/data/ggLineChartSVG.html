@@ -9,9 +9,12 @@
 </head>
 
 <body>
-  <div style='padding:3px;background:transparent'>
-    <svg id='mLineChartSVG' width="500" height="300"></svg>
-  </div>
+  <svg id="mSvgImage" width="500" height="500" viewbox="-10 -10 20 20" zoomAndPan="disable">
+    <circle cx="0" cy="0" r="10" stroke="green" stroke-width="1" fill="red" onwheel="OnWheelCircle(event)"/>
+  </svg>
+  <br>
+  <br>
+  <svg id='mLineChartSVG' width="500" height="300" onwheel="OnWheelCircle(event)" viewBox="0 0 500 300" preserveAspectRatio="none"></svg>
   <script src="ggLineChartSVG.js"></script>
   <script>
     function GenerateValues(aCount = 20) {
@@ -34,6 +37,28 @@
     mLineChart.Draw();
     setInterval(function() { mLineChart.Values = GenerateValues(); }, 5000);
   </script>
+    <script>
+      var svgImage = document.getElementById("mLineChartSVG");
+      // var viewBox = { x: 0, y: 0, w: 500, h: 300 };
+      const svgSize = { w: svgImage.clientWidth, h: svgImage.clientHeight };
+      function OnWheelCircle(aEvent) {
+        aEvent.preventDefault();
+        // console.log({x: aEvent.x, y: aEvent.y, dx: aEvent.deltaX, dy: aEvent.deltaY, dz: aEvent.deltaZ, dm: aEvent.deltaMode});
+        var viewBox = svgImage.viewBox.baseVal;
+        var w = viewBox.width;
+        var h = viewBox.height;
+        var mx = aEvent.offsetX;
+        var my = aEvent.offsetY;    
+        var dw = - w * Math.sign(aEvent.deltaY) * 0.05;
+        var dh = 0; // - h * Math.sign(aEvent.deltaY) * 0.05;
+        var dx = dw * mx / svgSize.w;
+        var dy = dh * my / svgSize.h;
+        viewBox = { x: viewBox.x + dx, y: viewBox.y + dy, width: viewBox.width - dw, height: viewBox.height - dh };
+        // svgImage.setAttribute('viewBox', `${viewBox.x} ${viewBox.y} ${viewBox.width} ${viewBox.height}`); 
+        // mLineChart.mAxisX.mZoom *= (aEvent.deltaY < 0.0) ? 1.1 : 1.0/1.1;
+        // mLineChart.Draw();
+      }
+    </script>
 </body>
 
 </html>
