@@ -468,6 +468,8 @@ class ggLineChartSVG {
     const vValueMaxX = vValuesRange.mMax[0];
     const vValueRangeX = vValueMaxX - vValueMinX;
     const vTickDeltaX = RoundToTime(vValueRangeX * this.mAxisX.mTicksSpacing / this.mAxisX.mZoom / this.mSvg.clientWidth);
+    const vPlotMinX = vTickDeltaX * Math.floor(vValueMinX / vTickDeltaX);
+    const vPlotMaxX = vTickDeltaX * Math.ceil(vValueMaxX / vTickDeltaX);
     const vScaleX = this.mAxisX.mZoom * (vValueRangeX != 0 ? (this.RightBottom.mX - this.LeftTop.mX - vAxisYLabelSizeX) / vValueRangeX : 1);
     const vOffsetX = vAxisYLabelSizeX + this.LeftTop.mX - vScaleX * vValueMinX + this.mAxisX.mOffset;
     const GetPlotPointX = aValueX => vScaleX * aValueX + vOffsetX;
@@ -518,8 +520,8 @@ class ggLineChartSVG {
     vTickDecimalsY = vTickDecimalsY < 0 ? -vTickDecimalsY : 0;
     for (let vTickIndexY = 1; vTickIndexY <= vNumTicksY; vTickIndexY++) {
       let vTickY = vPlotMinY + vTickIndexY * vTickDeltaY;
-      const vPointA = new ggVector(GetPlotPointX(vValueMinX), GetPlotPointY(vTickY));
-      const vPointB = new ggVector(GetPlotPointX(vValueMaxX), GetPlotPointY(vTickY));
+      const vPointA = new ggVector(GetPlotPointX(vPlotMinX), GetPlotPointY(vTickY));
+      const vPointB = new ggVector(GetPlotPointX(vPlotMaxX), GetPlotPointY(vTickY));
       if (this.IsInsideClientY(vPointA.mY) || this.IsInsideClientY(vPointB.mY)) {
         vSvgLinesY.appendChild(ggSvg.CreateLine(vPointA, vPointB));
         const vLabelPositionY = vPointA.mY + this.mAxisY.mTicksLineWidth / 2.0 + 1.0;
