@@ -520,12 +520,12 @@ class ggLineChartSVG {
     vTickDecimalsY = vTickDecimalsY < 0 ? -vTickDecimalsY : 0;
     for (let vTickIndexY = 1; vTickIndexY <= vNumTicksY; vTickIndexY++) {
       let vTickY = vPlotMinY + vTickIndexY * vTickDeltaY;
-      const vPointA = new ggVector(GetPlotPointX(vPlotMinX), GetPlotPointY(vTickY));
-      const vPointB = new ggVector(GetPlotPointX(vPlotMaxX), GetPlotPointY(vTickY));
+      const vPointA = new ggVector(GetPlotPointX(vValueMinX), GetPlotPointY(vTickY));
+      const vPointB = new ggVector(GetPlotPointX(vValueMaxX), GetPlotPointY(vTickY));
       if (this.IsInsideClientY(vPointA.mY) || this.IsInsideClientY(vPointB.mY)) {
         vSvgLinesY.appendChild(ggSvg.CreateLine(vPointA, vPointB));
         const vLabelPositionY = vPointA.mY + this.mAxisY.mTicksLineWidth / 2.0 + 1.0;
-        vSvgLabelsY.appendChild(ggSvg.CreateSpan(vPointA.mX, vLabelPositionY, 0, "0.7em", vTickY.toFixed(vTickDecimalsY)));
+        vSvgLabelsY.appendChild(ggSvg.CreateSpan(vAxisYLabelSizeX, vLabelPositionY, 0, "0.7em", vTickY.toFixed(vTickDecimalsY)));
       }
     }
 
