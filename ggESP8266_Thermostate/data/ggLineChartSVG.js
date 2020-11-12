@@ -400,12 +400,12 @@ class ggLineChartSVG {
       aEvent.preventDefault();
       let vAxis = aEvent.shiftKey ? this.mAxisY : this.mAxisX;
       let vZoom = vAxis.mZoom;
+      let vDelta = aEvent.deltaY != 0 ? aEvent.deltaY : aEvent.deltaX;
       const vZoomScale = 1.1;
-      if (aEvent.deltaY < 0) vZoom *= vZoomScale;
-      if (aEvent.deltaY > 0) vZoom /= vZoomScale;
+      if (vDelta < 0) vZoom *= vZoomScale;
+      if (vDelta > 0) vZoom /= vZoomScale;
       vZoom = Math.min(Math.max(1.0, vZoom), 100.0);
       if (vAxis.mZoom != vZoom) {
-        const vOffsetClient = aEvent.shiftKey ? this.mSvg.clientHeight - aEvent.offsetY : aEvent.offsetX;
         vAxis.mZoom = vZoom;
         if (aEvent.shiftKey) {
           vAxis.mOffset = (vZoom - 1.0) * (this.mSvg.clientHeight - aEvent.offsetY);
