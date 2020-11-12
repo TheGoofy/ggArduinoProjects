@@ -147,6 +147,11 @@
           }
         }
 
+        LinkZoom(aCharts) {
+          for (let vChart of aCharts) {
+            this.mChart.LinkZoomX(vChart.mChart);
+          }
+        }
       }
       
       function CreateCharts() {
@@ -154,6 +159,8 @@
         mTemperatureChart = new ggTimeChart(document.getElementById('mTemperatureChartDiv'), 'Temperature', '°C', '#09f');
         mHumidityChart = new ggTimeChart(document.getElementById('mHumidityChartDiv'), 'Humidity', '%', '#4a0');
         mOutputChart = new ggTimeChart(document.getElementById('mOutputChartDiv'), 'Output', '%', '#d05');
+        let vCharts = [mPressureChart, mTemperatureChart, mHumidityChart, mOutputChart];
+        for (let vChart of vCharts) vChart.LinkZoom(vCharts);
       }
       
       function OnInputLogTable() {

@@ -340,6 +340,7 @@ class ggLineChartSVG {
   mValues = [];
   mSvg = null;
   mSvgNS = "http://www.w3.org/2000/svg";
+  mLinkZoomX = new Set();
 
   constructor(aSVG, aValues = [], aDraw = true) {
     this.mSvg = aSVG;
@@ -357,6 +358,12 @@ class ggLineChartSVG {
 
   get Values() {
     return this.mValues;
+  }
+
+  LinkZoomX(aOtherChart) {
+    if (aOtherChart != this) {
+      this.mLinkZoomX.add(aOtherChart);
+    }
   }
 
   get Center() {
@@ -414,6 +421,13 @@ class ggLineChartSVG {
           vAxis.mOffset = (1.0 - vZoom) * aEvent.offsetX;
         }
         this.Draw();
+        if (vAxis == this.mAxisX) {
+          for (let vChart of this.mLinkZoomX) {
+            vChart.mAxisX.mZoom = vAxis.mZoom;
+            vChart.mAxisX.mOffset = vAxis.mOffset;
+            vChart.Draw();
+          }
+        }
       }
     }
   }
