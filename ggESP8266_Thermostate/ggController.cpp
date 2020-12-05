@@ -290,6 +290,7 @@ void ggController::ControlOutputPID(float& aOutput) const
   // calculate time since last sample
   unsigned long vMicros = micros();
   float vTimeDelta = (vMicros - mMicrosLast) / 1000000.0f;
+  if (vTimeDelta <= 0.9f * mSamplePeriod) return;
 
   // calculate current error
   float vError = mSetPointValue.Get() - mInputValue;
