@@ -30,9 +30,9 @@ public:
   void PrintDebug(const String& aName = "") const {
     ggDebug vDebug("ggInput", aName);
     ggInputOutput::PrintDebug();
-    vDebug.PrintF("mInverted = %d\n", mInverted);
-    vDebug.PrintF("mEnablePullUp = %d\n", mEnablePullUp);
-    vDebug.PrintF("Get() = %d\n", Get());
+    vDebug.PrintF("mInverted = %s\n", mInverted ? "true" : "false");
+    vDebug.PrintF("mEnablePullUp = %s\n", mEnablePullUp ? "true" : "false");
+    vDebug.PrintF("Get() = %s\n", Get() ? "true" : "false");
   }
 
 private:
