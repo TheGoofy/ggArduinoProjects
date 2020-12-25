@@ -75,8 +75,8 @@ ggDataLog* mDataLogMax = nullptr;
 void CreateComponents()
 {
   // create data loggers with various sampling rates  
-  mDataLog1H  = new ggDataLog(2,        60*60,           "/ggData1H.dat",  mFileSystem);
-  mDataLog1D  = new ggDataLog(30,       60*60*24,        "/ggData1D.dat",  mFileSystem);
+  mDataLog1H  = new ggDataLog(15,       60*60,           "/ggData1H.dat",  mFileSystem);
+  mDataLog1D  = new ggDataLog(60,       60*60*24,        "/ggData1D.dat",  mFileSystem);
   mDataLog1W  = new ggDataLog(60*5,     60*60*24*7,      "/ggData1W.dat",  mFileSystem);
   mDataLog1M  = new ggDataLog(60*15,    60*60*24*30,     "/ggData1M.dat",  mFileSystem);
   mDataLog1Y  = new ggDataLog(60*60*3,  60*60*24*365,    "/ggData1Y.dat",  mFileSystem);
