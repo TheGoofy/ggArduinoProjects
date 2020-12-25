@@ -46,7 +46,6 @@ public:
   void Begin(float aValue = 0.0f) {
     ggOutput::Begin(false);
     Set(aValue);
-    Serial.begin(115200);
   }
 
   void PrintDebug(const String& aName = "") const {
@@ -55,6 +54,7 @@ public:
     vDebug.PrintF("mCycles = %u\n", mCycles);
     vDebug.PrintF("mCyclesHigh = %u\n", mCyclesHigh);
     vDebug.PrintF("mCyclesLow = %u\n", mCyclesLow);
+    mTicker.PrintDebug("mTicker");
   }
 
 private:
