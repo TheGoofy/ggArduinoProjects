@@ -59,6 +59,19 @@ public:
     return mTicker.active();
   }
 
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggTicker", aName);
+    vDebug.PrintF("IsRunning() = %s\n", IsRunning() ? "true" : "false");
+    vDebug.PrintF("mTickDurationMillis = %u\n", mTickDurationMillis);
+    vDebug.PrintF("mRepeat = %s\n", mRepeat ? "true" : "false");
+    vDebug.PrintF("mTick = %d\n", mTick);
+    vDebug.PrintF("mTickNext = %d\n", mTickNext);
+    vDebug.PrintF("mIntervalIndex = %d\n", mIntervalIndex);
+    for (int vIntervalIndex = 0; vIntervalIndex < mIntervals.size(); vIntervalIndex++) {
+      vDebug.PrintF("mIntervals[%d] = %d\n", vIntervalIndex, mIntervals[vIntervalIndex]);
+    }
+  }
+
 private:
 
   void Tick() {
