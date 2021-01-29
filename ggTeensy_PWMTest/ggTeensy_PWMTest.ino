@@ -1,8 +1,8 @@
 #include "ggHalfBridge.h"
 #include "ggFullBridge.h"
 
-// #define M_TEENSY
-#define M_ARDUINO
+#define M_TEENSY
+//#define M_ARDUINO
 
 #ifdef M_TEENSY
 const int mPWMResolution = 10;
@@ -23,8 +23,8 @@ ggFullBridge mFullBridgeB(6, 8, 10, &SetupPWM, mPWMValueMax);
 const int mPWMResolution = 8;
 const int mPWMValueMax = 0.95 * (1 << mPWMResolution);
 void SetupPWM(int aPin) {
-  if ((aPin == 5) || (aPin == 6)) TCCR0B = TCCR0B & B11111000 | B00000010; // timer prescaler for pins 5 and 6 (this timer affects basic timing functions like "delay" or "millis")
-  if ((aPin == 9) || (aPin == 10)) TCCR1B = TCCR1B & B11111000 | B00000010; // timer prescaler for pins 9 and 10
+  // if ((aPin == 5) || (aPin == 6)) TCCR0B = TCCR0B & B11111000 | B00000010; // timer prescaler for pins 5 and 6 (this timer affects basic timing functions like "delay" or "millis")
+  if ((aPin == 9) || (aPin == 10)) TCCR1B = TCCR1B & B11111000 | B00000001; // timer prescaler for pins 9 and 10
   Serial.print("mPWMResolution = "); Serial.println(mPWMResolution);
   Serial.print("mPWMValueMax = "); Serial.println(mPWMValueMax);
 }
