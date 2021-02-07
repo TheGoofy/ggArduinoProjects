@@ -7,7 +7,7 @@
 void setup()
 {
   Wire.begin(SDA_PIN, SCL_PIN);
-  //Wire.begin();
+  // Wire.begin(); // A4: SDA, A5: SCL
   Serial.begin(115200);
   Serial.println("\nI2C Scanner");
 }
