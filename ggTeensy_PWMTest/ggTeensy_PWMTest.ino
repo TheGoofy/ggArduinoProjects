@@ -1,24 +1,27 @@
 #include "ggHalfBridge.h"
+#include "ggDualHalfBridge.h"
 #include "ggFullBridge.h"
+
 
 #define M_TEENSY
 //#define M_ARDUINO
+
 
 #ifdef M_TEENSY
 const int mPWMResolution = 10;
 const int mPWMValueMax = 0.95 * (1 << mPWMResolution);
 void SetupPWM(int aPin) {
   analogWriteResolution(mPWMResolution);
-  analogWriteFrequency(aPin, 30000);
+  analogWriteFrequency(aPin, 20000);
   Serial.printf("mPWMResolution = %d\n", mPWMResolution);
   Serial.printf("mPWMValueMax = %d\n", mPWMValueMax);
 }
-// ggHalfBridge mHalfBridgeL(A0, 3, 5, mPWMFrequency);
-// ggHalfBridge mHalfBridgeR(A1, 4, 6, mPWMFrequency);
-ggFullBridge mFullBridgeA(5, 7, 9, &SetupPWM, mPWMValueMax);
-ggFullBridge mFullBridgeB(6, 8, 10, &SetupPWM, mPWMValueMax);
+ggDualHalfBridge mMotorA(A4, 20, 22, A5, 21, 23, &SetupPWM, mPWMValueMax);
+// ggFullBridge mMotorA(5, 7, 9, &SetupPWM, mPWMValueMax);
+// ggFullBridge mMotorB(6, 8, 10, &SetupPWM, mPWMValueMax);
 #endif
 
+/*
 #ifdef M_ARDUINO
 const int mPWMResolution = 8;
 const int mPWMValueMax = 0.95 * (1 << mPWMResolution);
@@ -28,53 +31,30 @@ void SetupPWM(int aPin) {
   Serial.print("mPWMResolution = "); Serial.println(mPWMResolution);
   Serial.print("mPWMValueMax = "); Serial.println(mPWMValueMax);
 }
-ggFullBridge mFullBridgeA(9, 8, 7, SetupPWM, mPWMValueMax);
-ggFullBridge mFullBridgeB(10, 11, 12, SetupPWM, mPWMValueMax);
+ggFullBridge mMotorA(9, 8, 7, SetupPWM, mPWMValueMax);
+ggFullBridge mMotorB(10, 11, 12, SetupPWM, mPWMValueMax);
 #endif
-
+*/
 
 void setup()
 {
   Serial.begin(38400);
-  /*
-  mHalfBridgeL.Begin();
-  mHalfBridgeR.Begin();
-  mHalfBridgeL.SetEnable(true);
-  mHalfBridgeR.SetEnable(true);
-  */
-  mFullBridgeA.Begin();
-  mFullBridgeB.Begin();
-  mFullBridgeA.SetBrake(true);
-  mFullBridgeB.SetBrake(true);
+  mMotorA.Begin();
+  // mMotorB.Begin();
+  mMotorA.SetBrake(true);
+  // mMotorB.SetBrake(true);
+  pinMode(13, OUTPUT);
 }
 
 
 void loop()
 {
-  /*
-  mHalfBridgeL.SweepUp(5000);
+  mMotorA.SetDirection(true);
+  mMotorA.SweepUp(5000);
   delay(1000);
-  mHalfBridgeL.SweepDown(500);
-  mHalfBridgeR.SweepUp(500);
+  mMotorA.SweepDown(500);
+  mMotorA.SetDirection(false);
+  mMotorA.SweepUp(500);
   delay(1000);
-  mHalfBridgeR.SweepDown(5000);
-  */
-  mFullBridgeA.SetDirection(true);
-  mFullBridgeA.SweepUp(5000);
-  delay(1000);
-  mFullBridgeA.SweepDown(500);
-  mFullBridgeA.SetDirection(false);
-  mFullBridgeA.SweepUp(500);
-  delay(1000);
-  mFullBridgeA.SweepDown(5000);
-  /*
-  mFullBridgeB.SetDirection(true);
-  mFullBridgeB.SweepUp(5000);
-  delay(1000);
-  mFullBridgeB.SweepDown(500);
-  mFullBridgeB.SetDirection(false);
-  mFullBridgeB.SweepUp(500);
-  delay(1000);
-  mFullBridgeB.SweepDown(5000);
-  */
+  mMotorA.SweepDown(5000);
 }
