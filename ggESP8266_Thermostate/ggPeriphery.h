@@ -27,27 +27,32 @@
 #define M_PIN_GPIO_ADC0        A0 // analog input (inefficient for digital IO)
 
 #if defined(M_PCB_VERSION_V1)
+  #define M_VERSION_HW "v1"
   #define M_PIN_KEY 0
   #define M_PIN_SSR 1
   #define M_PIN_LED 2
   #define M_PIN_DHT 3
 #elif defined (M_PCB_VERSION_V2)
+  #define M_VERSION_HW "v2"
   #define M_PIN_KEY 0
   #define M_PIN_SSR 3
   #define M_PIN_LED 2
   #define M_PIN_DHT 1
 #elif defined (M_PCB_VERSION_V3)
+  #define M_VERSION_HW "v3"
   #define M_PIN_KEY 0
   #define M_PIN_SSR 3
   #define M_PIN_LED 1
   #define M_PIN_DHT 2
 #elif defined (M_PCB_VERSION_V4)
+  #define M_VERSION_HW "v4"
   #define M_PIN_KEY    M_PIN_GPIO_00_FLASH // communication key (on / off / reset settings)
   #define M_PIN_SSR    M_PIN_GPIO_03_RX // SSR output
   #define M_PIN_LED    M_PIN_GPIO_01_TX // status LED
   #define M_PIN_SDA    M_PIN_GPIO_04_SDA // sensor I2C data
   #define M_PIN_SCL    M_PIN_GPIO_05_SCL // sensor I2C clock
 #elif defined (M_PCB_VERSION_V5)
+  #define M_VERSION_HW "v5"
   #define M_PIN_KEY    M_PIN_GPIO_00_FLASH // communication key (on / off / reset settings)
   #define M_PIN_SSR    M_PIN_GPIO_14 // SSR output
   #define M_PIN_SSR_SW M_PIN_GPIO_12 // sensor SSR manual key (switch on)

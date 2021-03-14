@@ -22,6 +22,8 @@
 // #define M_PCB_VERSION_V4 // actual fabricated PCB (May 2019, installed in Vella)
 #define M_PCB_VERSION_V5 // doesn't use RX/TX-pins for SSR-control (serial port still usable for debugging)
 
+#define M_VERSION_SW "v1.0.0"
+
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
 #include "ggWiFiConnection.h"
@@ -287,11 +289,15 @@ void ConnectComponents()
     vStreams.push_back(&aStream);
     vStreams.push_back(&Serial);
     ggDebug::SetStream(vStreams);
-    GG_DEBUG_BLOCK("mWebServer.OnDebugStream(...)");
-    GG_DEBUG_PRINTF("mHostName = %s\n", mHostName.c_str());
-    mPeriphery.PrintDebug("mPeriphery");
-    mWiFiConnection.PrintDebug("mWiFiConnection");
-    mTemperatureController.PrintDebug("mTemperatureController");
+    {
+      ggDebug vDebug("mWebServer.OnDebugStream(...)");
+      vDebug.PrintF("Version SW = %s (%s)\n", M_VERSION_SW, __DATE__);
+      vDebug.PrintF("Version HW = %s\n", M_VERSION_HW);
+      vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
+      mPeriphery.PrintDebug("mPeriphery");
+      mWiFiConnection.PrintDebug("mWiFiConnection");
+      mTemperatureController.PrintDebug("mTemperatureController");
+    }
     ggDebug::SetStream(Serial);
   });
   mWebServer.OnResetAll([] () {
