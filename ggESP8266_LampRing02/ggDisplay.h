@@ -1,7 +1,7 @@
 #pragma once
 
 #include <Arduino.h>
-#include <LiquidCrystalIO.h>
+#include <LiquidCrystalIO.h> // https://www.arduino.cc/en/Reference/LiquidCrystal
 #include <IoAbstractionWire.h>
 #include <Wire.h>
 #include <vector>

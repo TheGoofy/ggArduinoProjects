@@ -1,6 +1,9 @@
 #include <ESP8266WebServer.h> // https://github.com/esp8266/Arduino
 #include <WebSocketsServer.h> // https://github.com/Links2004/arduinoWebSockets (by Markus Sattler)
 #include <WiFiManager.h>      // https://github.com/tzapu/WiFiManager (by Tzapu)
+#include <Adafruit_PWMServoDriver.h> // https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library
+#include <Adafruit_NeoPixel.h> // https://github.com/adafruit/Adafruit_NeoPixel
+#include <LiquidCrystalIO.h> // https://www.arduino.cc/en/Reference/LiquidCrystal
 #include <ESP8266mDNS.h>
 #include <WiFiUdp.h>
 #include <ArduinoOTA.h>
@@ -28,7 +31,7 @@ const String mHostName = "ESP-Lamp-" + String(ESP.getChipId(), HEX);
 
 
 // file system to use (for webserver and datalogger)
-FS* mFileSystem = &LittleFS; // &LittleFS or &SPIFFS;
+FS* mFileSystem = &SPIFFS; // &LittleFS or &SPIFFS;
 
 
 // ports

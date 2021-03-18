@@ -1,7 +1,7 @@
 #pragma once
 
 #include "ggTransitionT.h"
-#include <Adafruit_PWMServoDriver.h>
+#include <Adafruit_PWMServoDriver.h> // https://github.com/adafruit/Adafruit-PWM-Servo-Driver-Library
 
 
 template <int TNumChannels = 6>

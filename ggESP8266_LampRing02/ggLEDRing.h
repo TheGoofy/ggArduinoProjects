@@ -1,4 +1,4 @@
-#include <Adafruit_NeoPixel.h>
+#include <Adafruit_NeoPixel.h> // https://github.com/adafruit/Adafruit_NeoPixel
 #include "ggColor.h"
 #include "ggLocations.h"
 #include "ggLookupTableT.h"
