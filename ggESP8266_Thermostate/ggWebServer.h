@@ -71,6 +71,7 @@ private:
     if (aFileName.endsWith(".jpg")) return "image/jpeg";
     if (aFileName.endsWith(".ico")) return "image/x-icon";
     if (aFileName.endsWith(".xml")) return "text/xml";
+    if (aFileName.endsWith(".json")) return "application/json";
     if (aFileName.endsWith(".pdf")) return "application/x-pdf";
     if (aFileName.endsWith(".zip")) return "application/x-zip";
     if (aFileName.endsWith(".gz")) return "application/x-gzip";
@@ -210,7 +211,8 @@ private:
   void OnResetAll() {
     if (mResetAllFunc != nullptr) {
       mServer.sendHeader("Location", String("/home"), true);
-      mServer.send(302, "text/plain", "reboot...");
+      mServer.send(307, "text/plain", "reboot...");
+      mServer.client().stop();
       mResetAllFunc();
     }
   }
@@ -218,7 +220,8 @@ private:
   void OnResetWifi() {
     if (mResetWifiFunc != nullptr) {
       mServer.sendHeader("Location", String("/home"), true);
-      mServer.send(302, "text/plain", "reboot...");
+      mServer.send(307, "text/plain", "reboot...");
+      mServer.client().stop();
       mResetWifiFunc();
     }
   }
@@ -226,7 +229,8 @@ private:
   void OnReboot() {
     if (mRebootFunc != nullptr) {
       mServer.sendHeader("Location", String("/home"), true);
-      mServer.send(302, "text/plain", "reboot...");
+      mServer.send(307, "text/plain", "reboot...");
+      mServer.client().stop();
       mRebootFunc();
     }
   }
