@@ -711,14 +711,16 @@ void ConnectComponents()
     vStreams.push_back(&aStream);
     vStreams.push_back(&mDebugStream);
     ggDebug::SetStream(vStreams);
-    ggDebug vDebug("WebServer().OnDebugStream(...)");
-    vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
-    Data().PrintDebug("Data()");
-    Periphery().PrintDebug("Periphery()");
-    DisplayTimer().PrintDebug("DisplayTimer()");
-    EditTimer().PrintDebug("EditTimer()");
-    AlarmClock().PrintDebug("AlarmClock()");
-    WiFiConnection().PrintDebug("WiFiConnection()");
+    {
+      ggDebug vDebug("WebServer().OnDebugStream(...)");
+      vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
+      Data().PrintDebug("Data()");
+      Periphery().PrintDebug("Periphery()");
+      DisplayTimer().PrintDebug("DisplayTimer()");
+      EditTimer().PrintDebug("EditTimer()");
+      AlarmClock().PrintDebug("AlarmClock()");
+      WiFiConnection().PrintDebug("WiFiConnection()");
+    }
     ggDebug::SetStream(mDebugStream);
   });
   WebServer().OnResetAll([] () {
