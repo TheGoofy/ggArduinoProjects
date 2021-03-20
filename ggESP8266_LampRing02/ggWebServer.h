@@ -19,6 +19,7 @@ public:
     mGetAlarmsFunc(nullptr),
     mSetAlarmFunc(nullptr),
     mGetTimeFunc(nullptr),
+    mPlayFunc(nullptr),
     mDebugStreamFunc(nullptr),
     mResetAllFunc(nullptr),
     mRebootFunc(nullptr),
@@ -36,6 +37,7 @@ public:
     mServer.on("/SetAlarm", [&] () { OnSetAlarm(); });
     mServer.on("/time", [&] () { OnTime(); });
     mServer.on("/GetTime", [&] () { OnGetTime(); });
+    mServer.on("/Play", [&] () { OnPlay(); });
     mServer.on("/files", [&] () { OnFS(); });
     mServer.on("/debug", [&] () { OnDebug(); });
     mServer.on("/resetall", [&] () { OnResetAll(); });
@@ -75,6 +77,11 @@ public:
   typedef std::function<String()> tGetTimeFunc;
   void OnGetTime(tGetTimeFunc aGetTimeFunc) {
     mGetTimeFunc = aGetTimeFunc;
+  }
+
+  typedef std::function<void(const String&)> tPlayFunc;
+  void OnPlay(tPlayFunc aPlayFunc) {
+    mPlayFunc = aPlayFunc;
   }
 
   void OnDebugStream(tStreamFunc aStreamFunc) {
@@ -229,6 +236,18 @@ private:
     OnNotFound();
   }
 
+  void OnPlay() {
+    GG_DEBUG();
+    String vResponseText = "FAIL";
+    String vPlayJson = mServer.arg("aPlayJson");
+    if (mPlayFunc != nullptr) {
+      mPlayFunc(vPlayJson);
+      vResponseText = "OK";
+    }
+    mServer.sendHeader("Access-Control-Allow-Origin", "*");
+    mServer.send(200, "text/plain", vResponseText);
+  }
+
   static String GetNiceByteSize(size_t aSize) {
     String vNumber(aSize);
     int vDigits = vNumber.length();
@@ -353,6 +372,8 @@ private:
   tSetAlarmFunc mSetAlarmFunc;
 
   tGetTimeFunc mGetTimeFunc;
+
+  tPlayFunc mPlayFunc;
   
   tStreamFunc mDebugStreamFunc;
   

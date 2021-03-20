@@ -461,11 +461,11 @@ void ConnectWifiManager()
     Periphery().mDisplay.SetOn(true);
     Periphery().mDisplay.SetTitle(WiFiMgr().getConfigPortalSSID());
     Periphery().mDisplay.SetText(0, "WiFi config...");
-    Periphery().mDisplay.Run(); // main "loop" is not running
+    Periphery().mDisplay.Run(); // since main "loop" is not running, the display needs to be updated explicitly here
   });
   WiFiMgr().setSaveConfigCallback([] () {
     Periphery().mDisplay.SetText(0, "Config saved!");
-    Periphery().mDisplay.Run(); // main "loop" is not running
+    Periphery().mDisplay.Run(); // since main "loop" is not running, the display needs to be updated explicitly here
   });
 }
 
@@ -518,7 +518,7 @@ void ConnectComponents()
           GG_DEBUG_BLOCK("ggState::eResetWiFi");
           Periphery().mLEDRing.DisplayColor(ggColor::cRGB::Red());
           Periphery().mDisplay.SetText(0, String("Reset WiFi..."));
-          Periphery().mDisplay.Run(); // main "loop" is not running
+          Periphery().mDisplay.Run(); // since main "loop" is not running, the display needs to be updated explicitly here
           WiFiMgr().resetSettings();
           delay(1000);
         }
@@ -708,6 +708,31 @@ void ConnectComponents()
     GG_DEBUG_BLOCK("mWebServer.OnGetTime(...)");
     return "{\"mTimeT\":" + String(AlarmClock().GetTimeT()) + "}";
   });
+  WebServer().OnPlay([] (const String& aPlayJson) {
+    GG_DEBUG_BLOCK("mWebServer.OnPlay(...)");
+    GG_DEBUG_PRINTF("aPlayJson = %s\n", aPlayJson.c_str());
+    StaticJsonDocument<200> vPlayJsonDoc;
+    DeserializationError vJsonError = deserializeJson(vPlayJsonDoc, aPlayJson);
+    GG_DEBUG_PRINTF("vJsonError = %s\n", vJsonError.c_str());
+    float vTransitionTime = Periphery().GetTransitionTime();
+    Periphery().SetTransitionTime(0.0);
+    Periphery().mLEDCenter.SetChannelBrightness(0.0f);
+    Periphery().mLEDRing.SetColorsBlack();
+    uint16_t vDelayMillis = 100;
+    for (int vCount = 0; vCount < 5; vCount++) {
+      Periphery().mLEDCenter.SetChannelBrightness(5, 0.0); delay(vDelayMillis);
+      Periphery().mLEDCenter.SetChannelBrightness(2, 0.5); delay(vDelayMillis);
+      Periphery().mLEDRing.SetColors(ggColor::cHSV::Black(), ggLocations::eA); delay(vDelayMillis);
+      Periphery().mLEDRing.SetColors(ggColor::cHSV(15,255,255), ggLocations::eB); delay(vDelayMillis);
+      Periphery().mLEDCenter.SetChannelBrightness(2, 0.0); delay(vDelayMillis);
+      Periphery().mLEDCenter.SetChannelBrightness(5, 0.5); delay(vDelayMillis);
+      Periphery().mLEDRing.SetColors(ggColor::cHSV::Black(), ggLocations::eB); delay(vDelayMillis);
+      Periphery().mLEDRing.SetColors(ggColor::cHSV(15,255,255), ggLocations::eA); delay(vDelayMillis);
+    }
+    Periphery().SetTransitionTime(vTransitionTime);    
+    PeripheryLEDCenterSetChannelBrightness();
+    PeripheryLEDRingSetColors();
+  });
   WebServer().OnDebugStream([] (Stream& aStream) {
     ggStreams vStreams;
     vStreams.push_back(&aStream);
@@ -732,7 +757,7 @@ void ConnectComponents()
     {
       GG_DEBUG_BLOCK("mWebServer.OnResetAll(...)");
       Periphery().mDisplay.SetText(0, String("Reset All..."));
-      Periphery().mDisplay.Run(); // main "loop" is not running
+      Periphery().mDisplay.Run(); // since main "loop" is not running, the display needs to be updated explicitly here
       DataReset();
       WiFiMgr().resetSettings();
       delay(1000);
@@ -743,7 +768,7 @@ void ConnectComponents()
     {
       GG_DEBUG_BLOCK("mWebServer.OnResetWifi(...)");
       Periphery().mDisplay.SetText(0, String("Reset WiFi..."));
-      Periphery().mDisplay.Run(); // main "loop" is not running
+      Periphery().mDisplay.Run(); // since main "loop" is not running, the display needs to be updated explicitly here
       WiFiMgr().resetSettings();
       delay(1000);
     }
@@ -753,7 +778,7 @@ void ConnectComponents()
     {
       GG_DEBUG_BLOCK("mWebServer.OnReboot(...)");
       Periphery().mDisplay.SetText(0, String("Rebooting..."));
-      Periphery().mDisplay.Run(); // main "loop" is not running
+      Periphery().mDisplay.Run(); // since main "loop" is not running, the display needs to be updated explicitly here
       delay(1000);
     }
     ESP.restart();
@@ -766,12 +791,12 @@ void ConnectComponents()
   static ggColor::cRGB vColorError(90,0,10);
   ArduinoOTA.onStart([&] () {
     Periphery().mDisplay.SetText(0, String("Update Start..."));
-    Periphery().mDisplay.Run(); // main "loop" is not running
+    Periphery().mDisplay.Run(); // since main "loop" is not running, the display needs to be updated explicitly here
     Periphery().mLEDRing.DisplayProgress(0.0f, vColorProgress, vColorProgressBackground);
   });
   ArduinoOTA.onEnd([&] () {
     Periphery().mDisplay.SetText(0, String("Update Complete!"));
-    Periphery().mDisplay.Run(); // main "loop" is not running
+    Periphery().mDisplay.Run(); // since main "loop" is not running, the display needs to be updated explicitly here
     Periphery().mLEDRing.DisplayProgress(1.0f, vColorSuccess, vColorProgressBackground);
   });
   ArduinoOTA.onProgress([&] (unsigned int aProgress, unsigned int aTotal) {
@@ -780,13 +805,13 @@ void ConnectComponents()
     if (vProgressPercent != vProgressPercentLast) {
       vProgressPercentLast = vProgressPercent;
       Periphery().mDisplay.SetText(0, String("Update: ") + vProgressPercent + "%");
-      Periphery().mDisplay.Run(); // main "loop" is not running
+      Periphery().mDisplay.Run(); // since main "loop" is not running, the display needs to be updated explicitly here
       Periphery().mLEDRing.DisplayProgress(0.01f * vProgressPercent, vColorProgress, vColorProgressBackground);
     }
   });
   ArduinoOTA.onError([&] (ota_error_t aError) {
     Periphery().mDisplay.SetText(0, String("Update Error!"));
-    Periphery().mDisplay.Run(); // main "loop" is not running
+    Periphery().mDisplay.Run(); // since main "loop" is not running, the display needs to be updated explicitly here
     Periphery().mLEDRing.DisplayProgress(1.0f, vColorError, vColorError);
   });
 }

@@ -95,6 +95,16 @@ public:
     Show();
   }
 
+  void DisplayColorA(const ggColor::cRGB& aColor) {
+    mLEDsA.fill(aColor, 0, TNumLEDs);
+    Show();
+  }
+
+  void DisplayColorB(const ggColor::cRGB& aColor) {
+    mLEDsB.fill(aColor, 0, TNumLEDs);
+    Show();
+  }
+
   void DisplayColorChannel(int aChannel) {
     ggColor::cHSV vHSV = mHSV[0];
     if ((aChannel != 1) && (vHSV.mS < 128)) vHSV.mS = 128;

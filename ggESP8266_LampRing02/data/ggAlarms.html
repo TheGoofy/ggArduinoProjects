@@ -19,7 +19,7 @@
 
     function InitAll() {
       if (mHostURL == '') {
-        mHostURL = window.prompt('Please enter server address', "192.168.0.150");
+        mHostURL = window.prompt('Please enter server address', "192.168.0.151");
       }
       mHostURL = 'http://' + mHostURL + '/';
       InitHtmlElements();
@@ -306,6 +306,14 @@
   <div class='cMainBlockDiv'>
 
     <b style='font-size:larger'>Alarms</b><br>
+
+    <hr noshade>
+
+    <button onclick="HttpRequestPost('Play')" style="width: 100%; ">
+      <img src='alarm.png' width='20' style="vertical-align: middle;">
+      <span style="vertical-align: middle;">Wecki Wecki!</span>
+      <img src='alarm.png' width='20' style="vertical-align: middle;">
+    </button>
 
     <hr noshade>
 
