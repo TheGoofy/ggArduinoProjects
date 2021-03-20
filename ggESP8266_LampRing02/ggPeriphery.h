@@ -7,10 +7,10 @@
 #include "ggLEDRing.h"
 #include "ggDisplay.h"
 
-// verbose pin description for ESP-12F
-#define M_PIN_GPIO_00_FLASH     0 // if low at boot, ESP will be in programming mode (boot fails if low)
-#define M_PIN_GPIO_01_TX        1 // usually used for serial communication (terminal), high at boot, debug at boot (boot fails if low)
-#define M_PIN_GPIO_02_ENBOOT    2 // must be pulled high at boot (boot fails if low)
+// verbose pin description for ESP-12F pins
+#define M_PIN_GPIO_00_FLASH     0 // if low at boot, ESP will be in programming mode (i.e. no normal bootup if low)
+#define M_PIN_GPIO_01_TX        1 // usually used for serial communication (terminal), high at boot, debug at boot (i.e. no normal bootup if low)
+#define M_PIN_GPIO_02_ENBOOT    2 // must be pulled high at boot (i.e. no bootup if low)
 #define M_PIN_GPIO_03_RX        3 // usually used for serial communication (terminal), high at boot
 #define M_PIN_GPIO_04_SDA       4 // fast digital IO (no side-effects), recommended for i2c
 #define M_PIN_GPIO_05_SCL       5 // fast digital IO (no side-effects), recommended for i2c
@@ -29,6 +29,7 @@
 
 // pins for periphery
 #if !M_DEBUGGING // pins for serial communication may used for other devices
+  #define M_VERSION_HW "v1a"
   #define M_PIN_BUTTON     M_PIN_GPIO_03_RX // button can interfere with serial communication
   #define M_PIN_ENCODER_A  M_PIN_GPIO_12
   #define M_PIN_ENCODER_B  M_PIN_GPIO_13
@@ -38,6 +39,7 @@
   #define M_PIN_I2C_SDA    M_PIN_GPIO_04_SDA
   #define M_PIN_I2C_SCL    M_PIN_GPIO_05_SCL
 #else // don't use pins that are needed for serial communication
+  #define M_VERSION_HW "v1a_debug"
   #define M_PIN_BUTTON     M_PIN_GPIO_15_SPI_CS // gpio 15 is not connected, button won't work
   #define M_PIN_ENCODER_A  M_PIN_GPIO_12
   #define M_PIN_ENCODER_B  M_PIN_GPIO_13

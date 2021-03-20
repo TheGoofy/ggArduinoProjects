@@ -13,6 +13,8 @@
 #define M_DEBUGGING false
 #define M_TEST_ENVIRONMENT false
 
+#define M_VERSION_SW "v1.0.0"
+
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
 #include "ggWiFiConnection.h"
@@ -713,6 +715,9 @@ void ConnectComponents()
     ggDebug::SetStream(vStreams);
     {
       ggDebug vDebug("WebServer().OnDebugStream(...)");
+      vDebug.PrintF("Version SW = %s (%s)\n", M_VERSION_SW, __DATE__);
+      vDebug.PrintF("Version HW = %s\n", M_VERSION_HW);
+      vDebug.PrintF("Environment config = %s\n", M_TEST_ENVIRONMENT ? "TEST" : "NORMAL");
       vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
       Data().PrintDebug("Data()");
       Periphery().PrintDebug("Periphery()");
