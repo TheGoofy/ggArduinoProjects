@@ -53,7 +53,6 @@ class ggDualHalfBridge
   private:
 
     void UpdatePWM() {
-      digitalWrite(13, mDirection);
       mHalfBridgeL.SetPWM(mDirection ? mPWM : 0);
       mHalfBridgeR.SetPWM(mDirection ? 0 : mPWM);
     }
