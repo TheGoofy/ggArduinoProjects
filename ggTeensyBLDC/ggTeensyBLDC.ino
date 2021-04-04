@@ -1,5 +1,6 @@
 #include "ggHalfBridge.h"
 #include "ggStatusLEDs.h"
+#include "ggPath.h"
 
 // enable ("inhibit" => when set to low device goes in sleep mode)
 #define M_INH_U_PIN 3
@@ -49,6 +50,19 @@ ggHalfBridge mDriveV(M_IS_V_PIN, M_INH_V_PIN, M_IN_V_PIN, SetupPWM, mPWMValueMax
 ggHalfBridge mDriveW(M_IS_W_PIN, M_INH_W_PIN, M_IN_W_PIN, SetupPWM, mPWMValueMax);
 
 
+ggPath mPath;
+
+void DrivePath()
+{
+  delay(100);
+  if (mPath.GetT() < 2.0) mPath.MoveToV(10.0, 2.0);
+  else if (mPath.GetT() < 5.0) mPath.MoveToV(-5.0, 5.0);
+  else mPath.MoveToV(0.0, 1.0);
+  mPath.Update();
+  Serial.printf("t: %f s: %f v: %f a: %f\n", mPath.GetT(), mPath.GetS(), mPath.GetV(), mPath.GetA());
+}
+
+
 void setup()
 {
   Serial.begin(38400);
@@ -72,6 +86,8 @@ void DriveUVW(int aZero, int aU, int aV, int aW)
 
 void loop()
 {
+  DrivePath();  
+  /*  
   static int vCount = 0;
   mStatusLEDs.SetOnBoard(vCount > 5);
   if (++vCount > 10) vCount = 0;
@@ -86,4 +102,5 @@ void loop()
   DriveUVW(mPWMZero,         0,  mPWMAmpl, -mPWMAmpl); delay(vDelay);
   DriveUVW(mPWMZero, -mPWMAmpl,  mPWMAmpl,         0); delay(vDelay);
   DriveUVW(mPWMZero, -mPWMAmpl,         0,  mPWMAmpl); delay(vDelay);
+  */
 }
