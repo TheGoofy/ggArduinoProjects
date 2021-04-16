@@ -9,6 +9,12 @@ inline T ggAbs(const T& aValue) {
   return aValue > 0 ? aValue : -aValue;
 }
 
+template <typename TValue>
+inline bool ggIsFinite(const TValue& aValue) {
+  // return isfinite(aValue); // unfortunately the esp-library does not support this :-(
+  return !isnan(aValue) && !isinf(aValue);
+}
+
 template <typename T1, typename T2>
 inline bool ggIsLess(const T1& aValue1, const T2& aValue2) {
   typedef typename std::common_type<T1,T2>::type tCommonType;

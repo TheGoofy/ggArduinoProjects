@@ -128,11 +128,6 @@ private:
     }
   }
 
-  template <typename TValue>
-  inline static bool IsFinite(const TValue& aValue) {
-    return !isnan(aValue) && !isinf(aValue);
-  }
-
   void OnSample() {
 
     // (re)init in case sensor has a problem
@@ -148,26 +143,19 @@ private:
       mBME.read(vPressure, vTemperature, vHumidity, BME280::TempUnit_Celsius, BME280::PresUnit_hPa);
 
       // check read error
-      if (!IsFinite(vPressure) || !IsFinite(vTemperature) || !IsFinite(vHumidity)) {
+      if (!ggIsFinite(vPressure) || !ggIsFinite(vTemperature) || !ggIsFinite(vHumidity)) {
         UpdateStatus(eStatusSensorReadFailed);
       }
 
-      // init members (initially the are "NAN")
-      if (!IsFinite(mPressure)) mPressure = vPressure;
-      if (!IsFinite(mTemperature)) mTemperature = vTemperature;
-      if (!IsFinite(mHumidity)) mHumidity = vHumidity;
+      // init members (initially they are "NAN")
+      if (!ggIsFinite(mPressure)) mPressure = vPressure;
+      if (!ggIsFinite(mTemperature)) mTemperature = vTemperature;
+      if (!ggIsFinite(mHumidity)) mHumidity = vHumidity;
 
       // smooth values with iif filter
-      if (IsFinite(vPressure)) vPressure = 0.8f*mPressure + 0.2f*vPressure;
-      if (IsFinite(vTemperature)) vTemperature = 0.5f*mTemperature + 0.5f*vTemperature;
-      if (IsFinite(vHumidity)) vHumidity = 0.6f*mHumidity + 0.4f*vHumidity;
-
-      /*
-      // round to most significant digits
-      vPressure = ggRoundToSD(vPressure, 4);
-      vTemperature = ggRoundToSD(vTemperature, 4);
-      vHumidity = ggRoundToSD(vHumidity, 3);
-      */
+      if (ggIsFinite(vPressure) && ggIsFinite(mPressure)) vPressure = 0.8f*mPressure + 0.2f*vPressure;
+      if (ggIsFinite(vTemperature) && ggIsFinite(mTemperature)) vTemperature = 0.5f*mTemperature + 0.5f*vTemperature;
+      if (ggIsFinite(vHumidity) && ggIsFinite(mHumidity)) vHumidity = 0.6f*mHumidity + 0.4f*vHumidity;
 
       // update pressure, if changed
       if (vPressure != mPressure) {

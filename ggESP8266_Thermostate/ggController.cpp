@@ -128,10 +128,10 @@ float ggController::GetInput() const
 
 void ggController::SetInput(float aInput)
 {
-  if (mInputValue != aInput) {
+  if (ggIsFinite(aInput)) {
     unsigned long vMicros = micros();
-    float vDelta = (vMicros - mInputMicrosLast) / 1000000.0f;
-    float vInputWeight = vDelta / mSamplePeriod;
+    float vTimeDelta = (vMicros - mInputMicrosLast) / 1000000.0f;
+    float vInputWeight = vTimeDelta / mSamplePeriod;
     vInputWeight = ggClamp(vInputWeight, 0.1f, 0.9f);
     mInputValue = (1.0f - vInputWeight) * mInputValue + vInputWeight * aInput;
     mInputMicrosLast = vMicros;

@@ -22,7 +22,7 @@
 // #define M_PCB_VERSION_V4 // actual fabricated PCB (May 2019, installed in Vella)
 #define M_PCB_VERSION_V5 // doesn't use RX/TX-pins for SSR-control (serial port still usable for debugging)
 
-#define M_VERSION_SW "v1.0.0"
+#define M_VERSION_SW "v1.0.1"
 
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
