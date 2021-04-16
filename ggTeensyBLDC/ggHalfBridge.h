@@ -15,7 +15,8 @@ class ggHalfBridge
       mENPin(aENPin),
       mPWMPin(aPWMPin),
       mSetupPWMFunc(aSetupPWMFunc),
-      mPWMValueMax(aPWMValueMax) {
+      mPWMValueMax(aPWMValueMax),
+      mPWMValue(0) {
     }
 
     void Begin() {
@@ -30,7 +31,12 @@ class ggHalfBridge
     }
 
     void SetPWM(int aPWM) {
+      mPWMValue = aPWM;
       analogWrite(mPWMPin, aPWM);
+    }
+
+    int GetPWM() const {
+      return mPWMValue;
     }
 
     void SweepUp(unsigned long aTimeMS = 5000) {
@@ -56,5 +62,6 @@ class ggHalfBridge
     const int mPWMPin;
     const tSetupPWMFunc mSetupPWMFunc;
     const int mPWMValueMax;
+    int mPWMValue;
 
 };
