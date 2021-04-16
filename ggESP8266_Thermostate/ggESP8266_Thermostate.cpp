@@ -73,6 +73,19 @@ ggDataLog* mDataLog1M = nullptr;
 ggDataLog* mDataLog1Y = nullptr;
 ggDataLog* mDataLogMax = nullptr;
 
+// up-time
+unsigned long long mMillisUpTime = 0;
+
+
+void UpdateUpTime()
+{
+  static unsigned long vMillisLast = 0;
+  unsigned long vMillis = millis();
+  unsigned long vMillisDelta = vMillis - vMillisLast;
+  mMillisUpTime += vMillisDelta;
+  vMillisLast = vMillis;
+}
+
 
 void CreateComponents()
 {
@@ -294,6 +307,7 @@ void ConnectComponents()
       vDebug.PrintF("Version SW = %s (%s)\n", M_VERSION_SW, __DATE__);
       vDebug.PrintF("Version HW = %s\n", M_VERSION_HW);
       vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
+      vDebug.PrintF("mMillisUpTime = %d (%f Days)\n", mMillisUpTime, mMillisUpTime/(1000.0f*60.0f*60.0f*24.0f));
       mPeriphery.PrintDebug("mPeriphery");
       mWiFiConnection.PrintDebug("mWiFiConnection");
       mTemperatureController.PrintDebug("mTemperatureController");
@@ -378,6 +392,7 @@ void Run()
   mTimerNTP.Run();
   MDNS.update();
   ArduinoOTA.handle();
+  UpdateUpTime();
   yield();
 }
 
