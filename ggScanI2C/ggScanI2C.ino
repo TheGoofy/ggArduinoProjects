@@ -1,13 +1,14 @@
-#include <Wire.h>
-
+#include <Wire.h> // arduino / esp8266
+// #include <i2c_t3.h> // teensy3
 
 #define SDA_PIN 4
 #define SCL_PIN 5
 
 void setup()
 {
-  Wire.begin(SDA_PIN, SCL_PIN);
-  // Wire.begin(); // A4: SDA, A5: SCL
+  Wire.begin(); // A4: SDA, A5: SCL // arduino
+  // Wire.begin(SDA_PIN, SCL_PIN); // esp8266
+  // Wire.begin(I2C_MASTER, 0x00, I2C_PINS_18_19, I2C_PULLUP_INT, 800000); // teensy3
   Serial.begin(115200);
   Serial.println("\nI2C Scanner");
 }
