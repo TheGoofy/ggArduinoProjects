@@ -1,5 +1,6 @@
 #include "ggHalfBridge.h"
 #include "ggStatusLEDs.h"
+#include "ggButtonSimple.h"
 #include "ggPath.h"
 #include "ggSampler.h"
 
@@ -47,6 +48,9 @@ void SetupPWM(int aPin) {
 
 // "display"
 ggStatusLEDs mStatusLEDs(M_LED_A_PIN, M_LED_B_PIN, M_LED_ON_BOARD_PIN);
+
+// "user input"
+ggButtonSimple mButton(M_KEY_PIN, true/*invert*/, true/*pullup*/);
 
 // half bridges (pins: current sense / enable / pwm)
 ggHalfBridge mDriveU(M_IS_U_PIN, M_INH_U_PIN, M_IN_U_PIN, SetupPWM, mPWMValueMax);
@@ -102,6 +106,7 @@ void setup()
   Serial.begin(38400);
   Serial.println();
   mStatusLEDs.Begin();
+  mButton.Begin();
   mDriveU.Begin();
   mDriveV.Begin();
   mDriveW.Begin();
@@ -126,6 +131,11 @@ void DriveUVW(int aU, int aV, int aW)
   mDriveU.SetPWM(aU);
   mDriveV.SetPWM(aV);
   mDriveW.SetPWM(aW);
+  if (mButton.GetOn()) {
+    mDriveU.SetEnable((aU == 0) || ((aU > aV) && (aU > aW)));
+    mDriveV.SetEnable((aV == 0) || ((aV > aU) && (aV > aW)));
+    mDriveW.SetEnable((aW == 0) || ((aW > aU) && (aW > aV)));
+  }
 }
 
 
@@ -135,6 +145,9 @@ float mAngle = 0.0;
 
 // advance angle each 50us
 ggSampler mAngleSampler(50, [] (unsigned long aMicrosDelta) {
+
+  // read user input
+  mButton.Update();
 
   // calculate phase angles
   int vAngleU = ggRound<int>(mSinSamples * mAngle / M_2PI);
@@ -157,7 +170,8 @@ ggSampler mAngleSampler(50, [] (unsigned long aMicrosDelta) {
   // display angle status
   // mStatusLEDs.SetOnBoard(2 * mAngle / mSinSamples % 2);
   // mStatusLEDs.SetA(6 * mAngle / mSinSamples % 2);
-  mStatusLEDs.SetOnBoard(vPWMU != 0);
+  mStatusLEDs.SetOnBoard(mButton.GetOn());
+  // mStatusLEDs.SetOnBoard(vPWMU != 0);
   mStatusLEDs.SetA(vPWMV != 0);
   mStatusLEDs.SetB(vPWMW != 0);
 
