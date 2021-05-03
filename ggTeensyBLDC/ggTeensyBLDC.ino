@@ -1,8 +1,11 @@
+#include <i2c_t3.h> // I2C wirelibrary for teensy3
+
 #include "ggHalfBridge.h"
 #include "ggStatusLEDs.h"
 #include "ggButtonSimple.h"
 #include "ggPath.h"
 #include "ggSampler.h"
+#include "ggAS5600.h"
 
 // enable ("inhibit" => when set to low device goes in sleep mode)
 #define M_INH_U_PIN 3
@@ -52,24 +55,14 @@ ggStatusLEDs mStatusLEDs(M_LED_A_PIN, M_LED_B_PIN, M_LED_ON_BOARD_PIN);
 // "user input"
 ggButtonSimple mButton(M_KEY_PIN, true/*invert*/, true/*pullup*/);
 
+// angle sensor conencted on I2C
+ggAS5600 mAS5600(0x36);
+
 // half bridges (pins: current sense / enable / pwm)
 ggHalfBridge mDriveU(M_IS_U_PIN, M_INH_U_PIN, M_IN_U_PIN, SetupPWM, mPWMValueMax);
 ggHalfBridge mDriveV(M_IS_V_PIN, M_INH_V_PIN, M_IN_V_PIN, SetupPWM, mPWMValueMax);
 ggHalfBridge mDriveW(M_IS_W_PIN, M_INH_W_PIN, M_IN_W_PIN, SetupPWM, mPWMValueMax);
 
-/*
-ggPath mPath;
-
-void DrivePath()
-{
-  delay(100);
-  if (mPath.GetT() < 2.0) mPath.MoveToV(10.0, 2.0);
-  else if (mPath.GetT() < 5.0) mPath.MoveToV(-5.0, 5.0);
-  else mPath.MoveToV(0.0, 1.0);
-  mPath.Update();
-  Serial.printf("t: %f s: %f v: %f a: %f\n", mPath.GetT(), mPath.GetS(), mPath.GetV(), mPath.GetA());
-}
-*/
 
 template <typename TOut>
 TOut ggRound(float aValue)
@@ -100,29 +93,36 @@ void SetupSin()
 }
 
 
-void setup()
-{
-  SetupSin();
-  Serial.begin(38400);
-  Serial.println();
-  mStatusLEDs.Begin();
-  mButton.Begin();
-  mDriveU.Begin();
-  mDriveV.Begin();
-  mDriveW.Begin();
-  mDriveU.SetEnable(true);
-  mDriveV.SetEnable(true);
-  mDriveW.SetEnable(true);
-}
-
-
-inline int GetSin(int aAmplitude, int aAngle)
+inline int GetSin(long aAmplitude, int aAngle)
 {
   long vSin = aAmplitude * mSin[aAngle];
   vSin /= mSinAmplitude;
   if (vSin > 0) vSin += mPWMValueMin;
   if (vSin > mPWMValueMax) return mPWMValueMax;
   else return vSin;
+}
+
+
+void setup()
+{
+  SetupSin();
+
+  Serial.begin(38400);
+  while (!Serial); // wait until USB serial ready
+  Serial.println("Hi Teensy BLDC!");
+  
+  Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_INT, I2C_RATE_1000);
+
+  mStatusLEDs.Begin();
+  mButton.Begin();
+  mAS5600.Begin();
+  mAS5600.SendAngleRequest();
+  mDriveU.Begin();
+  mDriveV.Begin();
+  mDriveW.Begin();
+  mDriveU.SetEnable(true);
+  mDriveV.SetEnable(true);
+  mDriveW.SetEnable(true);
 }
 
 
@@ -139,20 +139,27 @@ void DriveUVW(int aU, int aV, int aW)
 }
 
 
-// main angle
-float mAngle = 0.0;
+// motor parameters
+const int mNumPoles = 4;
+float mPhaseAngle = 0.0f;
+float mMotorAngle = 0.0f;
+unsigned long mCalculationMicros = 0;
 
 
 // advance angle each 50us
 ggSampler mAngleSampler(50, [] (unsigned long aMicrosDelta) {
 
+  // start measure calculation time
+  unsigned long vMicrosStart = micros();
+  
   // read user input
   mButton.Update();
 
   // calculate phase angles
-  int vAngleU = ggRound<int>(mSinSamples * mAngle / M_2PI);
+  int vAngleU = static_cast<int>(mSinSamples * mPhaseAngle / M_2PI);
   int vAngleV = vAngleU + 1 * mSinSamples / 3;
   int vAngleW = vAngleU + 2 * mSinSamples / 3;
+  if (vAngleU >= mSinSamples) vAngleU -= mSinSamples;
   if (vAngleV >= mSinSamples) vAngleV -= mSinSamples;
   if (vAngleW >= mSinSamples) vAngleW -= mSinSamples;
 
@@ -170,35 +177,70 @@ ggSampler mAngleSampler(50, [] (unsigned long aMicrosDelta) {
   // display angle status
   // mStatusLEDs.SetOnBoard(2 * mAngle / mSinSamples % 2);
   // mStatusLEDs.SetA(6 * mAngle / mSinSamples % 2);
-  mStatusLEDs.SetOnBoard(mButton.GetOn());
-  // mStatusLEDs.SetOnBoard(vPWMU != 0);
+  // mStatusLEDs.SetOnBoard(mButton.GetOn());
+  mStatusLEDs.SetOnBoard(vPWMU != 0);
   mStatusLEDs.SetA(vPWMV != 0);
   mStatusLEDs.SetB(vPWMW != 0);
 
+/*
   // ramp up speed
   // motor has 4 pole pairs:
   // => 180 / 4 = 45 rotations per second
   // => 45 * 60 = 2700 rpm
-  static const float vAccel = 6.0f * M_2PI; // increase speed each second by 6 pole-pairs per second
+  static const float vAccel = 0.01f * 6.0f * M_2PI; // increase speed each second by 6 pole-pairs per second
   static const float vSpeedMax = 180.0f * M_2PI; // max is 180 pole-pairs per second
   static float vSpeed = 0; // start with 0 pole-pairs per second
   float vTimeDelta = 0.000001f * aMicrosDelta;
   vSpeed += vAccel * vTimeDelta;
   if (vSpeed > vSpeedMax) vSpeed = vSpeedMax;
 
+  // advance motor angle
+  mMotorAngle += vSpeed * vTimeDelta;
+  if (mMotorAngle > M_2PI) mMotorAngle -= M_2PI;
+
   // advance phase-angle
-  mAngle += vSpeed * vTimeDelta;
-  if (mAngle > M_2PI) mAngle -= M_2PI;
+  mPhaseAngle += vSpeed * vTimeDelta;
+  if (mPhaseAngle > M_2PI) mPhaseAngle -= M_2PI;
+*/
+
+  // angle from sensor
+  uint16_t vAngle = mAS5600.GetAngle();
+  mAS5600.SendAngleRequest();
+  mMotorAngle = M_2PI * vAngle / 4096.0f;
+
+  // transform to motor phase-angle
+  mPhaseAngle = fmod(mNumPoles * mMotorAngle, M_2PI);
+
+  // stop calculation time
+  mCalculationMicros = micros() - vMicrosStart;
+
 });
 
 
-ggSampler mSerialPlotSampler(20000, [] (unsigned long aMicrosDelta) {
+ggSampler mSerialPlotSampler(10000, [] (unsigned long aMicrosDelta) {
   static bool vPlotHeader = true;
   if (vPlotHeader) {
-    Serial.printf("Angle U V W\n");
+    Serial.printf("Calc-Time Motor-Angle Phase-Angle U V W\n");
     vPlotHeader = false;
   }
-  Serial.printf("%d %d %d %d\n", ggRound<int>(100.0f * mAngle / M_2PI), mDriveU.GetPWM(), mDriveV.GetPWM(), mDriveW.GetPWM());
+  Serial.printf("%d %d %d %d %d %d\n",
+    mCalculationMicros,
+    ggRound<int>(100.0f * mMotorAngle / M_2PI),
+    ggRound<int>(100.0f * mPhaseAngle / M_2PI),
+    mDriveU.GetPWM(), mDriveV.GetPWM(), mDriveW.GetPWM());
+
+  if (mDriveU.GetPWM() > 500) {
+    while (true) {
+      Serial.printf("Funny PWM! ===============\n");
+      Serial.printf("PWM U: %d\n", mDriveU.GetPWM());
+      Serial.printf("PWM V: %d\n", mDriveV.GetPWM());
+      Serial.printf("PWM W: %d\n", mDriveW.GetPWM());
+      Serial.printf("mMotorAngle: %f rad\n", mMotorAngle);
+      Serial.printf("mPhaseAngle: %f rad\n", mPhaseAngle);
+      Serial.printf("mCalculationMicros: %d us\n", mCalculationMicros);
+      delay(1000);
+    }
+  }
 });
 
 
@@ -208,5 +250,5 @@ void loop()
   mAngleSampler.Run();
 
   // some output on serial port (for debugging)
-  // mSerialPlotSampler.Run();
+  mSerialPlotSampler.Run();
 }
