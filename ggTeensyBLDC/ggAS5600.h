@@ -21,8 +21,9 @@ public:
     eRegInvalid   = 0xFE  // no register
   };
 
-  ggAS5600(uint8_t aSlaveAddr = 0x36)
-  : mSlaveAddr(aSlaveAddr & 0xf7),
+  ggAS5600(uint8_t aSlaveAddr = 0x36, int aDirPin = -1)
+  : mSlaveAddr(aSlaveAddr),
+    mDirPin(aDirPin),
     mRegAddr(eRegInvalid)
   {
   }
@@ -37,10 +38,11 @@ public:
   inline bool Begin() {
     Wire.onReqFromDone([] () {
       if (mAngleRequestPending) {
-        mAngle = Wire.read() << 8 | Wire.read();
+        mAngle = (Wire.read() << 8 | Wire.read()) & 0x0FFF;
         mAngleRequestPending = false;
       }
     });
+    if (mDirPin != -1) pinMode(mDirPin, OUTPUT);
     return CheckSlave();
   }
 
@@ -51,6 +53,14 @@ public:
   inline bool CheckSlave() const {
     BeginTransmission();
     return EndTransmission();
+  }
+
+  void SetDirCW() {
+    if (mDirPin != -1) digitalWrite(mDirPin, LOW);
+  }
+
+  void SetDirCCW() {
+    if (mDirPin != -1) digitalWrite(mDirPin, HIGH);
   }
 
   inline bool SendAngleRequest() {
@@ -71,11 +81,11 @@ public:
   }
 
   inline uint8_t ReadZMCO() const {
-    return ReadT<uint8_t>(eRegZMCO);
+    return ReadT<uint8_t>(eRegZMCO) & 0x03F;
   }
 
   inline uint16_t ReadZPOS() const {
-    return ReadT<uint16_t>(eRegZPOS);
+    return ReadT<uint16_t>(eRegZPOS) & 0x0FFF;
   }
 
   inline bool WriteZPOS(uint16_t aZPOS) {
@@ -83,7 +93,7 @@ public:
   }
 
   inline uint16_t ReadMPOS() const {
-    return ReadT<uint16_t>(eRegMPOS);
+    return ReadT<uint16_t>(eRegMPOS) & 0x0FFF;
   }
 
   inline bool WriteMPOS(uint16_t aMPOS) {
@@ -91,7 +101,7 @@ public:
   }
 
   inline uint16_t ReadMANG() const {
-    return ReadT<uint16_t>(eRegMANG);
+    return ReadT<uint16_t>(eRegMANG) & 0x0FFF;
   }
 
   inline bool WriteMANG(uint16_t aMANG) {
@@ -99,7 +109,7 @@ public:
   }
 
   inline uint16_t ReadCONF() const {
-    return ReadT<uint16_t>(eRegCONF);
+    return ReadT<uint16_t>(eRegCONF) & 0x3FFF;
   }
 
   inline bool WriteCONF(uint16_t aCONF) {
@@ -107,11 +117,11 @@ public:
   }
 
   inline uint16_t ReadRawAngle() const {
-    return ReadT<uint16_t>(eRegRawAngle);
+    return ReadT<uint16_t>(eRegRawAngle) & 0x0FFF;
   }
 
   inline uint16_t ReadAngle() const {
-    return ReadT<uint16_t>(eRegAngle);
+    return ReadT<uint16_t>(eRegAngle) & 0x0FFF;
   }
 
   inline uint8_t ReadStatus() const {
@@ -233,7 +243,8 @@ private:
     return EndTransmission();
   }
 
-  uint8_t mSlaveAddr;
+  const uint8_t mSlaveAddr;
+  const int mDirPin;
   mutable uint8_t mRegAddr;
 
   static bool mAngleRequestPending;
