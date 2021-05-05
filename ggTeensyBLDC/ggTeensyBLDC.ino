@@ -6,6 +6,7 @@
 #include "ggPath.h"
 #include "ggSampler.h"
 #include "ggAS5600.h"
+#include "ggHistogramT.h"
 
 // enable ("inhibit" => when set to low device goes in sleep mode)
 #define M_INH_U_PIN 3
@@ -27,6 +28,21 @@
 #define M_VS_V_PIN A1 // 15
 #define M_VS_W_PIN A2 // 16
 
+// external sensor (connector)
+#define M_DATA1_PIN 10
+#define M_DATA2_PIN 9
+#define M_DATA3_PIN 8
+#define M_DATA4_PIN 7
+#define M_DATA5_SCL_PIN 19 // A5
+#define M_DATA6_SDA_PIN 18 // A4
+
+// xternal sensor AS5600
+#define M_AS5600_OUT_PIN M_DATA2_PIN // output PWM
+#define M_AS5600_PGO_PIN M_DATA1_PIN // input GND => programming mode (internal pull-up)
+#define M_AS5600_SDA_PIN M_DATA6_SDA_PIN // I2C: consider external pull-up
+#define M_AS5600_SCL_PIN M_DATA5_SCL_PIN // I2C: consider external pull-up
+#define M_AS5600_DIR_PIN M_DATA4_PIN // input direction angle increment: GND CW / VDD CCW
+
 // user interface
 #define M_LED_A_PIN 11
 #define M_LED_B_PIN 12
@@ -35,6 +51,8 @@
 
 // pwm settings
 const int mPWMResolution = 10; // 10 bit
+const int mPWMValueBegin = 0;
+const int mPWMValueEnd = 1 << mPWMResolution;
 const int mPWMValueMin = 0.01 * (1 << mPWMResolution);
 const int mPWMValueMax = 0.95 * (1 << mPWMResolution);
 const int mPWMFrequency = 15000; // Hz
@@ -56,13 +74,23 @@ ggStatusLEDs mStatusLEDs(M_LED_A_PIN, M_LED_B_PIN, M_LED_ON_BOARD_PIN);
 ggButtonSimple mButton(M_KEY_PIN, true/*invert*/, true/*pullup*/);
 
 // angle sensor conencted on I2C
-ggAS5600 mAS5600(0x36);
+ggAS5600 mAS5600(0x36, M_AS5600_DIR_PIN);
 
 // half bridges (pins: current sense / enable / pwm)
 ggHalfBridge mDriveU(M_IS_U_PIN, M_INH_U_PIN, M_IN_U_PIN, SetupPWM, mPWMValueMax);
 ggHalfBridge mDriveV(M_IS_V_PIN, M_INH_V_PIN, M_IN_V_PIN, SetupPWM, mPWMValueMax);
 ggHalfBridge mDriveW(M_IS_W_PIN, M_INH_W_PIN, M_IN_W_PIN, SetupPWM, mPWMValueMax);
 
+
+void FatalEnd(const char* aInfo = nullptr);
+
+#define GG_STR(aArg) GG_STR1(aArg)
+#define GG_STR1(aArg) #aArg
+
+#define GG_ASSERT(aAssertion) \
+if (!(aAssertion)) { \
+  FatalEnd("" __FILE__ "(" GG_STR(__LINE__) "): Assertion failed: '" #aAssertion "'");\
+}
 
 template <typename TOut>
 TOut ggRound(float aValue)
@@ -76,7 +104,7 @@ TOut ggRound(float aValue)
 
 
 // sinus lookup table
-const int mSinSamples = 3600; // 3600;
+const int mSinSamples = 4096 / 4;
 const int mSinAmplitude = 10000;
 int mSin[mSinSamples];
 
@@ -95,6 +123,7 @@ void SetupSin()
 
 inline int GetSin(long aAmplitude, int aAngle)
 {
+  GG_ASSERT((0 <= aAngle) && (aAngle < mSinSamples));
   long vSin = aAmplitude * mSin[aAngle];
   vSin /= mSinAmplitude;
   if (vSin > 0) vSin += mPWMValueMin;
@@ -109,20 +138,29 @@ void setup()
 
   Serial.begin(38400);
   while (!Serial); // wait until USB serial ready
-  Serial.println("Hi Teensy BLDC!");
+  // Serial.println("Hi Teensy BLDC!");
   
-  Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_INT, I2C_RATE_1000);
+  Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_INT, 1000000);
 
   mStatusLEDs.Begin();
   mButton.Begin();
-  mAS5600.Begin();
-  mAS5600.SendAngleRequest();
+
   mDriveU.Begin();
   mDriveV.Begin();
   mDriveW.Begin();
   mDriveU.SetEnable(true);
   mDriveV.SetEnable(true);
   mDriveW.SetEnable(true);
+  
+  mAS5600.Begin();
+  mAS5600.SetDirCCW();
+/*
+  Serial.println("AS5600 Registers:");
+  mAS5600.Print(Serial);
+*/
+  bool vSuccess = mAS5600.SendAngleRequest();
+  if (!vSuccess) Serial.println("Failed to send Angle Request!");
+  delayMicroseconds(1000); // 1ms should be sufficient for receiving the first angle
 }
 
 
@@ -141,22 +179,38 @@ void DriveUVW(int aU, int aV, int aW)
 
 // motor parameters
 const int mNumPoles = 4;
-float mPhaseAngle = 0.0f;
-float mMotorAngle = 0.0f;
-unsigned long mCalculationMicros = 0;
+uint16_t mPhaseAngle = 0;
+uint16_t mMotorAngle = 0;
 
+
+ggHistogramT<uint32_t, 32> mHistogramMicrosSample;
+ggHistogramT<uint32_t, 64> mHistogramMicrosCalc;
+ggHistogramT<uint32_t, 256> mHistogramAnglesDelta;
+
+
+const unsigned long mSampleMicros = 50;
 
 // advance angle each 50us
-ggSampler mAngleSampler(50, [] (unsigned long aMicrosDelta) {
+ggSampler mAngleSampler(mSampleMicros, [] (unsigned long aMicrosDelta) {
 
   // start measure calculation time
-  unsigned long vMicrosStart = micros();
+  const unsigned long vMicrosStart = micros();
   
   // read user input
   mButton.Update();
 
-  // calculate phase angles
-  int vAngleU = static_cast<int>(mSinSamples * mPhaseAngle / M_2PI);
+  // read angle from sensor
+  bool vAngleNotReady = mAS5600.AngleRequestPending();
+  int16_t vAngle = mAS5600.GetAngle();
+  bool vAngleRequestSent = mAS5600.SendAngleRequest();
+  int16_t vAngleDelta = mMotorAngle - vAngle;
+  mMotorAngle = vAngle;
+
+  // transform to motor phase-angle
+  mPhaseAngle = mMotorAngle % mSinSamples;
+
+  // calculate UVW phase angles
+  int vAngleU = mPhaseAngle;
   int vAngleV = vAngleU + 1 * mSinSamples / 3;
   int vAngleW = vAngleU + 2 * mSinSamples / 3;
   if (vAngleU >= mSinSamples) vAngleU -= mSinSamples;
@@ -164,7 +218,7 @@ ggSampler mAngleSampler(50, [] (unsigned long aMicrosDelta) {
   if (vAngleW >= mSinSamples) vAngleW -= mSinSamples;
 
   // amplitude
-  static const long vPWMAmpl = 0.25*mPWMValueMax;
+  static const long vPWMAmpl = mPWMValueMax / 4;
 
   // phase pwm values
   int vPWMU = GetSin(vPWMAmpl, vAngleU);
@@ -175,73 +229,60 @@ ggSampler mAngleSampler(50, [] (unsigned long aMicrosDelta) {
   DriveUVW(vPWMU, vPWMV, vPWMW);
 
   // display angle status
-  // mStatusLEDs.SetOnBoard(2 * mAngle / mSinSamples % 2);
-  // mStatusLEDs.SetA(6 * mAngle / mSinSamples % 2);
-  // mStatusLEDs.SetOnBoard(mButton.GetOn());
   mStatusLEDs.SetOnBoard(vPWMU != 0);
   mStatusLEDs.SetA(vPWMV != 0);
   mStatusLEDs.SetB(vPWMW != 0);
 
-/*
-  // ramp up speed
-  // motor has 4 pole pairs:
-  // => 180 / 4 = 45 rotations per second
-  // => 45 * 60 = 2700 rpm
-  static const float vAccel = 0.01f * 6.0f * M_2PI; // increase speed each second by 6 pole-pairs per second
-  static const float vSpeedMax = 180.0f * M_2PI; // max is 180 pole-pairs per second
-  static float vSpeed = 0; // start with 0 pole-pairs per second
-  float vTimeDelta = 0.000001f * aMicrosDelta;
-  vSpeed += vAccel * vTimeDelta;
-  if (vSpeed > vSpeedMax) vSpeed = vSpeedMax;
-
-  // advance motor angle
-  mMotorAngle += vSpeed * vTimeDelta;
-  if (mMotorAngle > M_2PI) mMotorAngle -= M_2PI;
-
-  // advance phase-angle
-  mPhaseAngle += vSpeed * vTimeDelta;
-  if (mPhaseAngle > M_2PI) mPhaseAngle -= M_2PI;
-*/
-
-  // angle from sensor
-  uint16_t vAngle = mAS5600.GetAngle();
-  mAS5600.SendAngleRequest();
-  mMotorAngle = M_2PI * vAngle / 4096.0f;
-
-  // transform to motor phase-angle
-  mPhaseAngle = fmod(mNumPoles * mMotorAngle, M_2PI);
-
   // stop calculation time
-  mCalculationMicros = micros() - vMicrosStart;
+  const unsigned long vMicrosCalc = micros() - vMicrosStart;
 
+  // do some checks (for debugging)
+  mHistogramMicrosSample.Count(aMicrosDelta - mSampleMicros);
+  mHistogramMicrosCalc.Count(vMicrosCalc);
+  mHistogramAnglesDelta.Count(vAngleDelta + mHistogramAnglesDelta.GetSize() / 2);
+  GG_ASSERT(!vAngleNotReady);
+  GG_ASSERT(vAngleRequestSent);
 });
 
 
-ggSampler mSerialPlotSampler(10000, [] (unsigned long aMicrosDelta) {
+ggSampler mSerialPlotSampler(25000, [] (unsigned long aMicrosDelta) {
+
   static bool vPlotHeader = true;
   if (vPlotHeader) {
-    Serial.printf("Calc-Time Motor-Angle Phase-Angle U V W\n");
+    Serial.printf("Motor-Angle Phase-Angle U V W\n");
     vPlotHeader = false;
   }
-  Serial.printf("%d %d %d %d %d %d\n",
-    mCalculationMicros,
-    ggRound<int>(100.0f * mMotorAngle / M_2PI),
-    ggRound<int>(100.0f * mPhaseAngle / M_2PI),
+  Serial.printf("%d %d %d %d %d\n",
+    mMotorAngle / 8 / mNumPoles,
+    mPhaseAngle / 8,
     mDriveU.GetPWM(), mDriveV.GetPWM(), mDriveW.GetPWM());
 
-  if (mDriveU.GetPWM() > 500) {
-    while (true) {
-      Serial.printf("Funny PWM! ===============\n");
-      Serial.printf("PWM U: %d\n", mDriveU.GetPWM());
-      Serial.printf("PWM V: %d\n", mDriveV.GetPWM());
-      Serial.printf("PWM W: %d\n", mDriveW.GetPWM());
-      Serial.printf("mMotorAngle: %f rad\n", mMotorAngle);
-      Serial.printf("mPhaseAngle: %f rad\n", mPhaseAngle);
-      Serial.printf("mCalculationMicros: %d us\n", mCalculationMicros);
-      delay(1000);
-    }
-  }
+  /*
+  Serial.print("Micros Sample: ");
+  mHistogramMicrosSample.PrintT(Serial);
+  mHistogramMicrosSample.Clear();
+  Serial.print("Micros Calc: ");
+  mHistogramMicrosCalc.PrintT(Serial);
+  mHistogramMicrosCalc.Clear();  
+  Serial.print("Angles Delta: ");
+  mHistogramAnglesDelta.PrintT(Serial);
+  mHistogramAnglesDelta.Clear();
+  */
 });
+
+
+void FatalEnd(const char* aInfo = nullptr)
+{
+  Serial.printf("Fatal End! ===============\n");
+  if (aInfo != nullptr) Serial.printf("%s\n", aInfo);
+  Serial.printf("mMotorAngle: %f rad\n", mMotorAngle);
+  Serial.printf("mPhaseAngle: %f rad\n", mPhaseAngle);
+  Serial.printf("PWM U: %d\n", mDriveU.GetPWM());
+  Serial.printf("PWM V: %d\n", mDriveV.GetPWM());
+  Serial.printf("PWM W: %d\n", mDriveW.GetPWM());
+  Serial.flush();
+  while (true);  
+}
 
 
 void loop()
