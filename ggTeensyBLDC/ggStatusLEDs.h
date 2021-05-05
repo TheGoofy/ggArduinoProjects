@@ -36,8 +36,8 @@ public:
 
 private:
 
-  int mPinLedA;
-  int mPinLedB;
-  int mPinLedOnBoard;
+  const int mPinLedA;
+  const int mPinLedB;
+  const int mPinLedOnBoard;
   
 };
