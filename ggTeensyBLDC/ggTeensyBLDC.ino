@@ -229,9 +229,9 @@ ggSampler mAngleSampler(mSampleMicros, [] (unsigned long aMicrosDelta) {
   DriveUVW(vPWMU, vPWMV, vPWMW);
 
   // display angle status
-  mStatusLEDs.SetOnBoard(vPWMU != 0);
-  mStatusLEDs.SetA(vPWMV != 0);
-  mStatusLEDs.SetB(vPWMW != 0);
+  mStatusLEDs.SetOnBoard(vAngleU < mSinSamples / 2);
+  mStatusLEDs.SetA(vAngleV < mSinSamples / 2);
+  mStatusLEDs.SetB(vAngleW < mSinSamples / 2);
 
   // stop calculation time
   const unsigned long vMicrosCalc = micros() - vMicrosStart;
