@@ -116,6 +116,42 @@ public:
     return Write(eRegCONF, aCONF);
   }
 
+  enum tSlowFilter {
+    eSlowFilterMask = 0x0300, // 0000'00XX'0000'0000 bits 9:8
+    eSlowFilter16x  = 0x0000, //        00           response time: 2.2 ms (low noise)
+    eSlowFilter08x  = 0x0100, //        01           response time: 1.1 ms
+    eSlowFilter04x  = 0x0200, //        10           response time: 0.55 ms
+    eSlowFilter02x  = 0x0300  //        11           response time: 0.286 ms (high noise)
+  };
+
+  inline tSlowFilter ReadCONFSlowFilter() const {
+    return ReadCONF() & eSlowFilterMask;
+  }
+
+  inline bool WriteCONFSlowFilter(tSlowFilter aSlowFilter) {
+    return WriteCONF((ReadCONF() & ~eSlowFilterMask) | aSlowFilter);
+  }
+
+  enum tFastFilterThreshold {
+    eFastFilterThresholdMask   = 0x1C00, // 000X'XX00'0000'0000 bits 12:10
+    eFastFilterThresholdSFOnly = 0x0000, //    0'00
+    eFastFilterThreshold6LSB   = 0x0400, //    0'01
+    eFastFilterThreshold7LSB   = 0x0800, //    0'10
+    eFastFilterThreshold9LSB   = 0x0C00, //    0'11
+    eFastFilterThreshold18LSB  = 0x1000, //    1'00
+    eFastFilterThreshold21LSB  = 0x1400, //    1'01
+    eFastFilterThreshold24LSB  = 0x1800, //    1'10
+    eFastFilterThreshold10LSB  = 0x1C00  //    1'11
+  };
+
+  inline tFastFilterThreshold ReadCONFFastFilterThreshold() const {
+    return ReadCONF() & eFastFilterThresholdMask;
+  }
+
+  inline bool WriteCONFFastFilterThreshold(tFastFilterThreshold aFastFilterThreshold) {
+    return WriteCONF((ReadCONF() & ~eFastFilterThresholdMask) | aFastFilterThreshold);
+  }
+
   inline uint16_t ReadRawAngle() const {
     return ReadT<uint16_t>(eRegRawAngle) & 0x0FFF;
   }
@@ -124,20 +160,27 @@ public:
     return ReadT<uint16_t>(eRegAngle) & 0x0FFF;
   }
 
+  enum tStatusMagnet {
+    eStatusMask = 0x38, // 00XX'X000 bits 3:5
+    eStatusMH   = 0x08, //   00'1    magnet high
+    eStatusML   = 0x10, //   01'0    magnet low
+    eStatusMD   = 0x20, //   10'0    magnet detect
+  };
+
   inline uint8_t ReadStatus() const {
     return ReadT<uint8_t>(eRegStatus);
   }
 
   inline bool ReadStatusMagnetTooStrong() const {
-    return ReadStatus() & 0x08; // MH
+    return ReadStatus() & eStatusMH; // MH bit 3
   }
 
   inline bool ReadStatusMagnetTooWeak() const {
-    return ReadStatus() & 0x10; // ML
+    return ReadStatus() & eStatusML; // ML bit 4
   }
 
   inline bool ReadStatusMagnetDetected() const {
-    return ReadStatus() & 0x20; // MD
+    return ReadStatus() & eStatusMD; // MD bit 5
   }
 
   inline uint8_t ReadAGC() const {

@@ -154,10 +154,12 @@ void setup()
   
   mAS5600.Begin();
   mAS5600.SetDirCCW();
-/*
+  mAS5600.WriteCONFSlowFilter(ggAS5600::eSlowFilter02x);
+  mAS5600.WriteCONFFastFilterThreshold(ggAS5600::eFastFilterThresholdSFOnly);
+
   Serial.println("AS5600 Registers:");
   mAS5600.Print(Serial);
-*/
+
   bool vSuccess = mAS5600.SendAngleRequest();
   if (!vSuccess) Serial.println("Failed to send Angle Request!");
   delayMicroseconds(1000); // 1ms should be sufficient for receiving the first angle
@@ -245,7 +247,7 @@ ggSampler mAngleSampler(mSampleMicros, [] (unsigned long aMicrosDelta) {
 });
 
 
-ggSampler mSerialPlotSampler(25000, [] (unsigned long aMicrosDelta) {
+ggSampler mSerialPlotSampler(10000, [] (unsigned long aMicrosDelta) {
 
   static bool vPlotHeader = true;
   if (vPlotHeader) {
@@ -257,7 +259,7 @@ ggSampler mSerialPlotSampler(25000, [] (unsigned long aMicrosDelta) {
     mPhaseAngle / 8,
     mDriveU.GetPWM(), mDriveV.GetPWM(), mDriveW.GetPWM());
 
-  /*
+/*
   Serial.print("Micros Sample: ");
   mHistogramMicrosSample.PrintT(Serial);
   mHistogramMicrosSample.Clear();
@@ -267,7 +269,7 @@ ggSampler mSerialPlotSampler(25000, [] (unsigned long aMicrosDelta) {
   Serial.print("Angles Delta: ");
   mHistogramAnglesDelta.PrintT(Serial);
   mHistogramAnglesDelta.Clear();
-  */
+*/
 });
 
 
