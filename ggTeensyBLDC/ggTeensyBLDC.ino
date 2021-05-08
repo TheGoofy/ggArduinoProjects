@@ -184,11 +184,18 @@ const int mNumPoles = 4;
 uint16_t mPhaseAngle = 0;
 uint16_t mMotorAngle = 0;
 
-
+// for debugging
 ggHistogramT<uint32_t, 32> mHistogramMicrosSample;
 ggHistogramT<uint32_t, 64> mHistogramMicrosCalc;
 ggHistogramT<uint32_t, 256> mHistogramAnglesDelta;
 
+/*
+4 poles, min 10 samples per pole => min 40 samples per rotation
+AS5600 update rate is 6.6kHz
+=> max 165 rotations per sec (9'900 rpm)
+TLE5012 update rate is 23.4kHz
+=> max 585 rotations per sec (35'100 rpm)
+*/
 
 const unsigned long mSampleMicros = 50;
 
