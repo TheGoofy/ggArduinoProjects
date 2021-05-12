@@ -125,7 +125,7 @@ public:
   };
 
   inline tSlowFilter ReadCONFSlowFilter() const {
-    return ReadCONF() & eSlowFilterMask;
+    return static_cast<tSlowFilter>(ReadCONF() & eSlowFilterMask);
   }
 
   inline bool WriteCONFSlowFilter(tSlowFilter aSlowFilter) {
@@ -145,7 +145,7 @@ public:
   };
 
   inline tFastFilterThreshold ReadCONFFastFilterThreshold() const {
-    return ReadCONF() & eFastFilterThresholdMask;
+    return static_cast<tFastFilterThreshold>(ReadCONF() & eFastFilterThresholdMask);
   }
 
   inline bool WriteCONFFastFilterThreshold(tFastFilterThreshold aFastFilterThreshold) {
