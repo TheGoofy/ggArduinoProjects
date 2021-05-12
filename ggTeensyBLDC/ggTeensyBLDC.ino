@@ -82,7 +82,7 @@ ggHalfBridge mDriveV(M_IS_V_PIN, M_INH_V_PIN, M_IN_V_PIN, SetupPWM, mPWMValueMax
 ggHalfBridge mDriveW(M_IS_W_PIN, M_INH_W_PIN, M_IN_W_PIN, SetupPWM, mPWMValueMax);
 
 
-void FatalEnd(const char* aInfo = nullptr);
+void FatalEnd(const char* aInfo);
 
 #define GG_STR(aArg) GG_STR1(aArg)
 #define GG_STR1(aArg) #aArg
@@ -137,7 +137,7 @@ void setup()
   SetupSin();
 
   Serial.begin(38400);
-  while (!Serial); // wait until USB serial ready
+  while (!Serial && (millis() < 1000)); // wait for max. 1 second until USB serial ready
   // Serial.println("Hi Teensy BLDC!");
   
   Wire.begin(I2C_MASTER, 0, I2C_PINS_18_19, I2C_PULLUP_INT, 1000000);
@@ -227,7 +227,7 @@ ggSampler mAngleSampler(mSampleMicros, [] (unsigned long aMicrosDelta) {
   if (vAngleW >= mSinSamples) vAngleW -= mSinSamples;
 
   // amplitude
-  static const long vPWMAmpl = mPWMValueMax / 4;
+  static const long vPWMAmpl = mPWMValueMax / 2;
 
   // phase pwm values
   int vPWMU = GetSin(vPWMAmpl, vAngleU);
@@ -280,7 +280,7 @@ ggSampler mSerialPlotSampler(10000, [] (unsigned long aMicrosDelta) {
 });
 
 
-void FatalEnd(const char* aInfo = nullptr)
+void FatalEnd(const char* aInfo)
 {
   Serial.printf("Fatal End! ===============\n");
   if (aInfo != nullptr) Serial.printf("%s\n", aInfo);
