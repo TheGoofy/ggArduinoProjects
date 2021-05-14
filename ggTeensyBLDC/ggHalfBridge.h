@@ -4,13 +4,13 @@ class ggHalfBridge
 {
   public:
 
-    typedef void (*tSetupPWMFunc) (int aPin);
+    typedef void (*tSetupPWMFunc) (uint8_t aPin);
   
-    ggHalfBridge(int aISPin, // current sense
-                 int aENPin, // enable (inhibit)
-                 int aPWMPin, // PWM duty cycle
+    ggHalfBridge(uint8_t aISPin, // current sense
+                 uint8_t aENPin, // enable (inhibit)
+                 uint8_t aPWMPin, // PWM duty cycle
                  tSetupPWMFunc aSetupPWMFunc,
-                 int aPWMValueMax)
+                 uint16_t aPWMValueMax)
     : mISPin(aISPin),
       mENPin(aENPin),
       mPWMPin(aPWMPin),
@@ -30,38 +30,22 @@ class ggHalfBridge
       digitalWrite(mENPin, aEnable);
     }
 
-    void SetPWM(int aPWM) {
+    void SetPWM(uint16_t aPWM) {
       mPWMValue = aPWM;
       analogWrite(mPWMPin, aPWM);
     }
 
-    int GetPWM() const {
+    uint16_t GetPWM() const {
       return mPWMValue;
-    }
-
-    void SweepUp(unsigned long aTimeMS = 5000) {
-      const unsigned long vDelayUS = 1000 * aTimeMS / mPWMValueMax;
-      for (int vPWM = 0; vPWM <= mPWMValueMax; vPWM++) {
-        SetPWM(vPWM);
-        delayMicroseconds(vDelayUS);
-      }
-    }
-
-    void SweepDown(unsigned long aTimeMS = 5000) {
-      const unsigned long vDelayUS = 1000 * aTimeMS / mPWMValueMax;
-      for (int vPWM = mPWMValueMax; vPWM >= 0; vPWM--) {
-        SetPWM(vPWM);
-        delayMicroseconds(vDelayUS);
-      }
     }
 
   private:
   
-    const int mISPin;
-    const int mENPin;
-    const int mPWMPin;
+    const uint8_t mISPin;
+    const uint8_t mENPin;
+    const uint8_t mPWMPin;
     const tSetupPWMFunc mSetupPWMFunc;
-    const int mPWMValueMax;
-    int mPWMValue;
+    const uint16_t mPWMValueMax;
+    uint16_t mPWMValue;
 
 };

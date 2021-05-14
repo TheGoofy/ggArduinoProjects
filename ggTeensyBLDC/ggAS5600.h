@@ -76,6 +76,14 @@ public:
     return mAngleRequestPending;
   }
 
+  inline static constexpr uint8_t GetAngleBits() {
+    return 12;
+  }
+
+  inline static constexpr uint16_t GetAnglePeriod() {
+    return (uint16_t)1 << GetAngleBits();
+  }
+
   inline uint16_t GetAngle() const {
     return mAngle;
   }

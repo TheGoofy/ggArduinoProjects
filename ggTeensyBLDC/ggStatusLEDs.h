@@ -34,6 +34,24 @@ public:
     digitalWrite(mPinLedOnBoard, aOn);
   }
 
+  void Set(bool aOnA, bool aOnB, bool aOnOnBoard) {
+    SetA(aOnA);
+    SetB(aOnB);
+    SetOnBoard(aOnOnBoard);
+  }
+
+  bool GetA() const {
+    return digitalRead(mPinLedA);
+  }
+
+  bool GetB() const {
+    return digitalRead(mPinLedB);
+  }
+
+  bool GetOnBoard() const {
+    return digitalRead(mPinLedOnBoard);
+  }
+
 private:
 
   const int mPinLedA;
