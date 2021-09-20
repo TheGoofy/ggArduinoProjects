@@ -111,8 +111,8 @@ class ggSvg {
     let vAngleDegB = 180 * aAngleB / Math.PI;
     if (aMinimizeRotationAngle) {
       let vAngleDegDelta = vAngleDegB - vAngleDegA;
-      if (vAngleDegDelta > 180) vAngleDegA += 360;
-      else if (vAngleDegDelta < -180) vAngleDegA -= 360;
+      if (vAngleDegDelta > 180) vAngleDegB -= 360;
+      else if (vAngleDegDelta < -180) vAngleDegB += 360;
     }
     this.SetRotation(aSvgObject, aCenter, aAngleA);
     let vSvgAnimateTransform = document.createElementNS(this.mSvgNS, "animateTransform");
@@ -306,7 +306,7 @@ class ggClockSVG {
       let vPosHourH = this.GetPosition(vAngleHour, vTickRadiusH);
       vGroupTicksHour.appendChild(ggSvg.CreateLine(vPosHour, vPosHourH));
       if (this.mLabels && this.mLabels.length == 12) {
-        let vPosLabel = this.GetPosition(vAngleHour, vTickRadiusH - this.mTicksMargin * vTickRadius);
+        let vPosLabel = this.GetPosition(vAngleHour, vTickRadiusH - 2.0 * this.mTicksMargin * vTickRadius);
         let vLabel = ggSvg.CreateText(vPosLabel, this.mLabels[vHour]);
         let vTextAnchor = ggSvg.GetTextAnchor(vAngleHour);
         let vAlignmentBaseline = ggSvg.GetAlignmentBaseline(vAngleHour);
