@@ -13,7 +13,7 @@
 #define M_DEBUGGING false
 #define M_TEST_ENVIRONMENT false
 
-#define M_VERSION_SW "v1.0.0"
+#define M_VERSION_SW "v1.0.1"
 
 #include "ggWebServer.h"
 #include "ggWebSockets.h"
@@ -46,6 +46,20 @@ Stream& mDebugStream(Serial);
 #else
 ggNullStream mDebugStream;
 #endif
+
+
+// up-time
+unsigned long long mMillisUpTime = 0;
+
+
+void UpdateUpTime()
+{
+  static unsigned long vMillisLast = 0;
+  unsigned long vMillis = millis();
+  unsigned long vMillisDelta = vMillis - vMillisLast;
+  mMillisUpTime += vMillisDelta;
+  vMillisLast = vMillis;
+}
 
 
 WiFiManager& WiFiMgr()
@@ -744,6 +758,7 @@ void ConnectComponents()
       vDebug.PrintF("Version HW = %s\n", M_VERSION_HW);
       vDebug.PrintF("Environment config = %s\n", M_TEST_ENVIRONMENT ? "TEST" : "NORMAL");
       vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
+      vDebug.PrintF("mMillisUpTime = %llu (%.1f Days)\n", mMillisUpTime, mMillisUpTime/(1000.0f*60.0f*60.0f*24.0f));
       Data().PrintDebug("Data()");
       Periphery().PrintDebug("Periphery()");
       DisplayTimer().PrintDebug("DisplayTimer()");
@@ -907,5 +922,6 @@ void loop()
   WiFiConnection().Run();
   MDNS.update();
   ArduinoOTA.handle();
+  UpdateUpTime();
   yield();
 }
