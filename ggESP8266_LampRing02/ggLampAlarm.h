@@ -10,18 +10,18 @@ public:
   ggLampAlarm()
   : mID(0),
     mSceneIndex(0),
-    mDuration(0.0f) {
+    mTransitionTime(0.0f) {
   }
 
   uint8_t mID;
   int8_t mSceneIndex;
-  float mDuration;
+  float mTransitionTime;
 
   virtual String ToJson() const override {
     return ggAlarmClockNTP::cAlarm::ToJson() + ","
       "\"mID\":" + mID + ","
       "\"mSceneIndex\":" + mSceneIndex + ","
-      "\"mDuration\":" + mDuration;
+      "\"mTransitionTime\":" + mTransitionTime;
   }
 
 };

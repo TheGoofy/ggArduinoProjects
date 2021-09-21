@@ -15,8 +15,7 @@ public:
     mModulePWM(),
     mBrightnesses()
   {
-    SetTransitionTime(0.3f); // seconds
-    SetChannelBrightness(0.0f);
+    SetChannelBrightnesses(0.0f, 0.3f); // transition-time
   }
 
   void Begin() {
@@ -25,16 +24,6 @@ public:
     mModulePWM.setOscillatorFrequency(28000000);  // The int.osc. is closer to 27MHz
     mModulePWM.setPWMFreq(180); // 180 most "silent", 1600 is the maximum PWM frequency
     UpdateOutput();
-  }
-
-  float GetTransitionTime() const {
-    return mBrightnesses.front().GetSeconds();
-  }
-
-  void SetTransitionTime(float aSeconds) {
-    ForEachChannel([&] (int aChannel) {
-      mBrightnesses[aChannel].SetSeconds(aSeconds);
-    });
   }
 
   int GetNumberOfChannels() const {
@@ -55,17 +44,17 @@ public:
     return 0.0f;
   }
 
-  void SetChannelBrightness(float aBrightness) {
+  void SetChannelBrightnesses(float aBrightness, float aTransitionTime) {
     ForEachChannel([&] (int aChannel) {
-      mBrightnesses[aChannel].Set(aBrightness);
+      mBrightnesses[aChannel].Set(aBrightness, aTransitionTime);
     });
     UpdateOutput();
   }
 
-  void SetChannelBrightness(int aChannel, float aBrightness) {
+  void SetChannelBrightness(int aChannel, float aBrightness, float aTransitionTime) {
     if ((0 <= aChannel) && (aChannel < TNumChannels)) {
       float vBrightness = ggClamp(aBrightness, 0.0f, 1.0f);
-      mBrightnesses[aChannel].Set(vBrightness);
+      mBrightnesses[aChannel].Set(vBrightness, aTransitionTime);
       UpdateOutput(aChannel);
     }
   }

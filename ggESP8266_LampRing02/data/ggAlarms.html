@@ -238,13 +238,13 @@
       vNumber.step = 0.1;
       vNumber.classList.add('cTransitionInput');
       vNumber.onchange = function () {
-        vNumber.mAlarm.mDuration = parseFloat(vNumber.value);
+        vNumber.mAlarm.mTransitionTime = parseFloat(vNumber.value);
         HttpRequestSetAlarm(vNumber.mAlarm);
       }
       let aCell = aRow.insertCell();
       aCell.UpdateAlarm = function (aAlarm) {
         if (aAlarm) vNumber.mAlarm = aAlarm;
-        vNumber.value = vNumber.mAlarm.mDuration;
+        vNumber.value = vNumber.mAlarm.mTransitionTime;
       }
       aCell.appendChild(vNumber);
     }

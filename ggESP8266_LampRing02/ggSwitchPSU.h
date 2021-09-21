@@ -28,20 +28,21 @@ public:
     mOutput(aPin, aInverted),
     mTimerOn(aDelayOn),
     mTimerOff(aDelayOff),
+    mTransitionTime(-1.0f),
     mSwitchedOnFunc(nullptr),
     mSwitchedOffFunc(nullptr)
   {
     mTimerOn.OnTimeOut([&] () {
       mSwitchedOn = true;
       if (mSwitchedOnFunc != nullptr) {
-        mSwitchedOnFunc();
+        mSwitchedOnFunc(mTransitionTime);
       }
     });
     mTimerOff.OnTimeOut([&] () {
       mSwitchedOn = false;
       mOutput.Set(false);
       if (mSwitchedOffFunc != nullptr) {
-        mSwitchedOffFunc();
+        mSwitchedOffFunc(mTransitionTime);
       }
     });
   }
@@ -66,7 +67,8 @@ public:
     mTimerOff.GetTimeOut();
   }
 
-  void SetOn() {
+  void SetOn(float aTransitionTime) {
+    mTransitionTime = aTransitionTime;
     mTimerOff.Stop();
     if (!mSwitchedOn) {
       mOutput.Set(true);
@@ -74,12 +76,13 @@ public:
     }
     else {
       if (mSwitchedOnFunc != nullptr) {
-        mSwitchedOnFunc();
+        mSwitchedOnFunc(mTransitionTime);
       }
     }
   }
 
-  void SetOff() {
+  void SetOff(float aTransitionTime) {
+    mTransitionTime = aTransitionTime;
     mTimerOn.Stop();
     if (mSwitchedOn) {
       mTimerOff.Start();
@@ -87,16 +90,16 @@ public:
     else {
       mOutput.Set(false);
       if (mSwitchedOffFunc != nullptr) {
-        mSwitchedOffFunc();
+        mSwitchedOffFunc(mTransitionTime);
       }
     }
   }
 
-  void SetOn(bool aOn) {
-    aOn ? SetOn() : SetOff();
+  void SetOn(bool aOn, float aTransitionTime) {
+    aOn ? SetOn(aTransitionTime) : SetOff(aTransitionTime);
   }
 
-  typedef std::function<void()> tSwitchFunc;
+  typedef std::function<void(float aTransitionTime)> tSwitchFunc;
 
   void OnSwitchedOn(tSwitchFunc aSwitchFunc) {
     mSwitchedOnFunc = aSwitchFunc;
@@ -129,6 +132,7 @@ private:
   ggOutput mOutput;
   ggTimer mTimerOn;
   ggTimer mTimerOff;
+  float mTransitionTime;
   tSwitchFunc mSwitchedOnFunc;
   tSwitchFunc mSwitchedOffFunc;
 

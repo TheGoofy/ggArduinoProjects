@@ -41,6 +41,8 @@ public:
   void SetMicros(unsigned long aMicros) {
     mMicrosDelta = aMicros;
     if (!Finished()) {
+      mValueStart = Get();
+      mMicrosStart = micros();
       mMicrosEnd = mMicrosStart + mMicrosDelta;
     }
   }
@@ -60,6 +62,11 @@ public:
       mMicrosStart = micros();
       mMicrosEnd = mMicrosStart + mMicrosDelta;
     }
+  }
+
+  void Set(const TValue& aValue, float aSeconds) {
+    SetSeconds(aSeconds);
+    Set(aValue);
   }
 
   // returns the "current" interpolated value

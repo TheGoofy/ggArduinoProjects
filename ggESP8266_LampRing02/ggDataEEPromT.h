@@ -33,7 +33,7 @@ public:
     uint8_t mHour;
     uint8_t mDays;
     int8_t mSceneIndex;
-    float mDuration;
+    float mTransitionTime;
     bool operator == (const cAlarm& aOther) const {
       return mID == aOther.mID
           && mActive == aOther.mActive
@@ -41,7 +41,7 @@ public:
           && mHour == aOther.mHour
           && mDays == aOther.mDays
           && mSceneIndex == aOther.mSceneIndex
-          && mDuration == aOther.mDuration;
+          && mTransitionTime == aOther.mTransitionTime;
     }
     bool operator != (const cAlarm& aOther) const {
       return mID != aOther.mID
@@ -50,7 +50,7 @@ public:
           || mHour != aOther.mHour
           || mDays != aOther.mDays
           || mSceneIndex != aOther.mSceneIndex
-          || mDuration != aOther.mDuration;
+          || mTransitionTime != aOther.mTransitionTime;
     }
   };
 
@@ -215,7 +215,7 @@ public:
       vAlarm.mHour = 23;
       vAlarm.mDays = 0;
       vAlarm.mSceneIndex = 0;
-      vAlarm.mDuration = 1.0f;
+      vAlarm.mTransitionTime = 1.0f;
       mAlarms[mNumAlarms] = vAlarm;
       mAlarmIDs.insert(vID);
       mNumAlarms += 1;
@@ -275,7 +275,7 @@ public:
       vAlarmsJson += String("\"mHour\":") + vAlarm.mHour + ",";
       vAlarmsJson += String("\"mDays\":") + vAlarm.mDays + ",";
       vAlarmsJson += String("\"mSceneIndex\":") + vAlarm.mSceneIndex + ",";
-      vAlarmsJson += String("\"mDuration\":") + vAlarm.mDuration;
+      vAlarmsJson += String("\"mTransitionTime\":") + vAlarm.mTransitionTime;
       vAlarmsJson += vIndex + 1 < mNumAlarms ? "},\n" : "}\n";
     }
     vAlarmsJson += "]";

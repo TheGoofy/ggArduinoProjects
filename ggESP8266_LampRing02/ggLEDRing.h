@@ -24,8 +24,7 @@ public:
   : mLEDsA(TNumLEDs, aPinA, aTypeA + NEO_KHZ800),
     mLEDsB(TNumLEDs, aPinB, aTypeB + NEO_KHZ800)
   {
-    SetTransitionTime(0.3f); // seconds
-    SetColors(ggColor::cHSV::Black());
+    SetColors(ggColor::cHSV::Black(), ggLocations::eAll, 0.3); // transition-time
   }
 
   void Begin() {
@@ -36,27 +35,6 @@ public:
     Show();
   }
 
-  float GetTransitionTime() const {
-    return mHSV.front().GetSeconds();
-  }
-
-  void SetTransitionTime(float aSeconds) {
-    for (auto& vHSV : mHSV) {
-      vHSV.SetSeconds(aSeconds);
-    }
-  }
-
-  float GetTransitionTimeMax() const {
-    float vTransitionTimeMax = 0.0f;
-    for (auto& vHSV : mHSV) {
-      float vTransitionTime = vHSV.GetSeconds();
-      if (vTransitionTimeMax < vTransitionTime) {
-        vTransitionTimeMax = vTransitionTime;
-      }
-    }
-    return vTransitionTimeMax;
-  }
-
   const ggColor::cHSV& GetColorHSV(ggLocations::tEnum aLocations) const {
     return GetColor(ggLocations::ToIndex(aLocations));
   }
@@ -65,27 +43,27 @@ public:
     return ggColor::ToRGB(GetColorHSV(aLocations));
   }
 
-  void SetColors(const ggColor::cHSV& aHSV, ggLocations::tEnum aLocations = ggLocations::eAll) {
+  void SetColors(const ggColor::cHSV& aHSV, ggLocations::tEnum aLocations, float aTransitionTime) {
     bool vColorChanged = false;
-    SetColor(aHSV, ggLocations::ToIndex(aLocations, ggLocations::eAL), vColorChanged);
-    SetColor(aHSV, ggLocations::ToIndex(aLocations, ggLocations::eAR), vColorChanged);
-    SetColor(aHSV, ggLocations::ToIndex(aLocations, ggLocations::eBL), vColorChanged);
-    SetColor(aHSV, ggLocations::ToIndex(aLocations, ggLocations::eBR), vColorChanged);
+    SetColor(aHSV, ggLocations::ToIndex(aLocations, ggLocations::eAL), aTransitionTime, vColorChanged);
+    SetColor(aHSV, ggLocations::ToIndex(aLocations, ggLocations::eAR), aTransitionTime, vColorChanged);
+    SetColor(aHSV, ggLocations::ToIndex(aLocations, ggLocations::eBL), aTransitionTime, vColorChanged);
+    SetColor(aHSV, ggLocations::ToIndex(aLocations, ggLocations::eBR), aTransitionTime, vColorChanged);
     if (vColorChanged) UpdateOutput();
   }
 
-  void SetColorsBlack() {
+  void SetColorsBlack(float aTransitionTime) {
     for (auto& vHSV : mHSV) {
-      vHSV = ggColor::cHSV(vHSV.GetEnd().mH, vHSV.GetEnd().mS, 0);
+      vHSV.Set(ggColor::cHSV(vHSV.GetEnd().mH, vHSV.GetEnd().mS, 0), aTransitionTime);
     }
     UpdateOutput();
   }
 
   template <typename TColors>
-  void SetColors(const TColors& aColors) {
+  void SetColorsT(const TColors& aColors, float aTransitionTime) {
     int vIndex = 0;
     bool vChanged = false;
-    for (const auto& vColor : aColors) SetColor(vColor, vIndex++, vChanged);
+    for (const auto& vColor : aColors) SetColor(vColor, vIndex++, aTransitionTime, vChanged);
     if (vChanged) UpdateOutput();
   }
 
@@ -170,8 +148,9 @@ private:
     else return mHSV[0];
   }
 
-  void SetColor(const ggColor::cHSV& aHSV, int aLocatonIndex, bool& aChanged) {
+  void SetColor(const ggColor::cHSV& aHSV, int aLocatonIndex, float aTransitionTime, bool& aChanged) {
     if ((0 <= aLocatonIndex) && (aLocatonIndex < 4)) {
+      mHSV[aLocatonIndex].SetSeconds(aTransitionTime);
       if (mHSV[aLocatonIndex] != aHSV) {
         mHSV[aLocatonIndex] = aHSV;
         aChanged = true;

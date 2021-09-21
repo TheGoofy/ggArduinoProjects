@@ -229,16 +229,16 @@ void DataChangeBrightness(const float& aBrightnessLogDelta)
 }
 
 
-void PeripheryLEDCenterSetChannelBrightness()
+void PeripheryLEDCenterSetChannelBrightnesses(float aTransitionTime)
 {
   GG_DEBUG();
-  Periphery().mLEDCenter.ForEachChannel([] (int aChannel) {
-    Periphery().mLEDCenter.SetChannelBrightness(aChannel, Data().CurrentScene().mBrightnesses[aChannel]);
+  Periphery().mLEDCenter.ForEachChannel([&aTransitionTime] (int aChannel) {
+    Periphery().mLEDCenter.SetChannelBrightness(aChannel, Data().CurrentScene().mBrightnesses[aChannel], aTransitionTime);
   });
 }
 
 
-void WebSocketsUpdateChannelBrightness(int aClientID = -1)
+void WebSocketsUpdateChannelBrightnesses(int aClientID = -1)
 {
   GG_DEBUG();
   WebSockets().UpdateChannelBrightness(Data().CurrentScene().mBrightnesses[0],
@@ -254,8 +254,8 @@ void WebSocketsUpdateChannelBrightness(int aClientID = -1)
 void AdjustTotalBrightness()
 {
   if (DataLimitTotalBrightness()) {
-    PeripheryLEDCenterSetChannelBrightness();
-    WebSocketsUpdateChannelBrightness();
+    PeripheryLEDCenterSetChannelBrightnesses(Data().TransitionTime());
+    WebSocketsUpdateChannelBrightnesses();
   }
 }
 
@@ -286,10 +286,10 @@ void DataChangeColors(int aColorChannel, int aDelta)
 }
 
 
-void PeripheryLEDRingSetColors()
+void PeripheryLEDRingSetColors(float aTransitionTime)
 {
   GG_DEBUG();
-  Periphery().mLEDRing.SetColors(Data().CurrentScene().mColors);
+  Periphery().mLEDRing.SetColorsT(Data().CurrentScene().mColors, aTransitionTime);
 }
 
 
@@ -356,7 +356,7 @@ public:
 
   ggState::tEnum mState;
   
-  typedef std::function<void (ggState::tEnum aState)> tStateFunc;
+  typedef std::function<void (ggState::tEnum aState, float aTransitionTime)> tStateFunc;
   tStateFunc mStateFunc;
   
   ggLampState()
@@ -368,10 +368,10 @@ public:
     return mState;
   }
 
-  void SetState(ggState::tEnum aState) {
+  void SetState(ggState::tEnum aState, float aTransitionTime = -1.0) {
     if (mState != aState) {
       mState = aState;
-      if (mStateFunc) mStateFunc(mState);
+      if (mStateFunc) mStateFunc(mState, aTransitionTime);
     }
   }
   
@@ -430,7 +430,7 @@ void AlarmClockSetAlarms()
     vLampAlarm->mHour = vDataAlarm.mHour;
     vLampAlarm->mDays = vDataAlarm.mDays;
     vLampAlarm->mSceneIndex = vDataAlarm.mSceneIndex;
-    vLampAlarm->mDuration = vDataAlarm.mDuration;
+    vLampAlarm->mTransitionTime = vDataAlarm.mTransitionTime;
     vLampAlarm->OnAlarm([] (ggAlarmClockNTP::cAlarm& aAlarm) {
       GG_DEBUG_BLOCK("OnAlarm");
       ggLampAlarm* vLampAlarm = static_cast<ggLampAlarm*>(&aAlarm);
@@ -446,19 +446,19 @@ void AlarmClockSetAlarms()
           }
         }
         if (vLampAlarm->mSceneIndex == -1) {
-          mLampState.SetState(ggState::eOff);
+          mLampState.SetState(ggState::eOff, vLampAlarm->mTransitionTime);
         }
         else {
           Data().SetCurrentSceneIndex(vLampAlarm->mSceneIndex);
           if (mLampState.mState == ggState::eOn) {
-            PeripheryLEDCenterSetChannelBrightness();
-            PeripheryLEDRingSetColors();
+            PeripheryLEDCenterSetChannelBrightnesses(vLampAlarm->mTransitionTime);
+            PeripheryLEDRingSetColors(vLampAlarm->mTransitionTime);
           }
           else {
-            mLampState.SetState(ggState::eOn);
+            mLampState.SetState(ggState::eOn, vLampAlarm->mTransitionTime);
           }
           WebSockets().UpdateCurrentSceneIndex(Data().GetCurrentSceneIndex());
-          WebSocketsUpdateChannelBrightness();
+          WebSocketsUpdateChannelBrightnesses();
           WebSocketsUpdateRingColorHSV();
         }
       }
@@ -487,23 +487,24 @@ void ConnectWifiManager()
 void ConnectComponents()
 {
   // mode
-  mLampState.OnState([&] (ggState::tEnum aState) {
+  mLampState.OnState([&] (ggState::tEnum aState, float aTransitionTime) {
+    const float vTransitionTime = (aTransitionTime > 0.0f) ? aTransitionTime : Data().TransitionTime().Get();
     switch (aState) {
       case ggState::eOff:
         Data().On() = false;
-        Periphery().mSwitchPSU.SetDelayOff(M_SWITCH_PSU_OFF_DELAY + Periphery().GetTransitionTime());
-        Periphery().mSwitchPSU.SetOff();
-        Periphery().mLEDCenter.SetChannelBrightness(0.0f);
-        Periphery().mLEDRing.SetColorsBlack();
+        Periphery().mSwitchPSU.SetDelayOff(M_SWITCH_PSU_OFF_DELAY + vTransitionTime);
+        Periphery().mSwitchPSU.SetOff(vTransitionTime);
+        Periphery().mLEDCenter.SetChannelBrightnesses(0.0f, vTransitionTime);
+        Periphery().mLEDRing.SetColorsBlack(vTransitionTime);
         Periphery().mDisplay.SetOn(false);
         WebSockets().UpdateOn(false);
         break;
       case ggState::eOn:
         Data().On() = true;
-        Periphery().mSwitchPSU.SetOn();
+        Periphery().mSwitchPSU.SetOn(vTransitionTime);
         Periphery().mLEDRing.DisplayNormal();
-        // PeripheryLEDCenterSetChannelBrightness(); updated delayed when PSU is on
-        // PeripheryLEDRingSetColors(); colors are updated delayed when PSU is on
+        // PeripheryLEDCenterSetChannelBrightnesses(vTransitionTime); updated delayed when PSU is on
+        // PeripheryLEDRingSetColors(vTransitionTime); colors are updated delayed when PSU is on
         Periphery().mDisplay.SetText(0, WiFi.localIP().toString());
         WebSockets().UpdateOn(true);
         break;
@@ -569,15 +570,15 @@ void ConnectComponents()
     switch (mLampState.GetState()) {
       case ggState::eOn:
         DataChangeBrightness(0.25f * 0.05f * aValueDelta);
-        PeripheryLEDCenterSetChannelBrightness();
-        WebSocketsUpdateChannelBrightness();
+        PeripheryLEDCenterSetChannelBrightnesses(Data().TransitionTime());
+        WebSocketsUpdateChannelBrightnesses();
         EditTimer().Start();
         break;
       case ggState::eEditColorChannel0:
       case ggState::eEditColorChannel1:
       case ggState::eEditColorChannel2:
         DataChangeColors(ggState::GetColorChannelIndex(mLampState.GetState()), aValueDelta);
-        PeripheryLEDRingSetColors();
+        PeripheryLEDRingSetColors(Data().TransitionTime());
         WebSocketsUpdateRingColorHSV();
         AdjustTotalBrightness();
         EditTimer().Start();
@@ -586,9 +587,9 @@ void ConnectComponents()
   });
 
   // PSU switch on is delayed => need to update color ring
-  Periphery().mSwitchPSU.OnSwitchedOn([&] () {
-    PeripheryLEDCenterSetChannelBrightness();
-    PeripheryLEDRingSetColors();
+  Periphery().mSwitchPSU.OnSwitchedOn([&] (float aTransitionTime) {
+    PeripheryLEDCenterSetChannelBrightnesses(aTransitionTime);
+    PeripheryLEDRingSetColors(aTransitionTime);
   });
 
   // display
@@ -621,7 +622,7 @@ void ConnectComponents()
     WebSockets().UpdateOn(Data().On(), aClientID);
     WebSocketsUpdateSceneNames(aClientID);
     WebSockets().UpdateCurrentSceneIndex(Data().GetCurrentSceneIndex(), aClientID);
-    WebSocketsUpdateChannelBrightness(aClientID);
+    WebSocketsUpdateChannelBrightnesses(aClientID);
     WebSocketsUpdateRingColorHSV(aClientID);
     WebSockets().UpdateTransitionTime(Data().TransitionTime(), aClientID);
   });
@@ -637,7 +638,7 @@ void ConnectComponents()
     Periphery().mDisplay.SetTitle(Data().Name());
   });
   WebSockets().OnSetOn([&] (bool aOn) {
-    mLampState.SetState(aOn ? ggState::eOn : ggState::eOff);
+    mLampState.SetState(aOn ? ggState::eOn : ggState::eOff, Data().TransitionTime());
   });
   WebSockets().OnSetSceneName([&] (uint16_t aIndex, const String& aName) {
     Data().Scene(aIndex).mName = aName;
@@ -646,30 +647,29 @@ void ConnectComponents()
   WebSockets().OnSetCurrentSceneIndex([&] (uint16_t aIndex) {
     Data().SetCurrentSceneIndex(aIndex);
     if (mLampState.mState == ggState::eOn) {
-      PeripheryLEDCenterSetChannelBrightness();
-      PeripheryLEDRingSetColors();
+      PeripheryLEDCenterSetChannelBrightnesses(Data().TransitionTime());
+      PeripheryLEDRingSetColors(Data().TransitionTime());
     }
     else {
-      mLampState.SetState(ggState::eOn);
+      mLampState.SetState(ggState::eOn, Data().TransitionTime());
     }
     WebSockets().UpdateCurrentSceneIndex(Data().GetCurrentSceneIndex());
-    WebSocketsUpdateChannelBrightness();
+    WebSocketsUpdateChannelBrightnesses();
     WebSocketsUpdateRingColorHSV();
   });
   WebSockets().OnSetChannelBrightness([&] (float aB0, float aB1, float aB2, float aB3, float aB4, float aB5) {
     DataSetBrightness(aB0, aB1, aB2, aB3, aB4, aB5);
-    PeripheryLEDCenterSetChannelBrightness();
-    WebSocketsUpdateChannelBrightness();
+    PeripheryLEDCenterSetChannelBrightnesses(Data().TransitionTime());
+    WebSocketsUpdateChannelBrightnesses();
   });
   WebSockets().OnSetRingColorHSV([&] (uint8_t aH, uint8_t aS, uint8_t aV, uint8_t aLocations) {
     DataSetColors(ggColor::cHSV(aH, aS, aV), (ggLocations::tEnum)aLocations);
-    PeripheryLEDRingSetColors();
+    PeripheryLEDRingSetColors(Data().TransitionTime());
     WebSocketsUpdateRingColorHSV();
     AdjustTotalBrightness();
   });
   WebSockets().OnSetTransitionTime([&] (float aTransitionTime) {
     Data().TransitionTime() = aTransitionTime;
-    Periphery().SetTransitionTime(Data().TransitionTime());
     WebSockets().UpdateTransitionTime(Data().TransitionTime());
   });
   
@@ -712,7 +712,7 @@ void ConnectComponents()
     vAlarm.mHour = vAlarmJsonDoc["mHour"].as<uint8_t>();
     vAlarm.mDays = vAlarmJsonDoc["mDays"].as<uint8_t>();
     vAlarm.mSceneIndex = vAlarmJsonDoc["mSceneIndex"].as<int8_t>();
-    vAlarm.mDuration = vAlarmJsonDoc["mDuration"].as<float>();
+    vAlarm.mTransitionTime = vAlarmJsonDoc["mTransitionTime"].as<float>();
     Data().Alarm(vAlarmIndex) = vAlarm;
     AlarmClockSetAlarms();
     WebSockets().UpdateAlarmsTable();
@@ -728,24 +728,22 @@ void ConnectComponents()
     StaticJsonDocument<200> vPlayJsonDoc;
     DeserializationError vJsonError = deserializeJson(vPlayJsonDoc, aPlayJson);
     GG_DEBUG_PRINTF("vJsonError = %s\n", vJsonError.c_str());
-    float vTransitionTime = Periphery().GetTransitionTime();
-    Periphery().SetTransitionTime(0.0);
-    Periphery().mLEDCenter.SetChannelBrightness(0.0f);
-    Periphery().mLEDRing.SetColorsBlack();
+    float vPlayTransitionTime = 0.0; // transition-time won't work as long as this animation uses "delay"
+    Periphery().mLEDCenter.SetChannelBrightnesses(0.0f, vPlayTransitionTime);
+    Periphery().mLEDRing.SetColorsBlack(vPlayTransitionTime);
     uint16_t vDelayMillis = 100;
     for (int vCount = 0; vCount < 5; vCount++) {
-      Periphery().mLEDCenter.SetChannelBrightness(5, 0.0); delay(vDelayMillis);
-      Periphery().mLEDCenter.SetChannelBrightness(2, 0.5); delay(vDelayMillis);
-      Periphery().mLEDRing.SetColors(ggColor::cHSV::Black(), ggLocations::eA); delay(vDelayMillis);
-      Periphery().mLEDRing.SetColors(ggColor::cHSV(15,255,255), ggLocations::eB); delay(vDelayMillis);
-      Periphery().mLEDCenter.SetChannelBrightness(2, 0.0); delay(vDelayMillis);
-      Periphery().mLEDCenter.SetChannelBrightness(5, 0.5); delay(vDelayMillis);
-      Periphery().mLEDRing.SetColors(ggColor::cHSV::Black(), ggLocations::eB); delay(vDelayMillis);
-      Periphery().mLEDRing.SetColors(ggColor::cHSV(15,255,255), ggLocations::eA); delay(vDelayMillis);
+      Periphery().mLEDCenter.SetChannelBrightness(5, 0.0, vPlayTransitionTime); delay(vDelayMillis);
+      Periphery().mLEDCenter.SetChannelBrightness(2, 0.5, vPlayTransitionTime); delay(vDelayMillis);
+      Periphery().mLEDRing.SetColors(ggColor::cHSV::Black(), ggLocations::eA, vPlayTransitionTime); delay(vDelayMillis);
+      Periphery().mLEDRing.SetColors(ggColor::cHSV(15,255,255), ggLocations::eB, vPlayTransitionTime); delay(vDelayMillis);
+      Periphery().mLEDCenter.SetChannelBrightness(2, 0.0, vPlayTransitionTime); delay(vDelayMillis);
+      Periphery().mLEDCenter.SetChannelBrightness(5, 0.5, vPlayTransitionTime); delay(vDelayMillis);
+      Periphery().mLEDRing.SetColors(ggColor::cHSV::Black(), ggLocations::eB, vPlayTransitionTime); delay(vDelayMillis);
+      Periphery().mLEDRing.SetColors(ggColor::cHSV(15,255,255), ggLocations::eA, vPlayTransitionTime); delay(vDelayMillis);
     }
-    Periphery().SetTransitionTime(vTransitionTime);    
-    PeripheryLEDCenterSetChannelBrightness();
-    PeripheryLEDRingSetColors();
+    PeripheryLEDCenterSetChannelBrightnesses(Data().TransitionTime());
+    PeripheryLEDRingSetColors(Data().TransitionTime());
   });
   WebServer().OnDebugStream([] (Stream& aStream) {
     ggStreams vStreams;
@@ -870,7 +868,6 @@ void setup()
   AlarmClockSetAlarms();
 
   AlarmClock().Begin();
-  Periphery().SetTransitionTime(Data().TransitionTime());
 
   // configure and start web-server
   WebServer().Begin();
@@ -904,9 +901,9 @@ void setup()
   
   // update periphery depending on eeprom data
   if (mLampState.mState == ggState::eOn) {
-    Periphery().mSwitchPSU.SetOn();
-    // PeripheryLEDCenterSetChannelBrightness(); updated delayed when PSU is on
-    // PeripheryLEDRingSetColors(); colors are updated delayed when PSU is on
+    Periphery().mSwitchPSU.SetOn(Data().TransitionTime());
+    // PeripheryLEDCenterSetChannelBrightnesses(Data().TransitionTime()); updated delayed when PSU is on
+    // PeripheryLEDRingSetColors(Data().TransitionTime()); colors are updated delayed when PSU is on
   }
 }
 
