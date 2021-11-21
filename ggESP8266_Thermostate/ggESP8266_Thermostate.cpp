@@ -310,6 +310,7 @@ void ConnectComponents()
       vDebug.PrintF("mMillisUpTime = %llu (%.1f Days)\n", mMillisUpTime, mMillisUpTime/(1000.0f*60.0f*60.0f*24.0f));
       mPeriphery.PrintDebug("mPeriphery");
       mWiFiConnection.PrintDebug("mWiFiConnection");
+      mTimerNTP.PrintDebug("mTimerNTP");
       mTemperatureController.PrintDebug("mTemperatureController");
     }
     ggDebug::SetStream(Serial);
@@ -335,32 +336,32 @@ void ConnectComponents()
 
   // timer and logging
   mTimerNTP.AddTimer(mDataLog1H->GetPeriod(), [] (uint32_t aPeriod) {
-    mDataLog1H->Write(mTimerNTP.GetTime());
+    mDataLog1H->Write(mTimerNTP.GetTimeT());
     mDataLog1D->AddValues(*mDataLog1H);
     mDataLog1H->ResetAveragesOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLog1D->GetPeriod(), [] (uint32_t aPeriod) {
-    mDataLog1D->Write(mTimerNTP.GetTime());
+    mDataLog1D->Write(mTimerNTP.GetTimeT());
     mDataLog1W->AddValues(*mDataLog1D);
     mDataLog1D->ResetAveragesOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLog1W->GetPeriod(), [] (uint32_t aPeriod) {
-    mDataLog1W->Write(mTimerNTP.GetTime());
+    mDataLog1W->Write(mTimerNTP.GetTimeT());
     mDataLog1M->AddValues(*mDataLog1W);
     mDataLog1W->ResetAveragesOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLog1M->GetPeriod(), [] (uint32_t aPeriod) {
-    mDataLog1M->Write(mTimerNTP.GetTime());
+    mDataLog1M->Write(mTimerNTP.GetTimeT());
     mDataLog1Y->AddValues(*mDataLog1M);
     mDataLog1M->ResetAveragesOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLog1Y->GetPeriod(), [] (uint32_t aPeriod) {
-    mDataLog1Y->Write(mTimerNTP.GetTime());
+    mDataLog1Y->Write(mTimerNTP.GetTimeT());
     mDataLogMax->AddValues(*mDataLog1Y);
     mDataLog1Y->ResetAveragesOnNextAddValue();
   });
   mTimerNTP.AddTimer(mDataLogMax->GetPeriod(), [] (uint32_t aPeriod) {
-    mDataLogMax->Write(mTimerNTP.GetTime());
+    mDataLogMax->Write(mTimerNTP.GetTimeT());
     mDataLogMax->ResetAveragesOnNextAddValue();
   });
 

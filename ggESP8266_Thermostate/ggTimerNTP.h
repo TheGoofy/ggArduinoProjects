@@ -17,7 +17,8 @@ public:
     mTimeZoneInfo(aTimeZoneInfo),
     mMillisLast(0),
     mTimeValid(false),
-    mTime(0) {
+    mTimeT(0)
+  {
     memset(&mTimeInfo, 0, sizeof(tm));
   }
 
@@ -36,16 +37,16 @@ public:
   }
 
   // unix time: http://www.cplusplus.com/reference/ctime/time_t/
-  time_t GetTime() const {
-    return mTime;
+  time_t GetTimeT() const {
+    return mTimeT;
   }
 
   // see: http://www.cplusplus.com/reference/ctime/strftime/
-  String GetTime(const char* aFormat) {
+  String GetTime(const char* aFormat) const {
     if (mTimeValid) {
       #define M_BUFFER_SIZE 48
       static char vBuffer[M_BUFFER_SIZE];
-      strftime(vBuffer, M_BUFFER_SIZE, aFormat, localtime(&mTime));
+      strftime(vBuffer, M_BUFFER_SIZE, aFormat, localtime(&mTimeT));
       return String(vBuffer);
     }
     return "unknown";
@@ -62,10 +63,27 @@ public:
     unsigned long vMillisDelta = vMillis - mMillisLast;
     if (vMillisDelta > 1000) {
       mMillisLast = vMillis;
-      time(&mTime);
-      localtime_r(&mTime, &mTimeInfo);
-      mTimeValid = mTimeInfo.tm_year >= 2020 - 1900;
+      mTimeT = time(nullptr);
+      mTimeValid = (mTimeT != -1) && (mTimeT / (60*60*24*365) + 1970 >= 2020);
+      if (mTimeValid) {
+        localtime_r(&mTimeT, &mTimeInfo);
+      }
       CheckTimers();
+    }
+  }
+
+  void PrintDebug(const String& aName = "") const {
+    ggDebug vDebug("ggTimerNTP", aName);
+    vDebug.PrintF("mServerNTP = %s\n", mServerNTP.c_str());
+    vDebug.PrintF("mTimeZoneInfo = %s\n", mTimeZoneInfo.c_str());
+    vDebug.PrintF("mMillisLast = %d\n", mMillisLast);
+    vDebug.PrintF("mTimeValid = %s\n", mTimeValid ? "true" : "false");
+    vDebug.PrintF("mTimeT = %d\n", mTimeT);
+    vDebug.PrintF("GetTime() => %s\n", GetTime("%d-%m-%Y %H:%M:%S").c_str());
+    for (uint32_t vTimerIndex = 0; vTimerIndex < mTimers.size(); vTimerIndex++) {
+      const cTimer& vTimer = mTimers[vTimerIndex];
+      vDebug.PrintF("mTimer[%ld]: mPeriod = %ld, mDueTime = %lld\n",
+        vTimerIndex, vTimer.mPeriod, vTimer.mDueTime);
     }
   }
 
@@ -93,7 +111,7 @@ private:
         aTimer.mDueTime = mktime(&vTimeInfo);
       }
       else {
-        aTimer.mDueTime = mTime + aTimer.mPeriod;
+        aTimer.mDueTime = mTimeT + aTimer.mPeriod;
       }
     }
   }
@@ -104,7 +122,7 @@ private:
         if (aTimer.mDueTime == 0) {
           CalculateNextDueTime(aTimer);
         }
-        else if (mTime >= aTimer.mDueTime) {
+        else if (mTimeT >= aTimer.mDueTime) {
           aTimer.mFunc(aTimer.mPeriod);
           CalculateNextDueTime(aTimer);
         }
@@ -117,7 +135,7 @@ private:
 
   unsigned long mMillisLast;
   bool mTimeValid;
-  time_t mTime;
+  time_t mTimeT;
   tm mTimeInfo;
 
   std::vector<cTimer> mTimers;
