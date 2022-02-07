@@ -1,7 +1,9 @@
 #include "ggSampler.h"
 #include "ggInput.h"
 #include "ggOutput.h"
-#include "ggButtonSimple.h"
+#include "ggButton.h"
+#include "ggCoilStage.h"
+#include <algorithm>
 
 
 // circuit digital input channels
@@ -16,6 +18,12 @@
 
 // circuit analog input channels
 #define M_PIN_CH_AIN_0 15
+#define M_PIN_CH_AIN_1 -1
+#define M_PIN_CH_AIN_2 -1
+#define M_PIN_CH_AIN_3 -1
+#define M_PIN_CH_AIN_4 -1
+#define M_PIN_CH_AIN_5 -1
+#define M_PIN_CH_AIN_6 -1
 #define M_PIN_CH_AIN_7 14
 
 // circuit digital output channels
@@ -27,8 +35,8 @@
 #define M_PIN_CH_OUT_5  7
 #define M_PIN_CH_OUT_6  8
 #define M_PIN_CH_OUT_7  9
-#define M_PIN_CH_OUT_8 10
-#define M_PIN_CH_OUT_9 11
+#define M_PIN_CH_OUT_8 10 // relay 12V
+#define M_PIN_CH_OUT_9 11 // relay 240V
 
 // functional pin assignments
 #define M_PIN_STATUS_LED 13
@@ -40,27 +48,29 @@
 ggOutput mStatusLED(M_PIN_STATUS_LED);
 
 // User input
-ggButtonSimple mKey(M_PIN_KEY, true/*aInverted*/, true/*aEnablePullUp*/);
+ggButton mKey(M_PIN_KEY, true/*aInverted*/, true/*aEnablePullUp*/);
 
 // Relays (output)
 ggOutput mRelay12V(M_PIN_RELAY_12V, true/*aInverted*/);
 ggOutput mRelay450V(M_PIN_RELAY_450V, true/*aInverted*/);
 
-// Digital inputs
-ggInput mInput0(M_PIN_CH_IN_0, true/*aInverted*/, true/*aEnablePullUp*/);
-ggInput mInput1(M_PIN_CH_IN_1, true/*aInverted*/, true/*aEnablePullUp*/);
-ggInput mInput2(M_PIN_CH_IN_2, true/*aInverted*/, true/*aEnablePullUp*/);
-ggInput mInput3(M_PIN_CH_IN_3, true/*aInverted*/, true/*aEnablePullUp*/);
-ggInput mInput4(M_PIN_CH_IN_4, true/*aInverted*/, true/*aEnablePullUp*/);
-ggInput mInput5(M_PIN_CH_IN_5, true/*aInverted*/, true/*aEnablePullUp*/);
-ggInput mInput6(M_PIN_CH_IN_6, true/*aInverted*/, true/*aEnablePullUp*/);
-ggInput mInput7(M_PIN_CH_IN_7, true/*aInverted*/, true/*aEnablePullUp*/);
 
+typedef std::array<ggCoilStage, 8> ggCoilStages;
+
+
+// coil stages
+ggCoilStages mCoilStages{
+  ggCoilStage(M_PIN_CH_IN_0, M_PIN_CH_OUT_0),
+  ggCoilStage(M_PIN_CH_IN_1, M_PIN_CH_OUT_1),
+  ggCoilStage(M_PIN_CH_IN_2, M_PIN_CH_OUT_2),
+  ggCoilStage(M_PIN_CH_IN_3, M_PIN_CH_OUT_3),
+  ggCoilStage(M_PIN_CH_IN_4, M_PIN_CH_OUT_4),
+  ggCoilStage(M_PIN_CH_IN_5, M_PIN_CH_OUT_5),
+  ggCoilStage(M_PIN_CH_IN_6, M_PIN_CH_OUT_6),
+  ggCoilStage(M_PIN_CH_IN_7, M_PIN_CH_OUT_7)
+};
 
 // testing outputs
-ggSampler mSamplerStatusLED(250000, [] (unsigned long aMicrosDelta) {
-  mStatusLED.Set(!mStatusLED.Get());
-});
 ggSampler mSamplerRelay12V(500000, [] (unsigned long aMicrosDelta) {
   mRelay12V.Set(!mRelay12V.Get());
 });
@@ -81,37 +91,32 @@ void setup()
   mRelay12V.Begin();
   mRelay450V.Begin();
 
-  // 
-  mInput0.Begin();
-  mInput1.Begin();
-  mInput2.Begin();
-  mInput3.Begin();
-  mInput4.Begin();
-  mInput5.Begin();
-  mInput6.Begin();
-  mInput7.Begin();
+  // setup IO-pins for all stages
+  for (auto& vCoilStage : mCoilStages) vCoilStage.Begin();
 
   // turn off relay outputs
   mRelay12V.Set(false);
   mRelay450V.Set(false);
+
+  // configure key callbacks
+  mKey.OnPressed([](){
+    Serial.println("Key pressed");
+  });
+  mKey.OnReleased([](){
+    Serial.println("Key released");
+  });
 }
 
 
 void loop()
 {
-  mStatusLED.Set(
-    mInput0.Get() ||
-    mInput1.Get() ||
-    mInput2.Get() ||
-    mInput3.Get() ||
-    mInput4.Get() ||
-    mInput5.Get() ||
-    mInput6.Get() ||
-    mInput7.Get());
+  bool vAnyProjectile = std::any_of(mCoilStages.begin(), mCoilStages.end(), [](const ggCoilStage& aCoilStage) {
+    return aCoilStage.mProjectileSen.Get();
+  });
+  
+  mStatusLED.Set(vAnyProjectile);
 
-  // mSamplerStatusLED.Run();
   mSamplerRelay12V.Run();
   mSamplerRelay450V.Run();
-  // if (mKey.SwitchingOn()) Serial.println("Key press");
-  // if (mKey.SwitchingOff()) Serial.println("Key release");
+  mKey.Run();
 }
