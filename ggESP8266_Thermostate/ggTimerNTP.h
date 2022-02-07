@@ -1,6 +1,6 @@
 #pragma once
 
-#include <time.h>
+#include <ctime>
 #include <functional>
 
 class ggTimerNTP {
@@ -67,6 +67,7 @@ public:
       mTimeValid = (mTimeT != -1) && (mTimeT / (60*60*24*365) + 1970 >= 2020);
       if (mTimeValid) {
         localtime_r(&mTimeT, &mTimeInfo);
+        mTimeValid = mTimeInfo.tm_year + 1900 >= 2020;
       }
       CheckTimers();
     }
@@ -118,15 +119,15 @@ private:
 
   void CheckTimers() {
     if (mTimeValid) {
-      std::for_each(mTimers.begin(), mTimers.end(), [&] (cTimer& aTimer) {
-        if (aTimer.mDueTime == 0) {
-          CalculateNextDueTime(aTimer);
+      for (cTimer& vTimer : mTimers) {
+        if (vTimer.mDueTime == 0) {
+          CalculateNextDueTime(vTimer);
         }
-        else if (mTimeT >= aTimer.mDueTime) {
-          aTimer.mFunc(aTimer.mPeriod);
-          CalculateNextDueTime(aTimer);
+        else if (mTimeT >= vTimer.mDueTime) {
+          vTimer.mFunc(vTimer.mPeriod);
+          CalculateNextDueTime(vTimer);
         }
-      });
+      }
     }
   }
 

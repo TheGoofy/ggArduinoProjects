@@ -62,14 +62,15 @@ public:
       mMillisLast = vMillis;
       mTimeT = time(nullptr);
       bool vTimeValid = (mTimeT != -1) && (mTimeT / (60*60*24*365) + 1970 >= 2020);
+      if (vTimeValid) {
+        localtime_r(&mTimeT, &mTimeInfo);
+        vTimeValid = vTimeValid && (mTimeInfo.tm_year + 1900 >= 2020);
+      }
       if (mTimeValid != vTimeValid) {
         mTimeValid = vTimeValid;
         if (mTimeValidFunc != nullptr) {
           mTimeValidFunc(vTimeValid);
         }
-      }
-      if (mTimeValid) {
-        localtime_r(&mTimeT, &mTimeInfo);
       }
     }
   }
