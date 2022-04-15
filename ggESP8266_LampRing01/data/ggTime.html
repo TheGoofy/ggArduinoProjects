@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ESP8266 Lamp Time</title>
+  <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
+  <meta http-equiv='Content-Style-Type' content='text/css'/>
+  <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
+  <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
+  <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
+</head>
+
+<body>
+  <div class="cMainBlockDiv">
+
+    <b style="font-size:larger">Time</b><br>
+    <hr noshade>
+
+    <style>
+      #mClockTable {
+        border-collapse: collapse;
+        width: 100%;
+      }
+      #mClockTable th, #mClockTable td {
+        text-align: center;
+      }
+    </style>
+    <table id="mClockTable">
+      <tr>
+        <td><svg id="mServerClockSVG" width="150" height="150"></svg></td>
+        <td><svg id="mClientClockSVG" width="150" height="150"></svg></td>
+      </tr>
+      <tr>
+        <td>Lamp: <span id="mServerTimeSpan">(na)</span></td>
+        <td>Local: <span id="mClientTimeSpan">(na)</span></td>
+      </tr>
+    </table>
+    
+    <script src="ggClockSVG.js"></script>
+    <script>
+
+      // server address
+      let mHostURL = window.location.hostname;
+      if (mHostURL == "") mHostURL = window.prompt("Please enter server address", "192.168.0.150");
+      mHostURL = "http://" + mHostURL + "/";
+
+      // server time (updated by http-request)
+      let mServerTime = {};
+
+      function TimeValid() {
+        return mServerTime.mTimeT && mServerTime.mTimeT != 0;
+      }
+
+      function GetServerDate() {
+        if (TimeValid()) {
+          let vTimeMS = 1000 * mServerTime.mTimeT;
+          let vTimeDeltaMS = Date.now() - mServerTime.mUpdated.getTime();
+          return new Date(vTimeMS + vTimeDeltaMS);
+        }
+      };
+
+      function HttpRequestGetServerTime() {
+        var vHttpRequestGetTime = new XMLHttpRequest();
+        vHttpRequestGetTime.onreadystatechange = function() {
+          if (vHttpRequestGetTime.readyState == 4) {
+            if (vHttpRequestGetTime.responseText != '') {
+              let vTimeValid = TimeValid();
+              mServerTime = JSON.parse(vHttpRequestGetTime.responseText);
+              mServerTime.mUpdated = new Date();
+              if (vTimeValid != TimeValid()) {
+                mServerClock.Update();
+              }
+            }
+            else {
+              mServerTime = {};
+            }
+          }
+        }
+        vHttpRequestGetTime.open("GET", mHostURL + "GetTime", true);
+        vHttpRequestGetTime.send();
+      }
+
+      // get time from server now and every 10 seconds
+      HttpRequestGetServerTime();
+      setInterval(HttpRequestGetServerTime, 10000);
+
+      // display time as nice SVG-graphics
+      let mServerClock = new ggClockSVG(mServerClockSVG, GetServerDate);
+      let mClientClock = new ggClockSVG(mClientClockSVG);
+
+      // display time as text every second
+      setInterval(function () {
+        mServerTimeSpan.innerHTML = TimeValid() ? GetServerDate().toLocaleTimeString() : "(na)";
+        mClientTimeSpan.innerHTML = (new Date()).toLocaleTimeString();        
+      }, 1000);
+
+    </script>
+
+    <hr noshade>
+    <a href="/">[home]</a>
+    <a href="/alarms">[alarms]</a>
+    <a href="/time">[time]</a>
+    <a href="/files">[files]</a>
+    <a href="/debug">[debug]</a>
+    <br>
+    (c) 2020, <a href="http://www.laimer.ch" target="_blank">Christoph Laimer</a>
+
+  </div>
+</body>
+
+</html>

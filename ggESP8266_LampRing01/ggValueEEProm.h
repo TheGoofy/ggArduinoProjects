@@ -8,12 +8,33 @@ class ggValueEEProm {
 
 public:
 
+  // reserves a specific amount of eeprom (4..4096 bytes)
+  //
   // reads values from eeprom or writes initial values.
   // eeprom is (re-)initialized, if ...
   // - ... number of values changes
   // - ... sequence (layput) of values changes
   // - ... any default value changes
+  // (i.e. if checksum changes https://en.wikipedia.org/wiki/BSD_checksum)
   static void Begin(size_t aSize = 512);
+
+  class cLazyWriter {
+  public:
+    cLazyWriter()
+    : mWasWriteLazy(WriteLazy()) {
+      WriteLazy() = true;
+    }
+    virtual ~cLazyWriter() {
+      if (!mWasWriteLazy) {
+        WriteLazy() = false;
+        WriteHeader();
+        WriteData();
+        EEPROM.commit();
+      }
+    }
+  private:
+    bool mWasWriteLazy;
+  };
 
 protected:
 
@@ -25,6 +46,11 @@ protected:
   virtual void Write(bool aCommit) = 0;
 
   static void WriteHeader();
+
+  static bool& WriteLazy() {
+    static bool vWriteLazy = false;
+    return vWriteLazy;
+  }
   
   // EEProm address of single value item
   const int mAddressEEProm;
@@ -40,6 +66,7 @@ private:
   static void ReadData();
   static void WriteData();
 
+  // https://en.wikipedia.org/wiki/BSD_checksum
   static inline void AddChecksum(uint16_t& aChecksum, uint16_t aData) {
     aChecksum = (aChecksum >> 1) + ((aChecksum & 1) << 15) + aData;
   }

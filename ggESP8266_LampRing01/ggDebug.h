@@ -2,8 +2,25 @@
 
 #include <Arduino.h>
 
-#define GG_DEBUG() \
-  ggDebug vDebug(FPSTR(__PRETTY_FUNCTION__));
+#if M_DEBUGGING
+  #define GG_DEBUG() \
+    ggDebug vDebug(FPSTR(__PRETTY_FUNCTION__));
+  #define GG_DEBUG_BLOCK(aName) \
+    ggDebug vDebug(aName);
+  #define GG_DEBUG_PRINTF(aFormat, ...) \
+    vDebug.PrintF(aFormat, ##__VA_ARGS__);
+  #define GG_DEBUG_EXECUTE(aFunction) \
+    aFunction;
+#else
+  #define GG_DEBUG() \
+    (void)0;
+  #define GG_DEBUG_BLOCK(aName) \
+    (void)0;
+  #define GG_DEBUG_PRINTF(aFormat, ...) \
+    (void)0;
+  #define GG_DEBUG_EXECUTE(aFunction) \
+    (void)0;
+#endif
 
 class ggDebug {
 
@@ -12,6 +29,12 @@ public:
   ggDebug(const String& aName)
   : mName(aName) {
     Begin();
+    mDepth++;
+  }
+
+  ggDebug(const String& aName, const String& aAttributes)
+  : mName(aName) {
+    aAttributes != "" ? Begin(aAttributes) : Begin();
     mDepth++;
   }
 
@@ -51,6 +74,13 @@ private:
   void Begin() {
     if (GetEnable()) {
       GetStream().printf("%s<%s>\n", Indent().c_str(), mName.c_str());
+      GetStream().flush();
+    }
+  }
+
+  void Begin(const String& aAttributes) {
+    if (GetEnable()) {
+      GetStream().printf("%s<%s %s>\n", Indent().c_str(), mName.c_str(), aAttributes.c_str());
       GetStream().flush();
     }
   }

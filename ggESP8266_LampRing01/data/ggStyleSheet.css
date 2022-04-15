@@ -10,8 +10,17 @@ body {
   color: #aaa;
   text-align: center;
   font-family: verdana,sans-serif;
-  font-size: 0.8rem;
+  font-size: 0.85rem;
   background: #444;
+}
+
+textarea {
+  color: #aaa;
+  font-family: lucida console;
+  font-size: 0.7rem;
+  background: #000;
+  border: 0px;
+  resize: vertical;
 }
 
 a:link {
@@ -31,10 +40,22 @@ a:active {
 }
 
 td {
-  text-align: center;
+  font-size: 0.8rem;
+  padding: 1px;
 }
 
-.r {
+.cMainDiv {
+  text-align: left;
+  min-width: 340px;
+}
+
+.cMainBlockDiv {
+  text-align: left;
+  min-width: 340px;
+  display: inline-block;
+}
+
+.cRoundedCentered {
   border-radius: 2.4rem;
   line-height: 2.4rem;
   font-size: 1.2rem;
@@ -42,16 +63,9 @@ td {
   text-align: center;
 }
 
-input[type=button] {
-  background-color: #000;
-  border: none;
-  cursor: pointer;
-}
-
 .switch {
   position: relative;
   display: inline-block;
-  width: 100%;
   height: 34px;
 }
 
@@ -69,8 +83,8 @@ input[type=button] {
   right: 0;
   bottom: 0;
   background-color: #000;
-  -webkit-transition: .4s;
-  transition: .4s;
+  -webkit-transition: .5s;
+  transition: .5s;
 }
 
 .switch_slider:before {
@@ -81,8 +95,8 @@ input[type=button] {
   left: 4px;
   bottom: 4px;
   background-color: white;
-  -webkit-transition: .4s;
-  transition: .4s;
+  -webkit-transition: .5s;
+  transition: .5s;
 }
 
 input:checked + .switch_slider {
@@ -91,12 +105,13 @@ input:checked + .switch_slider {
 
 input:focus + .switch_slider {
   box-shadow: 0 0 0px #f90;
+  outline: none;
 }
 
 input:checked + .switch_slider:before {
-  -webkit-transform: translate(302px, -1px);
-  -ms-transform: translate(302px, -1px);
-  transform: translate(302px, -1px);
+  -webkit-transform: translate(306px, -1px);
+  -ms-transform: translate(306px, -1px);
+  transform: translate(306px, -1px);
 }
 
 .switch_slider.round {
@@ -116,8 +131,8 @@ input:checked + .switch_slider:before {
   background: #000;
   outline: none;
   opacity: 1;
-  -webkit-transition: .2s;
-  transition: opacity .2s;
+  -webkit-transition: .3s;
+  transition: opacity .3s;
 }
 
 .range_slider:disabled {

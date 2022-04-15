@@ -9,11 +9,15 @@ class ggWebSockets {
 public:
 
   typedef std::function<void(int aClientNumber)> tClientConnectFunc;
-  typedef std::function<void(bool aValue)> tSetBoolValueFunc;
-  typedef std::function<void(uint32_t aClientNumber)> tSetUInt32ValueFunc;
-  typedef std::function<void(uint32_t, uint32_t, uint32_t)> tSet3UInt32ValueFunc;
-  typedef std::function<void(float aValue)> tSetFloatValueFunc;
-  typedef std::function<void(const String& aValue)> tSetStringValueFunc;
+  typedef std::function<void(uint16_t, const String&)> tSetSceneNameFunc;
+  typedef std::function<void(float)> tSetChannelBrightnessFunc;
+  typedef std::function<void(uint8_t, uint8_t, uint8_t, uint8_t)> tSetRingColorHSVFunc;
+  typedef std::function<void(bool)> tSetBoolFunc;
+  typedef std::function<void(uint16_t)> tSetUInt16Func;
+  typedef std::function<void(uint32_t)> tSetUInt32Func;
+  typedef std::function<void(uint32_t, uint32_t, uint32_t)> tSet3UInt32Func;
+  typedef std::function<void(float)> tSetFloatFunc;
+  typedef std::function<void(const String&)> tSetStringFunc;
 
   ggWebSockets(int aPort)
   : mServer(aPort),
@@ -21,8 +25,11 @@ public:
     mClientDisconnectFunc(nullptr),
     mSetNameFunc(nullptr),
     mSetOnFunc(nullptr),
-    mSetCenterBrightnessFunc(nullptr),
-    mSetRingColorHSVFunc(nullptr) {
+    mSetSceneNameFunc(nullptr),
+    mSetCurrentSceneIndexFunc(nullptr),
+    mSetChannelBrightnessFunc(nullptr),
+    mSetRingColorHSVFunc(nullptr),
+    mSetTransitionTimeFunc(nullptr) {
   }
 
   void Begin() {
@@ -47,12 +54,39 @@ public:
     UpdateClientTXT(String("UpdateOn(") + aOn + ")", aClientID);
   }
 
-  void UpdateCenterBrightness(float aBrightness, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateCenterBrightness(") + aBrightness + ")", aClientID);
+  void UpdateSceneName(uint16_t aIndex, const String& aName, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateSceneName(") + aIndex + ",\"" + aName + "\")", aClientID);
   }
 
-  void UpdateRingColorHSV(uint8_t aH, uint8_t aS, uint8_t aV, int aClientID = -1) {
-    UpdateClientTXT(String("UpdateRingColorHSV(") + aH + "," + aS + "," + aV + ")", aClientID);
+  void UpdateSceneNames(const String& aName0, const String& aName1, const String& aName2, const String& aName3, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateSceneNames(\"") + aName0 + "\","
+                                           + "\"" + aName1 + "\","
+                                           + "\"" + aName2 + "\","
+                                           + "\"" + aName3 + "\")", aClientID);
+  }
+
+  void UpdateCurrentSceneIndex(uint16_t aIndex, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateCurrentSceneIndex(") + aIndex + ")", aClientID);
+  }
+
+  void UpdateChannelBrightness(const float& aB0, int aClientID = -1) {
+    const int vPrecision = 6;
+    UpdateClientTXT(String("UpdateChannelBrightness(") + String(aB0, vPrecision) + ")", aClientID);
+  }
+
+  void UpdateRingColorHSV(uint8_t aH0, uint8_t aS0, uint8_t aV0,
+                          uint8_t aH1, uint8_t aS1, uint8_t aV1,
+                          int aClientID = -1) {
+    UpdateClientTXT(String("UpdateRingColorHSV(") + aH0 + "," + aS0 + "," + aV0 + ","
+                                                  + aH1 + "," + aS1 + "," + aV1 + ")", aClientID);
+  }
+
+  void UpdateTransitionTime(float aTransitionTime, int aClientID = -1) {
+    UpdateClientTXT(String("UpdateTransitionTime(") + aTransitionTime + ")", aClientID);
+  }
+
+  void UpdateAlarmsTable(int aClientID = -1) {
+    UpdateClientTXT(String("UpdateAlarmsTable()"), aClientID);
   }
 
   void OnClientConnect(tClientConnectFunc aClientConnectFunc) {
@@ -63,20 +97,32 @@ public:
     mClientDisconnectFunc = aClientDisconnectFunc;
   }
 
-  void OnSetName(tSetStringValueFunc aSetNameFunc) {
+  void OnSetName(tSetStringFunc aSetNameFunc) {
     mSetNameFunc = aSetNameFunc;
   }
 
-  void OnSetOn(tSetBoolValueFunc aSetOnFunc) {
+  void OnSetOn(tSetBoolFunc aSetOnFunc) {
     mSetOnFunc = aSetOnFunc;
   }
 
-  void OnSetCenterBrightness(tSetFloatValueFunc aSetBrightnessFunc) {
-    mSetCenterBrightnessFunc = aSetBrightnessFunc;
+  void OnSetSceneName(tSetSceneNameFunc aSetSceneNameFunc) {
+    mSetSceneNameFunc = aSetSceneNameFunc;
   }
 
-  void OnSetRingColorHSV(tSet3UInt32ValueFunc aSetRingColorHSVFunc) {
+  void OnSetCurrentSceneIndex(tSetUInt16Func aSetCurrentSceneIndexFunc) {
+    mSetCurrentSceneIndexFunc = aSetCurrentSceneIndexFunc;
+  }
+
+  void OnSetChannelBrightness(tSetChannelBrightnessFunc aSetChannelBrightnessFunc) {
+    mSetChannelBrightnessFunc = aSetChannelBrightnessFunc;
+  }
+
+  void OnSetRingColorHSV(tSetRingColorHSVFunc aSetRingColorHSVFunc) {
     mSetRingColorHSVFunc = aSetRingColorHSVFunc;
+  }
+
+  void OnSetTransitionTime(tSetFloatFunc aSetTransitionTimeFunc) {
+    mSetTransitionTimeFunc = aSetTransitionTimeFunc;
   }
 
 private:
@@ -107,17 +153,17 @@ private:
     switch (aEventType) {
       case WStype_CONNECTED: {
         GG_DEBUG();
-        vDebug.PrintF("aEventType = %s\n", ToString(aEventType));
-        vDebug.PrintF("remote IP = %s\n", mServer.remoteIP(aClientID).toString().c_str());
-        vDebug.PrintF("aPayLoad = %s\n", (char*)aPayLoad);
+        GG_DEBUG_PRINTF("aEventType = %s\n", ToString(aEventType));
+        GG_DEBUG_PRINTF("remote IP = %s\n", mServer.remoteIP(aClientID).toString().c_str());
+        // GG_DEBUG_PRINTF("aPayLoad = %s\n", (char*)aPayLoad);
         if (mClientConnectFunc != nullptr) mClientConnectFunc(aClientID);
         break;
       }
       case WStype_DISCONNECTED: {
         GG_DEBUG();
-        vDebug.PrintF("aEventType = %s\n", ToString(aEventType));
-        vDebug.PrintF("remote IP = %s\n", mServer.remoteIP(aClientID).toString().c_str());
-        // vDebug.PrintF("aPayLoad = %s\n", (char*)aPayLoad);
+        GG_DEBUG_PRINTF("aEventType = %s\n", ToString(aEventType));
+        GG_DEBUG_PRINTF("remote IP = %s\n", mServer.remoteIP(aClientID).toString().c_str());
+        // GG_DEBUG_PRINTF("aPayLoad = %s\n", (char*)aPayLoad);
         if (mClientDisconnectFunc != nullptr) mClientDisconnectFunc(aClientID);
         break;
       }
@@ -129,33 +175,57 @@ private:
   }
 
   void Eval(const String& aText) {
+    GG_DEBUG();
     ggFunctionParser vFunction(aText);
-    // vFunction.Print(Serial);
-    if (vFunction.GetName() == "SetName") {
+    GG_DEBUG_EXECUTE(vFunction.PrintDebug());
+    if (vFunction.GetName() == "SetName" && vFunction.NumArgs() == 1) {
       if (mSetNameFunc != nullptr) mSetNameFunc(vFunction.Arg(0));
       return;
     }
-    if (vFunction.GetName() == "SetOn") {
+    if (vFunction.GetName() == "SetOn" && vFunction.NumArgs() == 1) {
       if (mSetOnFunc != nullptr) mSetOnFunc(vFunction.ArgBool(0));
       return;
     }
-    if (vFunction.GetName() == "SetCenterBrightness") {
-      if (mSetCenterBrightnessFunc != nullptr) mSetCenterBrightnessFunc(vFunction.ArgFloat(0));
+    if (vFunction.GetName() == "SetSceneName" && vFunction.NumArgs() == 2) {
+      if (mSetSceneNameFunc != nullptr) mSetSceneNameFunc(vFunction.ArgInt(0), vFunction.Arg(1));
       return;
     }
-    if (vFunction.GetName() == "SetRingColorHSV") {
-      if (mSetRingColorHSVFunc != nullptr) mSetRingColorHSVFunc(vFunction.ArgInt(0), vFunction.ArgInt(1), vFunction.ArgInt(2));
+    if (vFunction.GetName() == "SetCurrentSceneIndex" && vFunction.NumArgs() == 1) {
+      if (mSetCurrentSceneIndexFunc != nullptr) mSetCurrentSceneIndexFunc(vFunction.ArgInt(0));
       return;
     }
+    if (vFunction.GetName() == "SetChannelBrightness" && vFunction.NumArgs() == 1) {
+      if (mSetChannelBrightnessFunc != nullptr) {
+        mSetChannelBrightnessFunc(vFunction.ArgFloat(0));
+      }
+      return;
+    }
+    if (vFunction.GetName() == "SetRingColorHSV" && vFunction.NumArgs() == 4) {
+      if (mSetRingColorHSVFunc != nullptr) {
+        mSetRingColorHSVFunc(vFunction.ArgInt(0),
+                             vFunction.ArgInt(1),
+                             vFunction.ArgInt(2),
+                             vFunction.ArgInt(3));
+      }
+      return;
+    }
+    if (vFunction.GetName() == "SetTransitionTime" && vFunction.NumArgs() == 1) {
+      if (mSetTransitionTimeFunc != nullptr) mSetTransitionTimeFunc(vFunction.ArgFloat(0));
+      return;
+    }
+    GG_DEBUG_PRINTF("Unhandled Function!\n");
   }
 
   WebSocketsServer mServer;
 
   tClientConnectFunc mClientConnectFunc;
   tClientConnectFunc mClientDisconnectFunc;
-  tSetStringValueFunc mSetNameFunc;
-  tSetBoolValueFunc mSetOnFunc;
-  tSetFloatValueFunc mSetCenterBrightnessFunc;
-  tSet3UInt32ValueFunc mSetRingColorHSVFunc;
+  tSetStringFunc mSetNameFunc;
+  tSetBoolFunc mSetOnFunc;
+  tSetSceneNameFunc mSetSceneNameFunc;
+  tSetUInt16Func mSetCurrentSceneIndexFunc;
+  tSetChannelBrightnessFunc mSetChannelBrightnessFunc;
+  tSetRingColorHSVFunc mSetRingColorHSVFunc;
+  tSetFloatFunc mSetTransitionTimeFunc;
   
 };

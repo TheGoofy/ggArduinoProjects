@@ -1,7 +1,6 @@
 #pragma once
 
-#include "ggLog.h"
-#include "ggValueEEPromT.h"
+#include "ggTransitionT.h"
 
 
 class ggLEDCenter {
@@ -9,10 +8,10 @@ class ggLEDCenter {
 public:
 
   ggLEDCenter(int aPinPWM)
-  : mLogTable(1023),
-    mPinPWM(aPinPWM),
-    mOn(false),
-    mBrightness(0.5f) {
+  : mPinPWM(aPinPWM),
+    mBrightness()
+  {
+    SetBrightness(0.0f, 0.3f); // transition-time
   }
 
   void Begin() {
@@ -21,35 +20,16 @@ public:
     UpdateOutput();
   }
 
-  bool GetOn() const {
-    return mOn;
+  inline float GetBrightness() const {
+    return mBrightness.Get();
   }
 
-  void SetOn(bool aOn) {
-    if (mOn != aOn) {
-      mOn = aOn;
-      UpdateOutput();
-    }
-  }
-
-  void ToggleOnOff() {
-    SetOn(!GetOn());
-  }
-
-  float GetBrightness() const {
-    return mBrightness;
-  }
-
-  void SetBrightness(const float aBrightness) {
+  void SetBrightness(float aBrightness, float aTransitionTime) {
     float vBrightness = ggClamp(aBrightness, 0.0f, 1.0f);
     if (mBrightness != vBrightness) {
-      mBrightness = vBrightness;
+      mBrightness.Set(vBrightness, aTransitionTime);
       UpdateOutput();
     }
-  }
-
-  void ChangeBrightness(const float aBrightnessDelta) {
-    SetBrightness(mBrightness + aBrightnessDelta);
   }
 
   inline void Stop() {
@@ -60,20 +40,22 @@ public:
     analogWrite(mPinPWM, mOutput);
   }
 
+  void Run() {
+    if (!mBrightness.Finished()) {
+      UpdateOutput();
+    }
+  }
+
 private:
 
   void UpdateOutput() {
-    mOutput = GetOn() ? mLogTable.Get(mBrightness.Get()) : 0;
+    mOutput = ggRound<int>(1023.0f * mBrightness.Get());
     analogWrite(mPinPWM, mOutput);
   }
 
   // basic setup
-  const ggLog mLogTable;
   const int mPinPWM;
   int mOutput;
-  bool mOn;
-  
-  // persistent settings
-  ggValueEEPromT<float> mBrightness;
-  
+  ggTransitionT<float> mBrightness;
+
 };

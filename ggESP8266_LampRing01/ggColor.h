@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ggNumerics.h"
+#include "ggJsonConvert.h"
 
 namespace ggColor {
 
@@ -11,7 +13,7 @@ namespace ggColor {
         uint8_t mR;
         uint8_t mG;
         uint8_t mB;
-        uint8_t mW;
+        uint8_t mX;
       };
       uint8_t mChannels[4];
       uint32_t mData;
@@ -26,7 +28,7 @@ namespace ggColor {
     }
 
     inline cRGB(uint8_t aR, uint8_t aG, uint8_t aB)
-    : mR(aR), mG(aG), mB(aB), mW(0) {
+    : mR(aR), mG(aG), mB(aB), mX(0) {
     }
 
     inline cRGB(const cRGB& aOther)
@@ -68,6 +70,11 @@ namespace ggColor {
     inline static cRGB DeepPink() { return cRGB(255,20,147); }
     inline static cRGB DarkViolet() { return cRGB(148,0,211); }
     inline static cRGB Purple() { return cRGB(128,0,128); }
+    inline static cRGB DarkRed() { return cRGB(139,0,0); }
+    inline static cRGB DarkGreen() { return cRGB(0,100,0); }
+    inline static cRGB DarkBlue() { return cRGB(0,0,139); }
+    inline static cRGB DarkOrange() { return cRGB(255,140,0); }
+    inline static cRGB Indigo() { return cRGB(75,0,130); }
 
   };
 
@@ -105,6 +112,30 @@ namespace ggColor {
       return mData != aOther.mData;
     }
 
+    // html colors (see https://www.w3schools.com/colors/colors_names.asp)
+    inline static cHSV Black() { return cHSV(0,0,0); }
+    inline static cHSV Red() { return cHSV(0,255,255); }
+    inline static cHSV Green() { return cHSV(85,255,255); }
+    inline static cHSV Blue() { return cHSV(171,255,255); }
+    inline static cHSV Yellow() { return cHSV(42,255,255); }
+    inline static cHSV Cyan() { return cHSV(128,255,255); }
+    inline static cHSV Magenta() { return cHSV(214,255,255); }
+    inline static cHSV White() { return cHSV(0,0,255); }
+    inline static cHSV DarkGray() { return cHSV(0,0,169); }
+    inline static cHSV Gray() { return cHSV(0,0,128); }
+    inline static cHSV LightGray() { return cHSV(0,0,211); }
+    inline static cHSV Orange() { return cHSV(27,255,255); }
+    inline static cHSV GreenYellow() { return cHSV(59,208,255); }
+    inline static cHSV Turquoise() { return cHSV(123,182,224); }
+    inline static cHSV DeepSkyBlue() { return cHSV(139,255,255); }
+    inline static cHSV DeepPink() { return cHSV(233,235,255); }
+    inline static cHSV DarkViolet() { return cHSV(201,255,211); }
+    inline static cHSV Purple() { return cHSV(214,255,128); }
+    inline static cHSV DarkRed() { return cHSV(0,255,139); }
+    inline static cHSV DarkGreen() { return cHSV(85,255,100); }
+    inline static cHSV DarkBlue() { return cHSV(171,255,139); }
+    inline static cHSV DarkOrange() { return cHSV(23,255,255); }
+    inline static cHSV Indigo() { return cHSV(195,255,130); }
   };
 
 
@@ -169,3 +200,25 @@ namespace ggColor {
   }
 
 };
+
+template <>
+String ToJson(const ggColor::cRGB& aRGB) {
+  return String("{\"mRGB\":[") + aRGB.mR + "," + aRGB.mG + "," + aRGB.mB + "]}";
+}
+
+template <>
+String ToJson(const ggColor::cHSV& aHSV) {
+  return String("{\"mHSV\":[") + aHSV.mH + "," + aHSV.mS + "," + aHSV.mV + "]}";
+}
+
+template <>
+inline ggColor::cHSV ggInterpolate(const ggColor::cHSV& aHSV0, const ggColor::cHSV& aHSV1, float aT) {
+  int16_t vDeltaH = (int16_t)aHSV1.mH - (int16_t)aHSV0.mH;
+  int16_t vDeltaS = (int16_t)aHSV1.mS - (int16_t)aHSV0.mS;
+  int16_t vDeltaV = (int16_t)aHSV1.mV - (int16_t)aHSV0.mV;
+  if (vDeltaH >=  256/2) vDeltaH -= 256;
+  if (vDeltaH <= -256/2) vDeltaH += 256;
+  return ggColor::cHSV(aHSV0.mH + aT * vDeltaH,
+                       aHSV0.mS + aT * vDeltaS,
+                       aHSV0.mV + aT * vDeltaV);
+}

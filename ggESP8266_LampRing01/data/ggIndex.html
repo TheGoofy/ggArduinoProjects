@@ -1,103 +1,134 @@
-﻿<!DOCTYPE html PUBLIC '-//W3C//DTD HTML 4.01//EN' 'http://www.w3.org/TR/html4/strict.dtd'>
+﻿<!DOCTYPE html>
 <html>
 
 <head>
+  <title>ESP8266 Lamp Home</title>
   <meta http-equiv='Content-Type' content='text/html; charset=utf-8'/>
   <meta http-equiv='Content-Style-Type' content='text/css'/>
-  <meta name="viewport" content="width=device-width,initial-scale=1,user-scalable=no"/>
-  <title>ESP8266 Lamp</title>
+  <meta name='viewport' content='width=device-width,initial-scale=1,user-scalable=no'/>
   <link rel='shortcut icon' type='image/png' href='favicon.ico'/>
   <link rel='stylesheet' type='text/css' href='ggStyleSheet.css'/>
-  <script language='javascript' type='text/javascript'>
+  <script type='text/javascript' src='ggWebSocket.js'></script>
+  <script type='text/javascript'>
 
-    var mWebSocket;
-    var mWebSocketReConnectTimerID = 0;
+    'use strict';
 
-    function initAll() {
-      initHtmlElements();
-      initWebSocket();
-    }
-  
-    function initWebSocket() {
-      // init web socket client
-      mWebSocket = new WebSocket('ws://' + window.location.hostname + ':81/', ['arduino']);
-      mWebSocket.onopen = onWebSocketOpen;
-      mWebSocket.onclose = onWebSocketClose;
-      mWebSocket.onerror = onWebSocketError;
-      mWebSocket.onmessage = onWebSocketMessage;
+    var mWebSocket = null;
+
+    function InitAll() {
+      InitHtmlElements();
+      CreateWebSocket(window, 'mWebSocket', window.location.hostname, OnWebSocketMessage, 5000, mWebSocketStatus);
     }
 
-    function onWebSocketOpen(aEvent) {
-      console.log(aEvent.data);
-      mWebSocketStatus.innerHTML = 'connected';
-      if (mWebSocketReConnectTimerID) {
-        window.clearInterval(mWebSocketReConnectTimerID);
-        mWebSocketReConnectTimerID = 0;
+    function OnWebSocketMessage(aData) {
+      eval(aData);
+    }
+
+    function OnClickScene(aScene) {
+      if (!aScene.mSelected || !mOn.checked) {
+        mWebSocket.send('SetCurrentSceneIndex(' + aScene.mIndex + ')');
       }
     }
 
-    function onWebSocketClose(aEvent) {
-      console.log(aEvent.data);
-      mWebSocketStatus.innerHTML = 'disconnected';
-      if (!mWebSocketReConnectTimerID) {
-        mWebSocketReConnectTimerID = window.setInterval(initWebSocket, 5000);
-      }
+    function OnBrightnessRangeChange() {
+      WebSocketSendSetChannelBrightness();
     }
 
-    function onWebSocketError(aEvent) {
-      mWebSocketStatus.innerHTML = aEvent.data;
+    function IntensityToBrightness(aIntensity, aBase = 100.0) {
+      return (Math.pow(aBase, aIntensity) - 1.0) / (aBase - 1.0);
     }
 
-    function onWebSocketMessage(aEvent) {
-      // server sends actual function names, which can directly be executed by the client
-      eval(aEvent.data);
+    function BrightnessToIntensity(aBrightness, aBase = 100.0) {
+      return Math.log((aBase - 1.0) * aBrightness + 1.0) / Math.log(aBase);
+    }
+
+    function WebSocketSendSetChannelBrightness() {
+      mWebSocket.send('SetChannelBrightness('
+        + IntensityToBrightness(mBrightnessRange.value) + ')');
     }
 
     function WebSocketSendSetRingColorHSV() {
+      let vLocations = 0;
+      if (mButtonHSV0.mSelected) vLocations |= 1;
+      if (mButtonHSV1.mSelected) vLocations |= 2;
       mWebSocket.send('SetRingColorHSV('
         + mRingColorRangeH.value + ','
         + mRingColorRangeS.value + ','
-        + mRingColorRangeV.value + ')');
+        + mRingColorRangeV.value + ','
+        + vLocations + ')');
     }
 
-    function initHtmlElements() {
-      mName.onchange = function() {
-        mWebSocket.send('SetName(' + mName.value + ')');
-      }
-      mOn.onchange = function() {
-        mWebSocket.send('SetOn(' + mOn.checked + ')');
-      }
-      mCenterBrightnessRange.onchange = function() {
-        mWebSocket.send('SetCenterBrightness(' + mCenterBrightnessRange.value + ')');
-      }
-      mRingColorRangeH.onchange = function() {
-        WebSocketSendSetRingColorHSV();
-      }
-      mRingColorRangeS.onchange = function() {
-        WebSocketSendSetRingColorHSV();
-      }
-      mRingColorRangeV.onchange = function() {
-        WebSocketSendSetRingColorHSV();
-      }
+    function IsButtonHSVSelected() {
+      if (mButtonHSV0.mSelected) return true;
+      if (mButtonHSV1.mSelected) return true;
+      return false;
+    }
+
+    function OnClickButtonHSV(aButtonClicked) {
+      aButtonClicked.mSelected = !aButtonClicked.mSelected;
+      let vNothingSelected = !IsButtonHSVSelected();
+      mRingColorRangeH.disabled = vNothingSelected;
+      mRingColorRangeS.disabled = vNothingSelected;
+      mRingColorRangeV.disabled = vNothingSelected;
+      aButtonClicked.style.border = aButtonClicked.mSelected ? '3px solid #fff' : '3px solid transparent';
+      UpdateRingColorRanges();
+    }
+
+    function InitHtmlElements() {
+      mName.onchange = function() { mWebSocket.send('SetName(' + mName.value + ')'); }
+      mOn.onchange = function() { mWebSocket.send('SetOn(' + mOn.checked + ')'); }
+      mScene0.mIndex = 0;
+      mScene1.mIndex = 1;
+      mScene2.mIndex = 2;
+      mScene3.mIndex = 3;
+      mScene0.onchange = function() { mWebSocket.send('SetSceneName(' + 0 + ',' + mScene0.value + ')'); };
+      mScene1.onchange = function() { mWebSocket.send('SetSceneName(' + 1 + ',' + mScene1.value + ')'); };
+      mScene2.onchange = function() { mWebSocket.send('SetSceneName(' + 2 + ',' + mScene2.value + ')'); };
+      mScene3.onchange = function() { mWebSocket.send('SetSceneName(' + 3 + ',' + mScene3.value + ')'); };
+      mBrightnessRange.onchange = OnBrightnessRangeChange;
+      mBrightnessRange.style.backgroundImage = 'linear-gradient(to right, #000 05%, #fff 95%)';
+      mRingColorRangeH.onchange = WebSocketSendSetRingColorHSV;
+      mRingColorRangeS.onchange = WebSocketSendSetRingColorHSV;
+      mRingColorRangeV.onchange = WebSocketSendSetRingColorHSV;
+      mButtonHSV0.mSelected = true;
+      mButtonHSV0.style.border = '3px solid #fff';
+      mButtonHSV1.mSelected = false;
     }
 
     function ToHex(aValue) {
-      var vHex = Number(aValue).toString(16);
+      let vHex = Number(aValue).toString(16);
       if (vHex.length < 2) vHex = '0' + vHex;
       return vHex;
-    }    
+    }
 
-    function HSVtoRGB(aH, aS, aV) {
-      var vR = vG = vB = aV;
+    function MapRGBtoRGB(aR, aG, aB) {
+      return [aR, aG, aB];
+    }
+
+    function MapTemperaturetoRGB(aR, aG, aB) {
+      let vR = [0.0, 0.0, 0.0]; // orange
+      let vG = [0.5, 0.1, 0.0]; // warm white (yellow)
+      let vB = [0.0, 0.1, 0.5]; // cold white (cyan)
+      let vSum = [vR[0] + vG[0] + vB[0],
+                  vR[1] + vG[1] + vB[1],
+                  vR[2] + vG[2] + vB[2]];
+      return [(aR*vR[0] + aG*vG[0] + aB*vB[0]) / vSum[0],
+              (aR*vR[1] + aG*vG[1] + aB*vB[1]) / vSum[1],
+              (aR*vR[2] + aG*vG[2] + aB*vB[2]) / vSum[2]];
+    }
+
+    function HSVtoRGB(aH, aS, aV, aMapRGB = MapRGBtoRGB) {
+      let vR, vG, vB;
+      vR = vG = vB = aV;
       if (aS != 0) {
         aH /= 42.501; // scale to 0..6
         aS /= 255; // scale to 0..1
         aV /= 255; // scale to 0..1
-        var vI = Math.floor(aH); // interval (region)
-        var vF = aH - vI; // factorial part of h
-        var vP = aV * (1 - aS           );
-        var vQ = aV * (1 - aS * (    vF));
-        var vT = aV * (1 - aS * (1 - vF));
+        let vI = Math.floor(aH); // interval (region)
+        let vF = aH - vI; // factorial part of h
+        let vP = aV * (1 - aS           );
+        let vQ = aV * (1 - aS * (    vF));
+        let vT = aV * (1 - aS * (1 - vF));
         switch (vI) {
           case 0:  vR = aV; vG = vT; vB = vP; break;
           case 1:  vR = vQ; vG = aV; vB = vP; break;
@@ -106,6 +137,7 @@
           case 4:  vR = vT; vG = vP; vB = aV; break;
           default: vR = aV; vG = vP; vB = vQ; break; // case 5 or 6
         }
+        [vR, vG, vB] = aMapRGB(vR, vG, vB);
         vR = Math.round(255 * vR);
         vG = Math.round(255 * vG);
         vB = Math.round(255 * vB);
@@ -120,85 +152,207 @@
     function UpdateOn(aOn) {
       mOnValue.innerHTML = aOn ? 'On' : 'Off';
       mOn.checked = aOn;
-      mCenterBrightnessRange.disabled = !aOn;
-      mRingColorRangeH.disabled = !aOn;
-      mRingColorRangeS.disabled = !aOn;
-      mRingColorRangeV.disabled = !aOn;
+      mBrightnessRange.disabled = !aOn;
+      mButtonHSV0.disabled = !aOn;
+      mButtonHSV1.disabled = !aOn;
+      let vNoButtonHSVSelected = !IsButtonHSVSelected();
+      mRingColorRangeH.disabled = !aOn || vNoButtonHSVSelected;
+      mRingColorRangeS.disabled = !aOn || vNoButtonHSVSelected;
+      mRingColorRangeV.disabled = !aOn || vNoButtonHSVSelected;
     }
 
-    function UpdateCenterBrightness(aBrightness) {
-      mCenterBrightnessValue.innerHTML = Math.round(100.0 * aBrightness) + '%';
-      mCenterBrightnessRange.value = aBrightness;
-      mCenterBrightnessRange.style.backgroundImage = 'linear-gradient(to right, #000 05%, #f90 95%)';
+    function UpdateSceneName(aIndex, aName) {
+      document.getElementById('mScene' + aIndex).value = aName;
     }
 
-    function UpdateRingColorHSV(aH, aS, aV) {
-      mRingColorValueHSV.innerHTML = aH + '/' + aS + '/' + aV;
-      mRingColorRangeH.value = aH;
-      mRingColorRangeS.value = aS;
-      mRingColorRangeV.value = aV;
+    function UpdateSceneNames(aName0, aName1, aName2, aName3) {
+      mScene0.value = aName0;
+      mScene1.value = aName1;
+      mScene2.value = aName2;
+      mScene3.value = aName3;
+    }
+
+    function UpdateSceneButton(aScene, aIndex) {
+      aScene.mSelected = aScene.mIndex == aIndex;
+      aScene.style.border = aScene.mSelected ? '3px solid #fff' : '3px solid transparent';
+    }
+
+    function UpdateCurrentSceneIndex(aIndex) {
+      UpdateSceneButton(mScene0, aIndex);
+      UpdateSceneButton(mScene1, aIndex);
+      UpdateSceneButton(mScene2, aIndex);
+      UpdateSceneButton(mScene3, aIndex);
+    }
+
+    function GetBrightness() {
+      return parseFloat(mBrightnessRange.value);
+    }
+
+    function UpdateBrightness(aBrightness) {
+      mBrightnessValue.innerHTML = Math.round(100.0 * aBrightness) + '%';
+      mBrightnessRange.value = BrightnessToIntensity(aBrightness);
+    }
+
+    function UpdateChannelBrightness(aB0) {
+      UpdateBrightness(aB0);
+    }
+
+    function GetSelectedColorHSV() {
+      if (mButtonHSV0.mSelected) return mButtonHSV0.mColorHSV;
+      if (mButtonHSV1.mSelected) return mButtonHSV1.mColorHSV;
+      return {mH: 0, mS: 0, mv: 0};
+    }
+
+    // if brightness is too low, all colors appear black on GUI => scale it up
+    function ScaleBrightnessForGUI(aV) {
+      const vMinV = 100;
+      let vV = (aV / 255.0) * (255.0 - vMinV) + vMinV;
+      return Math.floor(vV + 0.5);
+    }
+
+    function UpdateRingColorRanges() {
+      let vColorHSV = GetSelectedColorHSV();
+      let [vH, vS, vV] = [vColorHSV.mH, vColorHSV.mS, vColorHSV.mV];
+      mRingColorValueHSV.innerHTML = vH + '/' + vS + '/' + vV;
+      mRingColorRangeH.value = vH;
+      mRingColorRangeS.value = vS;
+      mRingColorRangeV.value = vV;
+      vV = ScaleBrightnessForGUI(vV);
       mRingColorRangeH.style.backgroundImage = 'linear-gradient(to right, '
-        + HSVtoRGB(  0.0,aS,aV) + ' 5%, '
-        + HSVtoRGB( 43.5,aS,aV) + ', '
-        + HSVtoRGB( 85.0,aS,aV) + ', '
-        + HSVtoRGB(127.5,aS,aV) + ', '
-        + HSVtoRGB(170.0,aS,aV) + ', '
-        + HSVtoRGB(221.5,aS,aV) + ', '
-        + HSVtoRGB(255.0,aS,aV) + ' 95%)';
+        + HSVtoRGB(  0.0,vS,vV) + ' 5%, '
+        + HSVtoRGB( 43.5,vS,vV) + ', '
+        + HSVtoRGB( 85.0,vS,vV) + ', '
+        + HSVtoRGB(127.5,vS,vV) + ', '
+        + HSVtoRGB(170.0,vS,vV) + ', '
+        + HSVtoRGB(221.5,vS,vV) + ', '
+        + HSVtoRGB(255.0,vS,vV) + ' 95%)';
       mRingColorRangeS.style.backgroundImage = 'linear-gradient(to right, '
-        + HSVtoRGB(aH,0,aV) + ' 5%, '
-        + HSVtoRGB(aH,255,aV) + ' 95%)';
+        + HSVtoRGB(vH,0,vV) + ' 5%, '
+        + HSVtoRGB(vH,255,vV) + ' 95%)';
       mRingColorRangeV.style.backgroundImage = 'linear-gradient(to right, '
-        + HSVtoRGB(aH,aS,0) + ' 5%, '
-        + HSVtoRGB(aH,aS,255) + ' 95%)';
+        + HSVtoRGB(vH,vS,0) + ' 5%, '
+        + HSVtoRGB(vH,vS,255) + ' 95%)';
+    }
+
+    function AssignColor(aButton, aH, aS, aV) {
+      aButton.mColorHSV = {mH: aH, mS: aS, mV: aV};
+      aButton.style.backgroundColor = HSVtoRGB(aH, aS, ScaleBrightnessForGUI(aV));
+    }
+
+    function UpdateRingColorHSV(aH0, aS0, aV0, aH1, aS1, aV1) {
+      AssignColor(mButtonHSV0, aH0, aS0, aV0);
+      AssignColor(mButtonHSV1, aH1, aS1, aV1);
+      UpdateRingColorRanges();
     }
 
   </script>
 </head>
 
-<body onload='javascript:initAll()'>
-  <div style="text-align:left;display:inline-block;min-width:340px;">
-  <table border='0' cellspacing='3' cellpadding='0'width='100%' class='selectnone'>
+<body onload='javascript:InitAll()'>
+  <div class='cMainBlockDiv'>
 
-    <tr><td>
-      <br>
-      <input id='mName' type='text' value='(na)' style='width:100%' class='r' maxlength='30'>
-    </td></tr>
+    <style>
+      #mName { width: 97.5%; margin-top: 10px; margin-bottom: 10px; }
+      #mName:focus { outline: none; }
+    </style>
+    <input id='mName' type='text' value='(na)' class='cRoundedCentered' maxlength='30'>
 
-    <tr><td>
-      <br>Power: <span id='mOnValue'>(na)</span>
-    </td></tr>
-    <tr><td>
-      <label class='switch'><input id='mOn' type='checkbox'><span class='switch_slider round'></span></label>
-    </td></tr>
+    <br>
 
-    <tr><td>
-      <br>Center Brightness: <span id='mCenterBrightnessValue'>(na)</span>
-    </td></tr>
-    <tr><td>
-      <input id='mCenterBrightnessRange' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled>
-    </td></tr>
+    <label class='switch' style='width:100%'>
+      <input id='mOn' type='checkbox'>
+      <span class='switch_slider round'></span>
+    </label>
 
-    <tr><td>
-      <br>Ring Color: <span id='mRingColorValueHSV'>(na)</span>
-    </td></tr>
-    <tr><td>
-      <input id='mRingColorRangeH' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled>
-    </td></tr>
-    <tr><td>
-      <input id='mRingColorRangeS' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled>
-    </td></tr>
-    <tr><td>
-      <input id='mRingColorRangeV' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled>
-    </td></tr>
+    <br>
+  
+    <style>
+      #mSceneTable { margin-left:auto; margin-right: auto; border-collapse: collapse; width: 100%; }
+      .cSceneButton { border-radius: 20px; height: 26px; color: white; background-color: #000;
+        border: 3px solid transparent; cursor: pointer; text-decoration: double; width: 98%; font-size: 1.1rem;
+        -webkit-transition: 0.3s; transition: opacity 0.3s; text-align: center; vertical-align: middle; }
+      .cSceneButton:disabled { opacity: 0.3; }
+      .cSceneButton:focus { outline: none; }
+    </style>
+    <div style="margin-top: 8px;"><table id='mSceneTable'>
+      <tr><td><input class="cSceneButton" id="mScene0" type="text" onclick='OnClickScene(this)' onblur="this.readOnly='true';" ondblclick="this.readOnly='';" readonly='true' value="Scene A"/></td></tr>
+      <tr><td><input class="cSceneButton" id="mScene1" type="text" onclick='OnClickScene(this)' onblur="this.readOnly='true';" ondblclick="this.readOnly='';" readonly='true' value="Scene B"/></td></tr>
+      <tr><td><input class="cSceneButton" id="mScene2" type="text" onclick='OnClickScene(this)' onblur="this.readOnly='true';" ondblclick="this.readOnly='';" readonly='true' value="Scene C"/></td></tr>
+      <tr><td><input class="cSceneButton" id="mScene3" type="text" onclick='OnClickScene(this)' onblur="this.readOnly='true';" ondblclick="this.readOnly='';" readonly='true' value="Scene D"/></td></tr>
+    </table></div>
 
-    <tr><td>
-      <br><hr noshade>
-      Web Socket Status: <span id='mWebSocketStatus'>(na)</span><br>
-      (c) 2019, <a href='ggGoofy.html'>Christoph Laimer</a>
-    </td></tr>
+    <hr noshade>
 
-  </table>
+    <style>
+      #mBrightnessTable { margin-left:auto; margin-right: auto; border-collapse: collapse; width: 100%;}
+      #mBrightnessTable td { text-align: center; }
+    </style>
+    <table id='mBrightnessTable'>
+      <tr>
+        <td colspan='2'>
+          <input id='mBrightnessRange' type='range' min='0' max='1' step='0.01' value='0' class='range_slider' disabled><br>
+        </td>
+      </tr>
+    </table>
+
+    <hr noshade>
+
+    <style>
+      #mLocationTable { margin-left:auto; margin-right: auto; border-collapse: collapse; width: 100%; }
+      .cButtonRound { border-radius: 17px; height: 34px; color: white; background-color: #000;
+        border: 3px solid transparent; cursor: pointer; text-decoration: double; 
+        -webkit-transition: 0.3s; transition: opacity 0.3s; }
+      .cButtonRound:disabled { opacity: 0.3; }
+      .cButtonRound:focus { outline: none; }
+    </style>
+    <table id='mLocationTable'>
+      <tr>
+        <td><input id="mButtonHSV0" type="button" onclick='OnClickButtonHSV(this)' class="cButtonRound cButtonHSV" style='width:100%' value=''/></td>
+        <td><input id="mButtonHSV1" type="button" onclick='OnClickButtonHSV(this)' class="cButtonRound cButtonHSV" style='width:100%' value=''/></td>
+      </tr>
+    </table>
+
+    <input id='mRingColorRangeH' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled><br>
+    <input id='mRingColorRangeS' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled><br>
+    <input id='mRingColorRangeV' type='range' min='0' max='255' step='1' value='0' class='range_slider' disabled><br>
+
+    <hr noshade>
+
+    <style>
+      .cTransitionTime { width: 58px; margin-left: 4px; margin-right: -2px; }
+      #mTransitionTime { }
+      #mTransitionTime:focus { outline: none; }
+    </style>
+    <script language='javascript' type='text/javascript'>
+      function UpdateTransitionTime(aTransitionTime) {
+        mTransitionTime.value = aTransitionTime;
+      }
+      function OnTransitionTimeChange() {
+        mWebSocket.send('SetTransitionTime(' + mTransitionTime.value + ')');
+      }
+    </script>
+    Transition Time:
+    <input class='cTransitionTime' id='mTransitionTime' type='number' onchange='OnTransitionTimeChange()' min='0' max='1800' step='0.05' value='0.3'/> s
+
+    <hr noshade>
+
+    <div>Power: <span id='mOnValue'>(na)</span></div>
+    <div>Brightness: <span id='mBrightnessValue'>(na)</span></div>
+    <div>Color HSV: <span id='mRingColorValueHSV'>(na)</span></div>
+    <div>Web Socket Status: <span id='mWebSocketStatus'>(na)</span></div>
+
+    <hr noshade>
+
+    <a href='/'>[home]</a>
+    <a href='/alarms'>[alarms]</a>
+    <a href='/time'>[time]</a>
+    <a href='/files'>[files]</a>
+    <a href='/debug'>[debug]</a>
+
+    <br>
+
+    (c) 2022, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
+
   </div>
 </body>
 
