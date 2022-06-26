@@ -40,6 +40,8 @@ ggButton mButtonB(M_KEY_B_PIN, true/*aInverted*/, true/*aEnablePullUp*/);
 ggButton mButtonK(M_KEY_K_PIN, true/*aInverted*/, true/*aEnablePullUp*/);
 
 // voltage and battery constants
+// Lamp A: 1086L
+// Lamp B: 1128L
 #define M_INTERNAL_REFERENCE_MV 1086L // measured in mV (nominal 1100mV)
 #define M_BATTERY_MV_LOW   3700L // 3.70V => 25% charge
 #define M_BATTERY_MV_EMPTY 3550L // 3.55V =>  5% charge
@@ -288,10 +290,10 @@ void loop()
         vChangeBrightness = !vChangeBrightness;
       }
     }
-    else if (mButtonA.IsPressed()) {
+    else if (mButtonA.EventPressed()) {
       vChangeBrightness ? ggLedControl::BrightnessInc() : ggLedControl::ColorInc();
     }
-    else if (mButtonB.IsPressed()) {
+    else if (mButtonB.EventPressed()) {
       vChangeBrightness ? ggLedControl::BrightnessDec() : ggLedControl::ColorDec();
     }
     ggLedControl::SetOutput();
