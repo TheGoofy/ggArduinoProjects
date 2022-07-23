@@ -43,7 +43,8 @@ ggButton mButtonK(M_KEY_K_PIN, true/*aInverted*/, true/*aEnablePullUp*/);
 // Lamp A: 1086L
 // Lamp B: 1128L
 // Lamp C: 1091L
-#define M_INTERNAL_REFERENCE_MV 1091L // measured in mV (nominal 1100mV)
+// Lamp D: 1121L
+#define M_INTERNAL_REFERENCE_MV 1121L // measured in mV (nominal 1100mV)
 #define M_BATTERY_MV_LOW   3700L // 3.70V => 25% charge
 #define M_BATTERY_MV_EMPTY 3550L // 3.55V =>  5% charge
 
