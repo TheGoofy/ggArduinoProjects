@@ -152,6 +152,9 @@ private:
     bool mResetOnNextAddValue;
   };
 
+  static_assert(sizeof(time_t) == 1 * 8, "Size needs to be binary compatible on client-side! See 'ggLogFile.html'");
+  static_assert(sizeof(cSamples) == 4 * 4 * 2, "Size needs to be binary compatible on client-side! See 'ggLogFile.html'");
+
   typedef ggCircularFileT<time_t, cSamples> tCircularFile;
 
   cAverages mPressureAVG;

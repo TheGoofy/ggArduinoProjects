@@ -19,7 +19,7 @@
       
       function InitAll() {
         if (mHostName == '') {
-          mHostName = window.prompt('Please enter host name', "192.168.0.248");
+          mHostName = window.prompt('Please enter host name', "192.168.8.99");
         }
         // redraw charts, when window size changes
         window.onresize = function() {
@@ -76,11 +76,11 @@
               vReadOK = vReadOK && (vValue != 0x7fff);
               return aOffset + aScale * vValue;
             }
-            const vValuePosition = vPosition + 4 + aPositionOffset;
+            const vValuePosition = vPosition + 8 + aPositionOffset;
             let vMean = ReadInt16(aDataView, vValuePosition, aValueOffset, aValueScale);
             let vMin = ReadInt16(aDataView, vValuePosition + 2, aValueOffset, aValueScale);
             let vMax =  ReadInt16(aDataView, vValuePosition + 4, aValueOffset, aValueScale);
-            let vStdDev =  ReadInt16(aDataView, vValuePosition + 6, 0, aValueStdDevScale);
+            let vStdDev =  ReadInt16(aDataView, vValuePosition+ 6, 0, aValueStdDevScale);
             if (vReadOK) {
               this.Add(vDate, vMean, vMin, vMax, vStdDev);
             }
@@ -159,7 +159,7 @@
       }
 
       function GetBlockSize() {
-        return 1 * 4 + 4 * 4 * 2; // (time) * uint32 + (p,t,h,o) * (mean,min,max,stddev) * int16
+        return 1 * 8 + 4 * 4 * 2; // (time) * time_t + (p,t,h,o) * (mean,min,max,stddev) * int16
       }
 
       function GetNumberOfBlocks(aDataView) {
