@@ -152,10 +152,10 @@ private:
       if (!ggIsFinite(mTemperature)) mTemperature = vTemperature;
       if (!ggIsFinite(mHumidity)) mHumidity = vHumidity;
 
-      // smooth values with iif filter
+      // smooth values with iif filter (get rid of noise)
       if (ggIsFinite(vPressure) && ggIsFinite(mPressure)) vPressure = 0.8f*mPressure + 0.2f*vPressure;
-      if (ggIsFinite(vTemperature) && ggIsFinite(mTemperature)) vTemperature = 0.5f*mTemperature + 0.5f*vTemperature;
-      if (ggIsFinite(vHumidity) && ggIsFinite(mHumidity)) vHumidity = 0.6f*mHumidity + 0.4f*vHumidity;
+      if (ggIsFinite(vTemperature) && ggIsFinite(mTemperature)) vTemperature = 0.8f*mTemperature + 0.2f*vTemperature;
+      if (ggIsFinite(vHumidity) && ggIsFinite(mHumidity)) vHumidity = 0.8f*mHumidity + 0.2f*vHumidity;
 
       // update pressure, if changed
       if (vPressure != mPressure) {
