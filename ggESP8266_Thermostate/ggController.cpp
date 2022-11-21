@@ -132,7 +132,7 @@ void ggController::SetInput(float aInput)
     unsigned long vMicros = micros();
     float vTimeDelta = (vMicros - mInputMicrosLast) / 1000000.0f;
     float vInputWeight = vTimeDelta / mSamplePeriod;
-    vInputWeight = ggClamp(vInputWeight, 0.1f, 0.9f);
+    vInputWeight = ggClamp(vInputWeight, 0.0f, 1.0f);
     mInputValue = (1.0f - vInputWeight) * mInputValue + vInputWeight * aInput;
     mInputMicrosLast = vMicros;
   }
@@ -219,14 +219,14 @@ void ggController::ResetControlStatePID()
 void ggController::ControlOutput()
 {
   // output is "off" by default (safety)
-  float vOutputValue = 0.0f;
+  float vOutputValue = mOutputMin;
   switch (GetMode()) {
-    case eModeOn: vOutputValue = 1.0f; break;
-    case eModeOff: vOutputValue = 0.0f; break;
+    case eModeOn: vOutputValue = mOutputMax; break;
+    case eModeOff: vOutputValue = mOutputMin; break;
     case eModeOnBelow: if (mInputValid) ControlOutput(true, vOutputValue); break;
     case eModeOnAbove: if (mInputValid) ControlOutput(false, vOutputValue); break;
     case eModePID: if (mInputValid) ControlOutputPID(vOutputValue); break;
-    default: vOutputValue = 0.0f; break;
+    default: vOutputValue = mOutputMin; break;
   }
 
   // "update" doesn't notify if output value unchanged
@@ -236,7 +236,8 @@ void ggController::ControlOutput()
 
 void ggController::ControlOutput(bool aInverted, float& aOutput) const
 {
-  if (GetOutputAnalog()) {
+  // without hysteresis, the analog-mode mutates into digital-mode (division by zero)
+  if (GetOutputAnalog() && (GetHysteresis() != 0.0f)) {
     ControlOutputAnalog(aInverted, aOutput);
   }
   else {
@@ -253,11 +254,9 @@ void ggController::ControlOutputAnalog(bool aInverted, float& aOutput) const
                                 
   // use inverse hysteresis as p-control-value
   if (GetHysteresis() != 0.0f) {
-    float vOutput = vDifference / GetHysteresis() + 0.5f;
-    aOutput = ggClamp<float>(vOutput, 0.0f, 1.0f);
-  }
-  else {
-    aOutput = vDifference > 0.0f ? 1.0f : 0.0f;
+    float vOutput = (mOutputMin + mOutputMax) / 2.0f;
+    vOutput += vDifference / GetHysteresis() + 0.5f;
+    aOutput = ggClamp<float>(vOutput, mOutputMin, mOutputMax);
   }
 }
 
@@ -272,11 +271,11 @@ void ggController::ControlOutputDigital(bool aInverted, float& aOutput) const
   // compare input and hysteresis range
   if (mInputValue <= vValueMin) {
     // input is below hysteresis range
-    aOutput = aInverted ? 1.0f : 0.0f;
+    aOutput = aInverted ? mOutputMax : mOutputMin;
   }
   else if (mInputValue >= vValueMax) {
     // input is above hysteresis range
-    aOutput = aInverted ? 0.0f : 1.0f;
+    aOutput = aInverted ? mOutputMin : mOutputMax;
   }
   else {
     // input is within hysteresis range (keep output as it is)
