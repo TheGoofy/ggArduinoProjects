@@ -84,7 +84,7 @@ public:
     // range: 0..1 (full uint16 range: -320..320%, resolution: 0.01%)
     mOutputAVG.AssignSample(vMeasurements.mOutput, 0.0f, 10000.0f, 100000.0f, LastSamples().mOutput);
     // write "time" and "measurements" into circular file
-    bool vSuccess = mCircularFile.Write(aTime, vMeasurements);
+    bool vSuccess = mCircularFile.Write(static_cast<uint32_t>(aTime), vMeasurements);
     if (!vSuccess) {
       GG_DEBUG();
       GG_DEBUG_PRINTF("aTime = %d\n", aTime);
@@ -152,10 +152,10 @@ private:
     bool mResetOnNextAddValue;
   };
 
-  static_assert(sizeof(time_t) == 1 * 8, "Size needs to be binary compatible on client-side! See 'ggLogFile.html'");
+  static_assert(sizeof(uint32_t) == 4, "Size needs to be binary compatible on client-side! See 'ggLogFile.html'");
   static_assert(sizeof(cSamples) == 4 * 4 * 2, "Size needs to be binary compatible on client-side! See 'ggLogFile.html'");
 
-  typedef ggCircularFileT<time_t, cSamples> tCircularFile;
+  typedef ggCircularFileT<uint32_t, cSamples> tCircularFile;
 
   cAverages mPressureAVG;
   cAverages mTemperatureAVG;
@@ -165,7 +165,7 @@ private:
   uint32_t mPeriod;
   tCircularFile mCircularFile;
 
-  mutable time_t mLastTime;
+  mutable uint32_t mLastTime;
   mutable cSamples* mLastSamples;
   cSamples& LastSamples() const {
     if (mLastSamples == nullptr) {

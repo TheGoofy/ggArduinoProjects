@@ -76,7 +76,7 @@
               vReadOK = vReadOK && (vValue != 0x7fff);
               return aOffset + aScale * vValue;
             }
-            const vValuePosition = vPosition + 8 + aPositionOffset;
+            const vValuePosition = vPosition + 4 + aPositionOffset;
             let vMean = ReadInt16(aDataView, vValuePosition, aValueOffset, aValueScale);
             let vMin = ReadInt16(aDataView, vValuePosition + 2, aValueOffset, aValueScale);
             let vMax =  ReadInt16(aDataView, vValuePosition + 4, aValueOffset, aValueScale);
@@ -159,7 +159,7 @@
       }
 
       function GetBlockSize() {
-        return 1 * 8 + 4 * 4 * 2; // (time) * time_t + (p,t,h,o) * (mean,min,max,stddev) * int16
+        return 1 * 4 + 4 * 4 * 2; // (time) * uint32 + (p,t,h,o) * (mean,min,max,stddev) * int16
       }
 
       function GetNumberOfBlocks(aDataView) {
