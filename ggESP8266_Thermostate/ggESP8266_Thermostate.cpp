@@ -37,6 +37,7 @@
 
 // imoque identification name
 const String mHostName = "ESP-SSR-" + String(ESP.getChipId(), HEX);
+const String mHostPassword = "ESP-1234";
 
 // file system to use (for webserver and datalogger)
 FS* mFileSystem = &SPIFFS; // &LittleFS or &SPIFFS;
@@ -307,6 +308,7 @@ void ConnectComponents()
       vDebug.PrintF("Version SW = %s (%s)\n", M_VERSION_SW, __DATE__);
       vDebug.PrintF("Version HW = %s\n", M_VERSION_HW);
       vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
+      vDebug.PrintF("mHostPassword = %s\n", mHostPassword.isEmpty() ? "off" : "required");
       vDebug.PrintF("mMillisUpTime = %llu (%.1f Days)\n", mMillisUpTime, mMillisUpTime/(1000.0f*60.0f*60.0f*24.0f));
       mPeriphery.PrintDebug("mPeriphery");
       mWiFiConnection.PrintDebug("mWiFiConnection");
@@ -420,9 +422,9 @@ void setup()
 
   // connect to wifi
   ConnectWifiManager();
-  mWifiManager.setDebugOutput(false);
+  mWifiManager.setDebugOutput(M_DEBUGGING);
   mWifiManager.setConfigPortalTimeout(60); // 1 minute
-  mWifiManager.autoConnect(mHostName.c_str());
+  mWifiManager.autoConnect(mHostName.c_str(), mHostPassword.c_str());
   GG_DEBUG_PRINTF("Connected to: %s\n", WiFi.SSID().c_str());
   GG_DEBUG_PRINTF("IP address: %s\n", WiFi.localIP().toString().c_str());
   mWiFiConnection.Begin();
@@ -451,6 +453,7 @@ void setup()
 
   // over the air update
   ArduinoOTA.setHostname(mHostName.c_str());
+  ArduinoOTA.setPassword(mHostPassword.c_str());
   ArduinoOTA.begin();
   GG_DEBUG_PRINTF("OTA service started\n");
 

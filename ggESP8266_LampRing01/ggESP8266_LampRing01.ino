@@ -12,7 +12,7 @@
 
 // PCB version definition (ggPeriphery.h)
 // #define M_PCB_VERSION_v0a // PCB manually wired
-#define M_PCB_VERSION_v1a // PCB printed wires
+#define M_PCB_VERSION_v1a // PCB printed
 
 #define M_VERSION_SW "v1.0.1"
 
@@ -31,7 +31,7 @@
 
 // unique identification name
 const String mHostName = "ESP-Lamp-" + String(ESP.getChipId(), HEX);
-
+const String mHostPassword = "ESP-1234";
 
 // file system to use (for webserver and datalogger)
 FS* mFileSystem = &SPIFFS; // &LittleFS or &SPIFFS;
@@ -672,6 +672,7 @@ void ConnectComponents()
       vDebug.PrintF("Version HW = %s\n", M_VERSION_HW);
       vDebug.PrintF("Environment config = %s\n", M_TEST_ENVIRONMENT ? "TEST" : "NORMAL");
       vDebug.PrintF("mHostName = %s\n", mHostName.c_str());
+      vDebug.PrintF("mHostPassword = %s\n", mHostPassword.isEmpty() ? "off" : "required");
       vDebug.PrintF("mMillisUpTime = %llu (%.1f Days)\n", mMillisUpTime, mMillisUpTime/(1000.0f*60.0f*60.0f*24.0f));
       Data().PrintDebug("Data()");
       Periphery().PrintDebug("Periphery()");
@@ -750,7 +751,7 @@ void setup()
   ConnectWifiManager();
   WiFiMgr().setDebugOutput(M_DEBUGGING);
   WiFiMgr().setConfigPortalTimeout(60); // 1 minute
-  WiFiMgr().autoConnect(mHostName.c_str());
+  WiFiMgr().autoConnect(mHostName.c_str(), mHostPassword.c_str());
   GG_DEBUG_PRINTF("Connected to: %s\n", WiFi.SSID().c_str());
   GG_DEBUG_PRINTF("IP address: %s\n", WiFi.localIP().toString().c_str());
   WiFiConnection().Begin();
@@ -781,6 +782,7 @@ void setup()
 
   // over the air update
   ArduinoOTA.setHostname(mHostName.c_str());
+  ArduinoOTA.setPassword(mHostPassword.c_str());
   ArduinoOTA.begin();
   GG_DEBUG_PRINTF("OTA service started\n");
 

@@ -25,7 +25,7 @@ char mWebServerHtmlBack[] PROGMEM = R"=====(
       <a href='/files'>[files]</a>
       <a href='/debug'>[debug]</a>
       <br>
-      (c) 2022, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
+      (c) 2023, <a href='http://www.laimer.ch' target='_blank'>Christoph Laimer</a>
     </div>
   </body>
 
