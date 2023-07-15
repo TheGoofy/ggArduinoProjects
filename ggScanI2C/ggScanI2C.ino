@@ -7,8 +7,8 @@
 void setup()
 {
   // initialize I2C interface
-  // Wire.begin(); // A4: SDA, A5: SCL // arduino
-  Wire.begin(SDA_PIN, SCL_PIN); // esp8266
+  Wire.begin(); // A4: SDA, A5: SCL // arduino
+  // Wire.begin(SDA_PIN, SCL_PIN); // esp8266
   // Wire.begin(I2C_MASTER, 0x00, I2C_PINS_18_19, I2C_PULLUP_INT, 800000); // teensy3
 
   // initialize serial communication (for debugging output only)
@@ -45,8 +45,14 @@ void loop()
     }    
   }
   
-  if (nDevices == 0) Serial.print("No I2C devices found\n\n");
-  else Serial.printf("Found %d I2C devices\n\n", nDevices);
+  if (nDevices == 0) {
+    Serial.print("No I2C devices found\n\n");
+  }
+  else {
+    Serial.print("Found ");
+    Serial.print(nDevices);
+    Serial.print(" I2C devices\n\n");
+  }
 
   // wait 5 seconds for next scan
   delay(5000);
