@@ -7,6 +7,10 @@
 #include <ArduinoOTA.h>
 #include <ArduinoJson.h>      // https://github.com/bblanchon/ArduinoJson (by Benoit Blanchon)
 
+//
+// Vella Lamp
+//
+
 #define M_DEBUGGING false
 #define M_TEST_ENVIRONMENT false
 
