@@ -1,6 +1,7 @@
 #include "ggStepperAxis.h"
 
 /*
+// arduino uno
 #define GG_STATUS_LED_PIN 2
 #define GG_STEPPER_XYZ_ENABLE_PIN 8
 #define GG_STEPPER_X_DIR_PIN 5
@@ -13,6 +14,21 @@
 #define GG_STEPPER_Y_LIMIT_PIN 10
 #define GG_STEPPER_Z_LIMIT_PIN 11
 */
+/*
+// esp32-wroom-da: jumper wires
+#define GG_STATUS_LED_PIN 2
+#define GG_STEPPER_XYZ_ENABLE_PIN 32
+#define GG_STEPPER_X_DIR_PIN 33
+#define GG_STEPPER_Y_DIR_PIN 25
+#define GG_STEPPER_Z_DIR_PIN 26
+#define GG_STEPPER_X_STEP_PIN 27
+#define GG_STEPPER_Y_STEP_PIN 14
+#define GG_STEPPER_Z_STEP_PIN 12
+#define GG_STEPPER_X_LIMIT_PIN 19
+#define GG_STEPPER_Y_LIMIT_PIN 18
+#define GG_STEPPER_Z_LIMIT_PIN 5
+*/
+// esp32-wroom-da: manually wired PCB
 #define GG_STATUS_LED_PIN 2
 #define GG_STEPPER_XYZ_ENABLE_PIN 12
 #define GG_STEPPER_X_DIR_PIN 26
