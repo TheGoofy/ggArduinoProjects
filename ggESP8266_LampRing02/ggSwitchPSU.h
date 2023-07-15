@@ -56,7 +56,7 @@ public:
   }
 
   float GetDelayOn() const {
-    mTimerOn.GetTimeOut();
+    return mTimerOn.GetTimeOut();
   }
 
   void SetDelayOff(float aDelayOff) {
@@ -64,7 +64,7 @@ public:
   }
 
   float GetDelayOff() const {
-    mTimerOff.GetTimeOut();
+    return mTimerOff.GetTimeOut();
   }
 
   void SetOn(float aTransitionTime) {

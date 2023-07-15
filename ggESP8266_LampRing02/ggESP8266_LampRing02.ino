@@ -10,8 +10,12 @@
 #include <LittleFS.h>
 #include <ArduinoJson.h>      // https://github.com/bblanchon/ArduinoJson (by Benoit Blanchon)
 
-#define M_DEBUGGING false
-#define M_TEST_ENVIRONMENT false
+//
+// Fabians Lamp
+//
+
+#define M_DEBUGGING false // (true => button non functional in favour for serial communication)
+#define M_TEST_ENVIRONMENT false // hw pin assignemnt for breadboard with 6 NEO_BGR-LEDs (instead of 114 NEO_GBR)
 
 #define M_VERSION_SW "v1.0.1"
 

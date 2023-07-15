@@ -129,12 +129,7 @@ private:
         unsigned long vMicrosStart = micros();
         mServer.sendHeader("Access-Control-Allow-Origin", "*");
         const char* vContentType = GetContentType(aFileName);
-        try {
-          size_t vBytesSent = mServer.streamFile(vFile, vContentType);
-        }
-        catch (...) {
-          GG_DEBUG_PRINTF("unknown exception\n");
-        }
+        size_t vBytesSent = mServer.streamFile(vFile, vContentType);
         unsigned long vMicrosEnd = micros();
         float vMilliSeconds = (vMicrosEnd - vMicrosStart) / 1000.0f;
         GG_DEBUG_PRINTF("file \"%s\" transferred in %lf ms\n", aFileName.c_str(), vMilliSeconds);

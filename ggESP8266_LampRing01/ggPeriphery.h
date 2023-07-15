@@ -35,7 +35,7 @@
   #define M_PIN_LED1_PWM   M_PIN_GPIO_14
   #define M_PIN_LED2_DATA  M_PIN_GPIO_13
   #define M_PIN_STATUS_LED M_PIN_GPIO_02_ENBOOT // onboard
-  #define M_LED_RING_NUM_LEDS 24
+  #define M_LED_RING_NUM_LEDS 64
   #define M_LED_RING_TYPE NEO_BGR
 #elif defined(M_PCB_VERSION_v1a)
   #define M_VERSION_HW "v1a - PCB printed"
@@ -45,7 +45,7 @@
   #define M_PIN_LED1_PWM   M_PIN_GPIO_14
   #define M_PIN_LED2_DATA  M_PIN_GPIO_13
   #define M_PIN_STATUS_LED M_PIN_GPIO_02_ENBOOT // onboard
-  #define M_LED_RING_NUM_LEDS 24
+  #define M_LED_RING_NUM_LEDS 64
   #define M_LED_RING_TYPE NEO_BGR
 #endif // M_PCB_VERSION_X
 
