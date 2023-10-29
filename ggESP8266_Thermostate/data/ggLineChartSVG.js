@@ -503,8 +503,7 @@ class ggLineChartSVG {
     let vSvgLinesX = ggSvg.CreateGroup();
     let vSvgLabelsX = ggSvg.CreateText(new ggVector(0.0, 0.0), "");
     ggSvg.SetStyle(vSvgLinesX, `stroke:${this.mAxisX.mTicksLineColor}; stroke-width:${this.mAxisX.mTicksLineWidth}; stroke-linejoin:bevel; fill:none;`);
-    ggSvg.SetStyle(vSvgLabelsX, `text-anchor: ${ggSvg.tAlign.eRight}; alignment-baseline: ${ggSvg.tAlign.eBottom}; font: ${this.mAxisX.mTicksLabelFont}; fill: ${this.mAxisX.mTicksLabelColor}; stroke: none; stroke-width: 0;`);
-    let vIsFirstTickX = true;
+    ggSvg.SetStyle(vSvgLabelsX, `text-anchor: ${ggSvg.tAlign.eLeft}; alignment-baseline: ${ggSvg.tAlign.eBottom}; font: ${this.mAxisX.mTicksLabelFont}; fill: ${this.mAxisX.mTicksLabelColor}; stroke: none; stroke-width: 0;`);
     let vTickX = TimeCeil(vValueMinX, vTickDeltaX);
     while (vTickX < vValueMaxX) {
       if (vTickX >= vValueMinX) {
@@ -512,14 +511,13 @@ class ggLineChartSVG {
         const vPointB = new ggVector(GetPlotPointX(vTickX), GetPlotPointY(vPlotMaxY));
         if (this.IsInsideClientX(vPointA.mX) || this.IsInsideClientX(vPointB.mX)) {
           vSvgLinesX.appendChild(ggSvg.CreateLine(vPointA, vPointB));
-          if (!vIsFirstTickX) {
+          if (true) {
             const vDate = new Date(vTickX);
             const vRightBottom = this.RightBottom;
-            const vLabelPositionX = vPointA.mX - this.mAxisX.mTicksLineWidth / 2.0 - 1.0
+            const vLabelPositionX = vPointA.mX + this.mAxisX.mTicksLineWidth / 2.0 + 1.0
             vSvgLabelsX.appendChild(ggSvg.CreateSpan(vLabelPositionX, vRightBottom.mY, 0, "-1em", vDate.toLocaleTimeString()));
             vSvgLabelsX.appendChild(ggSvg.CreateSpan(vLabelPositionX, vRightBottom.mY, 0, "0em", vDate.toLocaleDateString()));
           }
-          vIsFirstTickX = false;  
         }
       }
       vTickX = TimeAdd(vTickX, vTickDeltaX);
@@ -538,8 +536,8 @@ class ggLineChartSVG {
       const vPointB = new ggVector(GetPlotPointX(vValueMaxX), GetPlotPointY(vTickY));
       if (this.IsInsideClientY(vPointA.mY) || this.IsInsideClientY(vPointB.mY)) {
         vSvgLinesY.appendChild(ggSvg.CreateLine(vPointA, vPointB));
-        const vLabelPositionY = vPointA.mY + this.mAxisY.mTicksLineWidth / 2.0 + 1.0;
-        vSvgLabelsY.appendChild(ggSvg.CreateSpan(vAxisYLabelSizeX, vLabelPositionY, 0, "0.7em", vTickY.toFixed(vTickDecimalsY)));
+        const vLabelPositionY = vPointA.mY - this.mAxisY.mTicksLineWidth / 2.0 - 1.0;
+        vSvgLabelsY.appendChild(ggSvg.CreateSpan(vAxisYLabelSizeX, vLabelPositionY, 0, 0, vTickY.toFixed(vTickDecimalsY)));
       }
     }
 
