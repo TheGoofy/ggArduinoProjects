@@ -88,32 +88,7 @@ private:
         unsigned long vMicrosStart = micros();
         mServer.sendHeader("Access-Control-Allow-Origin", "*");
         const char* vContentType = GetContentType(aFileName);
-        try {
-          /*
-          GG_DEBUG_PRINTF("setting content length: %d\n", vFile.size());
-          mServer.setContentLength(vFile.size());
-          GG_DEBUG_PRINTF("sending content type: %s\n", vContentType);
-          mServer.send(200, vContentType, "");
-          const size_t vBufferSize = 256;
-          uint8_t vBuffer[vBufferSize];
-          size_t vBytesSent = 0;
-          if (vFile.seek(0)) {
-            while (size_t vBytesRead = vFile.read(vBuffer, vBufferSize) > 0) {
-              mServer.sendContent((char*)vBuffer, vBytesRead);
-              vBytesSent += vBytesRead;
-            }
-          }
-          else {
-            GG_DEBUG_PRINTF("failed to seek file begin\n");
-          }
-          GG_DEBUG_PRINTF("total %d bytes sent\n", vBytesSent);
-          mServer.client().stop();
-          */
-          size_t vBytesSent = mServer.streamFile(vFile, vContentType);
-        }
-        catch (...) {
-          GG_DEBUG_PRINTF("unknown exception\n");
-        }
+        size_t vBytesSent = mServer.streamFile(vFile, vContentType);
         unsigned long vMicrosEnd = micros();
         float vMilliSeconds = (vMicrosEnd - vMicrosStart) / 1000.0f;
         GG_DEBUG_PRINTF("file \"%s\" transferred in %lf ms\n", aFileName.c_str(), vMilliSeconds);
