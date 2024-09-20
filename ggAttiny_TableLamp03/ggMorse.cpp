@@ -83,28 +83,28 @@ ggMorse::ggMorse(tSignalFunc aSignalFunc,
 
 void ggMorse::SignalChar(const char aChar) const
 {
-  const char* vCodePGM = GetCodePGM(aChar);
-  char vCode = pgm_read_byte_near(vCodePGM);
+  const char* vCodePtrPGM = GetCodePGM(aChar);
+  char vCode = pgm_read_byte_near(vCodePtrPGM);
   while (vCode) {
     switch (vCode) {
       case '.': mSignalFunc(1 * mMillisDit); break;
       case '-': mSignalFunc(3 * mMillisDit); break;
-      case ' ': mSpaceFunc(7 * mMillisDit, false); break;
+      case ' ': mSpaceFunc(8 * mMillisDit, false); break;
       default: break;
     }
     mSpaceFunc(1 * mMillisDit, true);
-    vCode = pgm_read_byte_near(++vCodePGM);
+    vCode = pgm_read_byte_near(++vCodePtrPGM);
   }
 }
 
 
 void ggMorse::Signal(const char* aText) const
 {
-  const char* vChar = aText;
-  while (*vChar) {
-    SignalChar(*vChar++);
-    if (*vChar) {
-      mSpaceFunc(3 * mMillisDit, false);
+  const char* vCharPtr = aText;
+  while (*vCharPtr != '\0') {
+    SignalChar(*vCharPtr++);
+    if (*vCharPtr != '\0') {
+      mSpaceFunc(5 * mMillisDit, false);
     }
   }
 }

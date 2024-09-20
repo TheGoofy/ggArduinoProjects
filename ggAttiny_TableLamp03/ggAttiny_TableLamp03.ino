@@ -1,3 +1,12 @@
+/*
+ATtiny84a:
+- Tools / Board / ATTinyCore / ATtiny24/44/84(a) (no bootloader)
+- Tools / Chip: ATtiny84(a)
+- Tools / Clock 4 MHz internal (for 3.7V)
+- Tools / Programmer: "Arduino as ISP"
+- Sketch / Upload using Programmer
+*/
+
 #include <avr/sleep.h>
 
 #include "ggInput.h"
@@ -40,13 +49,17 @@ ggButton mButtonB(M_KEY_B_PIN, true/*aInverted*/, true/*aEnablePullUp*/);
 ggButton mButtonK(M_KEY_K_PIN, true/*aInverted*/, true/*aEnablePullUp*/);
 
 // voltage and battery constants
-// Lamp A: 1086L
-// Lamp B: 1128L
-// Lamp C: 1091L
-// Lamp D: 1121L
-#define M_INTERNAL_REFERENCE_MV 1121L // measured in mV (nominal 1100mV)
-#define M_BATTERY_MV_LOW   3700L // 3.70V => 25% charge
-#define M_BATTERY_MV_EMPTY 3550L // 3.55V =>  5% charge
+//        | scale | off
+// -------+-------+------
+// Lamp A | 1086L |     ?
+// Lamp B | 1128L |     ?
+// Lamp C | 1091L |     ?
+// Lamp D | 1121L |     ?
+// Lamp E | 1100L |   34L
+#define M_INTERNAL_REFERENCE_MV 1100L // measured in mV (nominal 1100mV)
+#define M_INTERNAL_REFERENCE_OFFSET_MV 34L // measured in mV
+#define M_BATTERY_MV_LOW   3600L // 3.60V => 10% charge
+#define M_BATTERY_MV_EMPTY 3500L // 3.50V =>  5% charge
 
 
 // the "display" ... ;-)
@@ -122,7 +135,7 @@ ISR (PCINT0_vect)
 
 void PowerDownSleep()
 {
-  // turn off external power cunsumers
+  // turn off external power consumers
   ggLedControl::SetOutputOff();
   ggLedControl::PowerOff();
   
@@ -184,7 +197,7 @@ uint16_t ReadVccMV()
   uint16_t vAdcHigh = ADCH; // unlocks both
   uint32_t vAdc = (vAdcHigh << 8) | vAdcLow;
  
-  uint32_t vVCC = (M_INTERNAL_REFERENCE_MV * 1024L) / vAdc; // Calculate Vcc (in mV);
+  uint32_t vVCC = (M_INTERNAL_REFERENCE_MV * 1024L) / vAdc + M_INTERNAL_REFERENCE_OFFSET_MV; // Calculate Vcc (in mV);
                          
   return vVCC;  
 }
@@ -200,20 +213,23 @@ namespace ggBattery {
   };
   tState mState = eStateNormal;
   void UpdateState() {
+    // take a voltage sample once per second
     if (millis() < 1000) return;
     static unsigned long vVccSum = 0;
-    static unsigned int vVccCount = 0;
+    static uint8_t vVccCount = 0;
     vVccSum += ReadVccMV();
-    vVccCount++;
-    if (vVccCount >= 256) {
-      int vVccMV = vVccSum >> 8;
+    vVccCount++; // intended overflow from 255 to 0
+    if (vVccCount == 0) { // state is updated once in approximately 4 minutes (256 sec)
+      int vVccMV = vVccSum >> 8; // calculates average (cheap division by 256)
       vVccSum = 0;
-      vVccCount = 0;
       if (vVccMV >= M_BATTERY_MV_LOW) {
+        // voltage is higher than "low"
         mState = eStateNormal;
       }
       else if (vVccMV >= M_BATTERY_MV_EMPTY) {
-        if (mState == eStateNormal) {
+        // voltage is between "empty" and "low"
+        // prevent state going magically up from "empty" to "low"
+        if (mState == eStateNormal) { 
           mState = eStateLow;
         }
       }
@@ -225,7 +241,7 @@ namespace ggBattery {
   void DisplayState() {
     static ggSampler vSampler(10.0f); // 10.0 Hz
     if (vSampler.IsDue()) {
-      static unsigned int vCount = 0;
+      static uint8_t vCount = 0;
       switch (mState) {
         case eStateNormal: // keep output as desired
           ggLedControl::SetOutput();
@@ -306,10 +322,13 @@ void loop()
   // battery management key => display battery status
   if (mButtonK.HasEvent()) {
     if (mButtonK.EventReleased()) {
+      // static bool vFlipFlop = false;
+      // vFlipFlop = !vFlipFlop;
       uint16_t vVCC = ReadVccMV();
       ggLedControl::SetOutputOff();
       mMorse.Signal(" ");
       mMorse.Signal(String(vVCC).c_str());
+      // mMorse.Signal(vFlipFlop ? String(vVCC).c_str() : "Hoi EVA!");
       mMorse.Signal(" ");
       ggLedControl::SetOutput();
     }
