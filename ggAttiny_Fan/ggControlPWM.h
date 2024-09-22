@@ -2,7 +2,9 @@
 
 #include "ggAttinyPins.h"
 
-template<uint8_t TPin, uint32_t TFrequencyPWM>
+template<uint8_t TPin,
+         uint32_t TFrequencyPWM,
+         bool TInverted = false>
 class ggControlPWM
 {
 public:
@@ -51,14 +53,14 @@ public:
 
     // Configure Timer1 for Fast PWM with ICR1 as TOP
     const uint16_t vPrescaleValue = GetPrescaleValue();
-    TCCR1A = _BV(COM1A1) | _BV(WGM11); // Fast PWM, non-inverting mode on OC1A
+    TCCR1A = GetTCCR1AConfig(); // Set PWM mode (inverted or non-inverted)
     TCCR1B = _BV(WGM13) | _BV(WGM12) | GetPrescaleClockSelectBits(vPrescaleValue);
 
-    // Set the TOP value to achieve 25 kHz frequency
+    // Set the TOP value to achieve desired PWM frequency
     ICR1 = GetDutyCycleMax();
 
     // Set the PWM duty cycle (0 - ICR1)
-    OCR1A = (GetDutyCycleMin() + GetDutyCycleMax()) / 2; // 50% duty cycle
+    OCR1A = (GetDutyCycleMin() + GetDutyCycleMax()) / 2; // Start at 50% duty cycle
   }
 
   inline void Run() {
@@ -102,6 +104,12 @@ private:
            (aPrescaleValue == 256) ? _BV(CS12) :
            (aPrescaleValue == 1024) ? _BV(CS10) | _BV(CS12) :
            0; // No clock source (Timer/Counter stopped)
+  }
+
+  static constexpr uint8_t GetTCCR1AConfig() {
+    // Configure TCCR1A based on whether PWM is inverted or not
+    return TInverted ? (_BV(COM1A1) | _BV(COM1A0) | _BV(WGM11)) // Inverting mode
+                     : (_BV(COM1A1) | _BV(WGM11));              // Non-inverting mode
   }
 
 };

@@ -3,6 +3,8 @@
 #include "ggButton.h"
 #include "ggOutput.h"
 #include "ggControlPWM.h"
+#include "ggTimer.h"
+#include "ggFanLEDs.h"
 
 
 // Define pin numbers
@@ -16,25 +18,27 @@
 #define M_EN_12V_PIN M_ATTINY_PB1_PIN
 
 
+// Fan LEDs animation speed
+#define M_FAN_LEDs_FPS (36/1)
+void UpdateFanLEDs();
+
+
 // periphery
-ggButtonT<M_BUTTON_ON_PIN> mButtonOn;
-ggButtonT<M_BUTTON_A_PIN> mButtonA;
-ggButtonT<M_BUTTON_B_PIN> mButtonB;
-ggButtonT<M_BUTTON_C_PIN> mButtonC;
+ggButtonT<M_BUTTON_ON_PIN, 30, true> mButtonOn; // 30ms debounce, inverted
+ggButtonT<M_BUTTON_A_PIN, 30, true> mButtonA; // 30ms debounce, inverted
+ggButtonT<M_BUTTON_B_PIN, 30, true> mButtonB; // 30ms debounce, inverted
+ggButtonT<M_BUTTON_C_PIN, 30, true> mButtonC; // 30ms debounce, inverted
 ggOutputT<M_EN_5V_PIN, false> mEnable5V; // not inverted
 ggOutputT<M_EN_12V_PIN, false> mEnable12V; // not inverted
-ggControlPWM<M_FAN_PWM_PIN, 25000> mFanPWM; // 
-// ggControlLED<M_LED_DATA_PIN> mFanLED;
+ggControlPWM<M_FAN_PWM_PIN, 25000, true> mFanPWM; // 25kHz, inverted
+ggFanLEDs<M_LED_DATA_PIN, 3, 12, 5, M_FAN_LEDs_FPS> mFanLEDs; // 3 fans, 12 LEDs per fan, led #5 ist first
+ggTimerT<1000000 / M_FAN_LEDs_FPS, UpdateFanLEDs> mTimerFanLEDs;
 
 
-#include "ggControlLED.h"
-
-void AnimateFanLED()
+void UpdateFanLEDs()
 {
-  TickLEDs();
+  mFanLEDs.Update();
 }
-
-ggTimerT<1030000/12, AnimateFanLED> mAnimateFanLED;
 
 
 // At startup the power-button is "pressed". Therefore we'll have a "release" event, which must
@@ -71,10 +75,10 @@ void SetupButtonsABC()
   constexpr uint16_t vSteps = 20;
   constexpr uint16_t vStepPWM = (mFanPWM.GetDutyCycleMax() - mFanPWM.GetDutyCycleMin()) / vSteps;
   mButtonA.OnPressed([]() {
-    mFanPWM.DecDutyCycle(vStepPWM);
+    mFanPWM.IncDutyCycle(vStepPWM);
   });
   mButtonC.OnPressed([]() {
-    mFanPWM.IncDutyCycle(vStepPWM);
+    mFanPWM.DecDutyCycle(vStepPWM);
   });
 }
 
@@ -95,11 +99,12 @@ void setup()
   SetupButtonOn();
   SetupButtonsABC();
 
-  // initialize 25kHz Fan PWM
+  // initialize Fan PWM
   mFanPWM.Begin();
+  mFanPWM.SetDutyCycle(mFanPWM.GetDutyCycleMax() / 4);
 
   // Initialize the LED strip
-  SetupLED();
+  mFanLEDs.Begin();
 }
 
 
@@ -109,5 +114,5 @@ void loop()
   mButtonA.Run();
   mButtonB.Run();
   mButtonC.Run();
-  mAnimateFanLED.Run();
+  mTimerFanLEDs.Run();
 }
