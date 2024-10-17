@@ -2,11 +2,10 @@
 
 #include <Adafruit_NeoPixel.h>
 
-template<uint8_t TPin,
-         uint8_t TNumFans, 
-         uint8_t TNumLEDs,
-         uint8_t TFirstLED,
-         uint8_t TFramesPerSec = 30>
+template<uint8_t TPin, // data-pin for LEDs
+         uint8_t TNumFans, // number of fans
+         uint8_t TNumLEDs, // number of LEDs per fan
+         uint8_t TFirstLED> // index of first LED (start-angle)
 class ggFanLEDs
 {
 public:
@@ -18,75 +17,10 @@ public:
   void Begin() {
     mLEDs.begin();
     mLEDs.setBrightness(255);
-    /*
-    for (uint8_t vFanIndex = 0; vFanIndex < TNumFans; vFanIndex++) {
-      SetPixel(vFanIndex, 0, GetColor(0, 255, 0));
-      SetPixel(vFanIndex, TNumLEDs-1, GetColor(255, 0, 0));
-    }
-    */
     Show();
   }
 
-  void Update() {
-    static uint8_t vAnimation = 0;
-    if (vAnimation / 5 % 2 == 0) {
-      static int8_t vIndexY = 0;
-      static int8_t vIncY = 1;
-      if (vIndexY < 0) {
-        vIndexY = 0;
-        vIncY = 1;
-        vAnimation++;
-      }
-      else if (vIndexY >= GetSizeY()) {
-        vIndexY = GetSizeY() - 1;
-        vIncY = -1;
-      }
-      if (vIndexY > 0) {
-        SetPixelXY(0, vIndexY - 1, GetColor(50, 0, 4));
-        SetPixelXY(1, vIndexY - 1, GetColor(50, 4, 0));
-      }
-      SetPixelXY(0, vIndexY, GetColor(255, 100, 0));
-      SetPixelXY(1, vIndexY, GetColor(255, 100, 0));
-      if (vIndexY < GetSizeY() - 1) {
-        SetPixelXY(0, vIndexY + 1, GetColor(3, 0, 8));
-        SetPixelXY(1, vIndexY + 1, GetColor(0, 3, 8));
-      }
-      Show();
-      vIndexY = vIndexY + vIncY;
-    }
-    if (vAnimation / 5 % 2 == 1) {
-      static int8_t vIndexX = 0;
-      static int8_t vIncX = 1;
-      if (vIndexX < 0) {
-        vIndexX = 0;
-        vIncX = 1;
-        vAnimation++;
-      }
-      else if (vIndexX >= GetSizeX_H()) {
-        vIndexX = GetSizeX_H() - 1;
-        vIncX = -1;
-      }
-      if (vIndexX > 0) {
-        for (uint8_t vIndexY = 0; vIndexY < GetSizeY_H(); vIndexY++) {
-          SetPixelXY_H(vIndexX - 1, vIndexY, GetColor(50, 0, 0));
-        }
-      }
-      for (uint8_t vIndexY = 0; vIndexY < GetSizeY_H(); vIndexY++) {
-        SetPixelXY_H(vIndexX, vIndexY, GetColor(255, 100, 0));
-      }
-      if (vIndexX < GetSizeX_H() - 1) {
-        for (uint8_t vIndexY = 0; vIndexY < GetSizeY_H(); vIndexY++) {
-          SetPixelXY_H(vIndexX + 1, vIndexY, GetColor(0, 0, 8));
-        }
-      }
-      Show();
-      vIndexX = vIndexX + vIncX;
-    }
-  }
-
-private:
-
-  static constexpr uint8_t GetTotalNumLEDs() {
+  static constexpr uint16_t GetTotalNumLEDs() {
     return TNumFans * TNumLEDs;
   }
 
@@ -94,15 +28,15 @@ private:
     return aFanIndex * TNumLEDs + (aLedIndex + TFirstLED) % TNumLEDs;
   }
 
-  static constexpr uint8_t GetSizeX() {
+  static constexpr uint8_t GetSizeX_V() {
     return 2;
   }
 
-  static constexpr uint8_t GetSizeY() {
-    return TNumFans * TNumLEDs / GetSizeX();
+  static constexpr uint8_t GetSizeY_V() {
+    return TNumFans * TNumLEDs / GetSizeX_V();
   }
 
-  inline uint8_t GetIndexXY(uint8_t aIndexX, uint8_t aIndexY) const {
+  inline uint8_t GetIndexXY_V(uint8_t aIndexX, uint8_t aIndexY) const {
     static constexpr uint8_t vBlockSize = TNumLEDs / 2;
     const uint8_t vFanIndex = aIndexY / vBlockSize;
     const uint8_t vLedIndex = aIndexY % vBlockSize;
@@ -132,46 +66,24 @@ private:
     mLEDs.setPixelColor(GetIndex(aFanIndex, aLedIndex), aColor);
   }
 
-  inline void SetPixelXY(uint8_t aIndexX, uint8_t aIndexY, uint32_t aColor) {
-    mLEDs.setPixelColor(GetIndexXY(aIndexX, aIndexY), aColor);
+  inline void SetPixelXY_V(uint8_t aIndexX, uint8_t aIndexY, uint32_t aColor) {
+    mLEDs.setPixelColor(GetIndexXY_V(aIndexX, aIndexY), aColor);
   }
 
   inline void SetPixelXY_H(uint8_t aIndexX, uint8_t aIndexY, uint32_t aColor) {
     mLEDs.setPixelColor(GetIndexXY_H(aIndexX, aIndexY), aColor);
   }
 
+  inline void Fill(uint32_t aColor) {
+    mLEDs.fill(aColor);
+  }
+
   inline void Show() {
     mLEDs.show();
   }
 
+private:
+
   Adafruit_NeoPixel mLEDs;
 
 };
-
-/*
-void ShowA(uint8_t aAngle)
-{
-  // static uint8_t vBrightness = 0;
-  // mFanLEDs.setBrightness(vBrightness++);
-  auto vColorA = mFanLEDs.Color(10, 50, 0);
-  auto vColorB = mFanLEDs.Color(50, 0, 20);
-  for (uint8_t vIndex = 0; vIndex < mFanLEDs.numPixels(); vIndex++) {
-    mFanLEDs.setPixelColor(vIndex, (vIndex + aAngle) % 12 >= 6 ? vColorA : vColorB);
-  }
-}
-
-
-void TickLEDs()
-{
-  static uint8_t vAngle = 0;
-  vAngle = (vAngle + 1) % 12;
-  ShowA(vAngle);
-  mFanLEDs.show();
-}
-
-
-void AnimateFanLED()
-{
-  TickLEDs();
-}
-*/

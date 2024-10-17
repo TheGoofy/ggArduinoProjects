@@ -22,25 +22,41 @@ public:
 
   static constexpr uint16_t GetDutyCycle() {
     return GetDutyCyclePrivate();
-  } 
+  }
+
+  static constexpr bool IsDutyCycleMin() {
+    return GetDutyCyclePrivate() <= GetDutyCycleMin();
+  }
+
+  static constexpr bool IsDutyCycleMax() {
+    return GetDutyCyclePrivate() >= GetDutyCycleMax();
+  }
 
   static constexpr void SetDutyCycle(uint16_t aDutyCycle) {
     SetDutyCyclePrivate(ClampDutyCycle(aDutyCycle));
   }
 
-  static constexpr void IncDutyCycle(uint16_t aInc) {
+  static bool IncDutyCycle(uint16_t aInc) {
     const uint16_t vDutyCycle = GetDutyCyclePrivate();
     if (vDutyCycle < GetDutyCycleMax()) {
       const uint16_t vIncMax = GetDutyCycleMax() - vDutyCycle;
       SetDutyCyclePrivate(aInc < vIncMax ? vDutyCycle + aInc : GetDutyCycleMax());
+      return true;
+    }
+    else {
+      return false;
     }
   }
 
-  static constexpr void DecDutyCycle(uint16_t aDec) {
+  static bool DecDutyCycle(uint16_t aDec) {
     const uint16_t vDutyCycle = GetDutyCyclePrivate();
     if (vDutyCycle > GetDutyCycleMin()) {
       const uint16_t vDecMax = vDutyCycle - GetDutyCycleMin();
       SetDutyCyclePrivate(aDec < vDecMax ? vDutyCycle - aDec : GetDutyCycleMin());
+      return true;
+    }
+    else {
+      return false;
     }
   }
 

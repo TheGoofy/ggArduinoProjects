@@ -1,5 +1,7 @@
 #pragma once
 
+#include "ggInput.h"
+
 /**
  * @brief A debounced button handler class for handling button presses and releases.
  *
@@ -8,12 +10,12 @@
  * set callback functions that are invoked when the button is pressed or released.
  */
 template<uint8_t TPin, // Pin number where the button is connected
-         unsigned long TDebounceMillis = 30, // Debounce delay in milliseconds (default is 30 ms)
          bool TInverted = true, // If true, the button logic is inverted (default: pressed = low-input)
          bool TEnablePullUp = true, // If true, enables the internal pull-up resistor (default is true)
-         unsigned long TInitialRepeatDelay = 500, // Initial delay before repeat starts (in milliseconds)
-         unsigned long TRepeatInterval = 100> // Interval between repeated calls (in milliseconds)
-class ggButtonT
+         uint32_t TDebounceMillis = 30, // Debounce delay in milliseconds (default is 30 ms)
+         uint32_t TInitialRepeatDelay = 500, // Initial delay before repeat starts (in milliseconds), 0 deactivates "repeat"
+         uint32_t TRepeatInterval = 100> // Interval between repeated calls (in milliseconds)
+class ggButtonT : public ggInputT<TPin, TInverted, TEnablePullUp>
 {
   public:
 
@@ -24,7 +26,8 @@ class ggButtonT
 
     void Begin() {
       // configure pin
-      pinMode(TPin, TEnablePullUp ? INPUT_PULLUP : INPUT);
+      ggInputT<TPin, TInverted, TEnablePullUp>::Begin();
+      // pinMode(TPin, TEnablePullUp ? INPUT_PULLUP : INPUT);
       // remember actual state (suppress ghost-event)
       mPressed = ReadPressed();
       mPressedBounce = mPressed;
@@ -50,7 +53,7 @@ class ggButtonT
 
     void Run() {
       // get current time and current button state
-      unsigned long vMillis = millis();
+      uint32_t vMillis = millis();
       bool vPressed = ReadPressed();
       // Check if the button state has changed since the last read
       if (vPressed != mPressedBounce) {
@@ -71,9 +74,9 @@ class ggButtonT
             mReleasedFunc();
           }
         }
-        else if (mPressed && mPressedFunc) {
+        else if (mPressed && mPressedFunc && TInitialRepeatDelay > 0) {
           // Handle repeated OnPressed callback if the button is held down
-          unsigned long vRepeatDelay = (mMillisLastRepeat == mMillisBounce) ? TInitialRepeatDelay : TRepeatInterval;
+          uint32_t vRepeatDelay = (mMillisLastRepeat == mMillisBounce) ? TInitialRepeatDelay : TRepeatInterval;
           if (vMillis - mMillisLastRepeat >= vRepeatDelay) {
             mPressedFunc();
             mMillisLastRepeat = vMillis;
@@ -85,13 +88,13 @@ class ggButtonT
   private:
 
     inline bool ReadPressed() const {
-      return digitalRead(TPin) ^ TInverted;
+      return ggInputT<TPin, TInverted, TEnablePullUp>::Read();
     }
 
     bool mPressed = false; // Current stable state of the button
     bool mPressedBounce = false; // Last "bouncy" state of the button
-    unsigned long mMillisBounce = 0; // Time of the last "bouncy" state change
-    unsigned long mMillisLastRepeat = 0; // Time of the last repeat callback invocation
+    uint32_t mMillisBounce = 0; // Time of the last "bouncy" state change
+    uint32_t mMillisLastRepeat = 0; // Time of the last repeat callback invocation
     tFunc mPressedFunc = nullptr; // Callback function for button press
     tFunc mReleasedFunc = nullptr; // Callback function for button release
 };

@@ -10,37 +10,37 @@ template<uint8_t TPin,
          bool TInverted = false>
 class ggOutputT
 {
-  public:
+public:
 
-    ggOutputT() {
-    }
+  ggOutputT() {
+  }
 
-    void Begin() {
-      pinMode(TPin, OUTPUT);
-    }
+  void Begin() {
+    pinMode(TPin, OUTPUT);
+  }
 
-    inline bool Read() const {
-      return digitalRead(TPin) ^ TInverted;
-    }
+  inline bool Read() const {
+    return digitalRead(TPin) ^ TInverted;
+  }
 
-    inline void Write(bool aValue) {
-      digitalWrite(TPin, aValue ^ TInverted);
-    }
+  inline void Write(bool aValue) {
+    digitalWrite(TPin, aValue ^ TInverted);
+  }
 
-    inline uint8_t GetPin() const {
-      return TPin;
-    }
+  inline uint8_t GetPin() const {
+    return TPin;
+  }
 
-    inline bool GetInverted() const {
-      return TInverted;
-    }
+  inline bool GetInverted() const {
+    return TInverted;
+  }
 
-    inline void SetPinModeInput() {
-      pinMode(TPin, INPUT);
-    }
+  inline void SetPinModeInput() {
+    pinMode(TPin, INPUT);
+  }
 
-    inline void SetPinModeOutput() {
-      pinMode(TPin, OUTPUT);
-    }
+  inline void SetPinModeOutput() {
+    pinMode(TPin, OUTPUT);
+  }
 
 };
