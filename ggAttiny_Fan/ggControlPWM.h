@@ -62,7 +62,7 @@ public:
 
   static constexpr void Begin() {
     // check if pin compatible with the desired timer below ...
-    static_assert(TPin == M_ATTINY_PA6_PIN, "Pin not compatible with desired timer");
+    static_assert(TPin == GG_ATTINY_PA6_PIN, "Pin not compatible with desired timer");
 
     // Set PA6 (OC1A) or PA5 (OC1B) as an output
     pinMode(TPin, OUTPUT);

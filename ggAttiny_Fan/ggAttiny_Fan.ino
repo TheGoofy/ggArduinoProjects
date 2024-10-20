@@ -12,42 +12,76 @@ Configuration for ATtiny84a:
 #include "ggAttinyPins.h"
 #include "ggTimer.h"
 #include "ggInput.h"
+#include "ggInputAnalog.h"
 #include "ggButton.h"
 #include "ggOutput.h"
 #include "ggControlPWM.h"
 #include "ggTimer.h"
 #include "ggFanLEDs.h"
 #include "ggFanTacho.h"
+#include "ggMorse.h"
 
 
 // Define pin numbers
-#define M_BUTTON_ON_PIN M_ATTINY_PA0_PIN
-#define M_BUTTON_A_PIN M_ATTINY_PA1_PIN
-#define M_BUTTON_B_PIN M_ATTINY_PA2_PIN
-#define M_BUTTON_C_PIN M_ATTINY_PA3_PIN
-#define M_FAN_TACHO_PIN M_ATTINY_PA7_PIN
-#define M_FAN_PWM_PIN M_ATTINY_PA6_PIN
-#define M_LED_DATA_PIN M_ATTINY_PB2_PIN
-#define M_EN_5V_PIN M_ATTINY_PB0_PIN
-#define M_EN_12V_PIN M_ATTINY_PB1_PIN
+#define GG_BUTTON_ON_PIN GG_ATTINY_PA0_PIN
+#define GG_BUTTON_A_PIN GG_ATTINY_PA1_PIN
+#define GG_BUTTON_B_PIN GG_ATTINY_PA2_PIN
+#define GG_BUTTON_C_PIN GG_ATTINY_PA3_PIN
+#define GG_VBAT_PIN GG_ATTINY_PA4_PIN // aka ADC4
+#define GG_FAN_TACHO_PIN GG_ATTINY_PA7_PIN
+#define GG_FAN_PWM_PIN GG_ATTINY_PA6_PIN
+#define GG_LED_DATA_PIN GG_ATTINY_PB2_PIN
+#define GG_EN_5V_PIN GG_ATTINY_PB0_PIN
+#define GG_EN_12V_PIN GG_ATTINY_PB1_PIN
+
+
+// Battery monitor
+#define GG_BATTERY_MONITOR_INTERVAL_MS (100L) // interval in milli-seconds
+#define GG_BATTERY_MONITOR_FILTER_FIR (8L) // FIR average some values
+#define GG_BATTERY_MONITOR_MV_LOW   3600L // 3.60V => approximate charge state 10%
+#define GG_BATTERY_MONITOR_MV_EMPTY 3400L // 3.40V => approximate charge state below 5%
+void BatteryMonitor();
 
 
 // Fan LEDs animation speed
-#define M_ANIMATION_LEDs_FPS (36)
+#define GG_ANIMATION_LEDs_FPS (36) // frames per second
 void AnimateLEDs();
 
 
 // periphery + main objects
-ggButtonT<M_BUTTON_ON_PIN, true, true, 30, 0> mButtonOn; // inverted, pull-up, 30ms debounce, no repeat
-ggButtonT<M_BUTTON_A_PIN, true> mButtonA; // inverted
-ggButtonT<M_BUTTON_B_PIN, true> mButtonB; // inverted
-ggButtonT<M_BUTTON_C_PIN, true> mButtonC; // inverted
-ggOutputT<M_EN_5V_PIN, false> mEnable5V; // not inverted
-ggOutputT<M_EN_12V_PIN, false> mEnable12V; // not inverted
-ggControlPWM<M_FAN_PWM_PIN, 25000, true> mFanPWM; // 25kHz, inverted
-ggFanLEDs<M_LED_DATA_PIN, 3, 12, 5+6> mFanLEDs; // 3 fans, 12 LEDs per fan, led #5 ist first
-ggFanTacho<M_FAN_TACHO_PIN, 16> mFanTacho; // 32 FIR-Filter
-ggTimerT<1000000 / M_ANIMATION_LEDs_FPS, AnimateLEDs> mAnimationLEDs; // timer for LED animation
+ggButtonT<GG_BUTTON_ON_PIN, true, true, 30, 0> mButtonOn; // inverted, pull-up, 30ms debounce, no repeat
+ggButtonT<GG_BUTTON_A_PIN, true> mButtonA; // inverted
+ggButtonT<GG_BUTTON_B_PIN, true> mButtonB; // inverted
+ggButtonT<GG_BUTTON_C_PIN, true> mButtonC; // inverted
+ggInputAnalogT<GG_VBAT_PIN, DEFAULT, 5000, -56> mBatteryVoltage; // us VCC (aka DEFAULT) as voltage reference, 5000 mV
+ggOutputT<GG_EN_5V_PIN, false> mEnable5V; // not inverted
+ggOutputT<GG_EN_12V_PIN, false> mEnable12V; // not inverted
+ggControlPWM<GG_FAN_PWM_PIN, 25000, true> mFanPWM; // 25kHz, inverted
+ggFanLEDs<GG_LED_DATA_PIN, 3, 12, 5+6> mFanLEDs; // 3 fans, 12 LEDs per fan, led #5 ist first
+ggFanTacho<GG_FAN_TACHO_PIN, 16> mFanTacho; // 32 FIR-Filter
+ggTimerT<1000L * GG_BATTERY_MONITOR_INTERVAL_MS, BatteryMonitor> mMonitorBattery; // timer for monitoring battery voltage
+ggTimerT<1000000L / GG_ANIMATION_LEDs_FPS, AnimateLEDs> mAnimationLEDs; // timer for LED animation
+
+
+void PowerOn()
+{
+  // switch on fan- and led-power (when powered by ISP)
+  mEnable5V.SetPinModeOutput();
+  mEnable12V.SetPinModeOutput();
+  mEnable5V.Write(true);
+  mEnable12V.Write(true);
+}
+
+
+void PowerOff()
+{
+   // switch off fan- and led-power
+   // note: external pull-down resistors will interrupt battery supply
+   mEnable12V.SetPinModeInput();
+   mEnable5V.SetPinModeInput();
+   // Wait some time until 5V power-off () ...
+   delay(1000);
+}
 
 
 namespace ggAnimation {
@@ -57,7 +91,8 @@ enum class tType {
   eDimUp,
   eDimDown,
   eSlideUp,
-  eSlideDown
+  eSlideDown,
+  eBattLow
 };
 
 tType mType = tType::eNone;
@@ -91,6 +126,10 @@ constexpr uint32_t ScaleColor(uint8_t aValue, uint32_t aColor) {
                   Multiply8(aValue, GetColorB(aColor)));
 }
 
+tType GetType() {
+  return mType;
+}
+
 void SetType(tType aType) {
   if (mType != aType) {
     switch (aType) {
@@ -107,6 +146,10 @@ void SetType(tType aType) {
       case tType::eDimUp:
         mSlidePosY = mFanLEDs.GetSizeY_V() / 2 - 1;
         mColor = Adafruit_NeoPixel::ColorHSV(2 * rand());
+        mBrightness = 255;
+        break;
+      case tType::eBattLow:
+        mColor = GetColor(30, 15, 0);
         mBrightness = 255;
         break;
       default:
@@ -166,6 +209,7 @@ void Step() {
       break;
       
     case tType::eDimDown:
+    case tType::eBattLow:
       if (mBrightness >= 2) {
         mBrightness -= 2;
         mFanLEDs.Fill(ScaleColor(Adafruit_NeoPixel::gamma8(mBrightness), mColor));
@@ -175,7 +219,7 @@ void Step() {
         mType = tType::eNone;
       }
       break;
-      
+
     case tType::eNone:
       break;
 
@@ -193,6 +237,63 @@ void AnimateLEDs()
 }
 
 
+#define GG_MORSE_DIT_MILLIS 250L
+
+void MorseSignalOn(uint8_t aNumDits)
+{
+  mFanLEDs.Fill(aNumDits == 1 ? mFanLEDs.GetColor(100,255,0) : mFanLEDs.GetColor(0,100,255));
+  mFanLEDs.Show();
+  delay(aNumDits * GG_MORSE_DIT_MILLIS);
+}
+
+void MorseSignalOff(uint8_t aNumDits)
+{
+  mFanLEDs.Fill(mFanLEDs.GetColor(0,0,0));
+  mFanLEDs.Show();
+  delay(aNumDits * GG_MORSE_DIT_MILLIS);
+}
+
+ggMorseT<MorseSignalOn, MorseSignalOff> mMorse;
+
+
+namespace ggBatteryMonitor {
+
+uint16_t mBatteryMV = 0;
+
+void Display() {
+  mMorse.Signal(mBatteryMV);
+}
+
+void Check() {
+
+  // use an FIR-Filter for eliminating noise
+  constexpr uint32_t vFilterFIR = GG_BATTERY_MONITOR_FILTER_FIR;
+  mBatteryMV = ((vFilterFIR - 1) * mBatteryMV + mBatteryVoltage.ReadMV()) / vFilterFIR;
+
+  // wait long enough after power-on to check battery voltage
+  if (millis() > 10 * GG_BATTERY_MONITOR_INTERVAL_MS * GG_BATTERY_MONITOR_FILTER_FIR) {
+    if (mBatteryMV < GG_BATTERY_MONITOR_MV_EMPTY) {
+      PowerOff();
+    }
+  }
+
+  // indicate low battery
+  if (mBatteryMV < GG_BATTERY_MONITOR_MV_LOW) {
+    if (ggAnimation::GetType() == ggAnimation::tType::eNone) {
+      ggAnimation::SetType(ggAnimation::tType::eBattLow);
+    }
+  }
+}
+
+};
+
+
+void BatteryMonitor()
+{
+  ggBatteryMonitor::Check();
+}
+
+
 // At startup the power-button is "pressed". Therefore we'll have a "release" event, which must
 // not yet turn off the power. We need to wait, until the button is pressed again (power-off
 // armed). Only on this (second) "release" event, we shall turn off the 5V power.
@@ -200,23 +301,18 @@ void SetupButtonOn()
 {
   static bool vPowerOffArmed = false;
   mButtonOn.Begin();
-  mButtonOn.OnPressed([]() {
-    // switch on fan- and led-power (when powered by ISP)
-    mEnable12V.SetPinModeOutput();
-    mEnable5V.SetPinModeOutput();
-    mEnable12V.Write(true);
-    mEnable5V.Write(true);
-    // arm power off for button next release-event
-    vPowerOffArmed = !vPowerOffArmed;
+  mButtonOn.OnPressed([](bool aRepeated) {
+    if ((!aRepeated)) {
+      // switch on fan- and led-power (when powered by ISP)
+      PowerOn();
+      // arm power off for button next release-event
+      vPowerOffArmed = !vPowerOffArmed;
+    }
   });
   mButtonOn.OnReleased([]() {
     if (vPowerOffArmed) {
       // switch off fan- and led-power
-      mFanPWM.SetDutyCycle(mFanPWM.GetDutyCycleMin());
-      mEnable12V.SetPinModeInput();
-      mEnable5V.SetPinModeInput();
-      // Wait some time until 5V power-off () ...
-      delay(1000);
+      PowerOff();
       // We're potentially still running here (when powered by ISP).
       // In that case the power-button just switches on or off the 5V and 12V supply
     }
@@ -226,38 +322,46 @@ void SetupButtonOn()
 
 void SetupButtonsABC()
 {
+  // configure button pins (as input)
   mButtonA.Begin();
   mButtonB.Begin();
   mButtonC.Begin();
+  // use buttons A and B for Fan speed control
   constexpr uint16_t vSteps = 20;
   constexpr uint16_t vStepPWM = (mFanPWM.GetDutyCycleMax() - mFanPWM.GetDutyCycleMin()) / vSteps;
-  mButtonA.OnPressed([]() {
+  mButtonA.OnPressed([](bool aRepeated) {
     if (mFanPWM.IncDutyCycle(vStepPWM)) {
       ggAnimation::SetType(ggAnimation::tType::eSlideUp);
     }
   });
-  mButtonB.OnPressed([]() {
-    ggAnimation::SetType(ggAnimation::tType::eDimUp);
-  });
-  mButtonC.OnPressed([]() {
+  mButtonC.OnPressed([](bool aRepeated) {
     if (mFanPWM.DecDutyCycle(vStepPWM)) {
       ggAnimation::SetType(ggAnimation::tType::eSlideDown);
     }
   });
+  // use button B for fun and voltage display
+  mButtonB.OnPressed([](bool aRepeated) {
+    if (aRepeated) {
+      ggBatteryMonitor::Display();
+    }
+  });
+  mButtonB.OnReleased([]() {
+    ggAnimation::SetType(ggAnimation::tType::eDimUp);
+  }); 
 }
 
 
 void setup()
 {
+  // battery voltage monitor
+  mBatteryVoltage.Begin();
+
   // on startup first enable 5V step-up converter:
   // - Attiny is powered by these 5V
   // - 5V supply would shutdown again, as soon as on/off button is released
   mEnable5V.Begin();
-  mEnable5V.Write(true);
-
-  // enable 12V step-up converter for fan
   mEnable12V.Begin();
-  mEnable12V.Write(true);
+  PowerOn();
 
   // power-button is special
   SetupButtonOn();
@@ -279,6 +383,7 @@ void loop()
   mButtonC.Run();
   mFanTacho.Run();
   mAnimationLEDs.Run();
+  mMonitorBattery.Run();
 /*
   // turn on and off LEDs for each fan blade ...
   {

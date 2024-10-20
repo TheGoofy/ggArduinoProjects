@@ -19,7 +19,8 @@ class ggButtonT : public ggInputT<TPin, TInverted, TEnablePullUp>
 {
   public:
 
-    typedef void (*tFunc)();
+    typedef void (*tPressedFunc)(bool aRepeated);
+    typedef void (*tReleasedFunc)();
 
     ggButtonT() {
     }
@@ -35,11 +36,11 @@ class ggButtonT : public ggInputT<TPin, TInverted, TEnablePullUp>
       mMillisLastRepeat = mMillisBounce;
     }
 
-    void OnPressed(tFunc aPressedFunc) {
+    void OnPressed(tPressedFunc aPressedFunc) {
       mPressedFunc = aPressedFunc;
     }
 
-    void OnReleased(tFunc aReleasedFunc) {
+    void OnReleased(tReleasedFunc aReleasedFunc) {
       mReleasedFunc = aReleasedFunc;
     }
 
@@ -68,7 +69,7 @@ class ggButtonT : public ggInputT<TPin, TInverted, TEnablePullUp>
           mPressed = vPressed;
           mMillisLastRepeat = mMillisBounce; // Reset the repeat timer
           if (mPressed && mPressedFunc) {
-            mPressedFunc();
+            mPressedFunc(false);
           }
           if (!mPressed && mReleasedFunc) {
             mReleasedFunc();
@@ -78,7 +79,7 @@ class ggButtonT : public ggInputT<TPin, TInverted, TEnablePullUp>
           // Handle repeated OnPressed callback if the button is held down
           uint32_t vRepeatDelay = (mMillisLastRepeat == mMillisBounce) ? TInitialRepeatDelay : TRepeatInterval;
           if (vMillis - mMillisLastRepeat >= vRepeatDelay) {
-            mPressedFunc();
+            mPressedFunc(true);
             mMillisLastRepeat = vMillis;
           }
         }          
@@ -95,6 +96,6 @@ class ggButtonT : public ggInputT<TPin, TInverted, TEnablePullUp>
     bool mPressedBounce = false; // Last "bouncy" state of the button
     uint32_t mMillisBounce = 0; // Time of the last "bouncy" state change
     uint32_t mMillisLastRepeat = 0; // Time of the last repeat callback invocation
-    tFunc mPressedFunc = nullptr; // Callback function for button press
-    tFunc mReleasedFunc = nullptr; // Callback function for button release
+    tPressedFunc mPressedFunc = nullptr; // Callback function for button press
+    tReleasedFunc mReleasedFunc = nullptr; // Callback function for button release
 };
