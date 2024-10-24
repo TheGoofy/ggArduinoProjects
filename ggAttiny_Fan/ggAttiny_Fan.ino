@@ -36,16 +36,23 @@ Configuration for ATtiny84a:
 
 
 // Battery monitor
-#define GG_BATTERY_MONITOR_INTERVAL_MS (100L) // interval in milli-seconds
+#define GG_BATTERY_MONITOR_INTERVAL_US (1000000L / 10L) // interval in mycro-seconds
 #define GG_BATTERY_MONITOR_FILTER_FIR (8L) // FIR average some values
+#define GG_BATTERY_MONITOR_MV_FULL  4200L // 4.20V => approximate charge state 100%
 #define GG_BATTERY_MONITOR_MV_LOW   3600L // 3.60V => approximate charge state 10%
 #define GG_BATTERY_MONITOR_MV_EMPTY 3400L // 3.40V => approximate charge state below 5%
-void BatteryMonitor();
+uint8_t BatteryMonitorLevel(uint8_t aLevelMin, uint8_t aLevelMax);
+void BatteryMonitorCheck();
 
 
 // Fan LEDs animation speed
-#define GG_ANIMATION_LEDs_FPS (36) // frames per second
+#define GG_ANIMATION_LEDs_US (1000000L / 36L) // frames per second
 void AnimateLEDs();
+
+// Prevent fan running forever (safe battery). If user sits in front of the fan,
+// it should be easy for him to turn it on again
+#define GG_AUTO_POWER_OFF_US (30L * 60L * 1000000L) // 30 Minutes
+void PowerOff();
 
 
 // periphery + main objects
@@ -59,8 +66,9 @@ ggOutputT<GG_EN_12V_PIN, false> mEnable12V; // not inverted
 ggControlPWM<GG_FAN_PWM_PIN, 25000, true> mFanPWM; // 25kHz, inverted
 ggFanLEDs<GG_LED_DATA_PIN, 3, 12, 5+6> mFanLEDs; // 3 fans, 12 LEDs per fan, led #5 ist first
 ggFanTacho<GG_FAN_TACHO_PIN, 16> mFanTacho; // 32 FIR-Filter
-ggTimerT<1000L * GG_BATTERY_MONITOR_INTERVAL_MS, BatteryMonitor> mMonitorBattery; // timer for monitoring battery voltage
-ggTimerT<1000000L / GG_ANIMATION_LEDs_FPS, AnimateLEDs> mAnimationLEDs; // timer for LED animation
+ggTimerT<GG_BATTERY_MONITOR_INTERVAL_US, BatteryMonitorCheck> mMonitorBattery; // timer for monitoring battery voltage
+ggTimerT<GG_ANIMATION_LEDs_US, AnimateLEDs> mAnimationLEDs; // timer for LED animation
+ggTimerT<GG_AUTO_POWER_OFF_US, PowerOff> mAutoPowerOff; // timer to power off the fan after some time user inactivity
 
 
 void PowerOn()
@@ -88,10 +96,10 @@ namespace ggAnimation {
 
 enum class tType {
   eNone,
-  eDimUp,
   eDimDown,
   eSlideUp,
   eSlideDown,
+  eBattLevel,
   eBattLow
 };
 
@@ -126,32 +134,37 @@ constexpr uint32_t ScaleColor(uint8_t aValue, uint32_t aColor) {
                   Multiply8(aValue, GetColorB(aColor)));
 }
 
+inline uint8_t Gamma8(uint8_t aValue) {
+  return Adafruit_NeoPixel::gamma8(aValue);
+}
+
 tType GetType() {
   return mType;
 }
 
-void SetType(tType aType) {
+void Start(tType aType) {
   if (mType != aType) {
     switch (aType) {
-      case tType::eSlideUp:
+      case tType::eSlideUp: {
         mSlidePosY = 0;
         mColor = GetColor(10, 0, 100);
         mBrightness = 255;
-        break;
-      case tType::eSlideDown:
+      } break;
+      case tType::eSlideDown: {
         mSlidePosY = mFanLEDs.GetSizeY_V() - 1;
         mColor = GetColor(100, 0, 10);
         mBrightness = 255;
-        break;
-      case tType::eDimUp:
-        mSlidePosY = mFanLEDs.GetSizeY_V() / 2 - 1;
-        mColor = Adafruit_NeoPixel::ColorHSV(2 * rand());
+      } break;
+      case tType::eBattLevel: {
+        mSlidePosY = BatteryMonitorLevel(0, mFanLEDs.GetSizeY_V() - 1);
+        uint8_t vI = BatteryMonitorLevel(0, 255);
+        mColor = GetColor(255 - vI, vI, 0);
         mBrightness = 255;
-        break;
-      case tType::eBattLow:
+      } break;
+      case tType::eBattLow: {
         mColor = GetColor(30, 15, 0);
         mBrightness = 255;
-        break;
+      } break;
       default:
         break;
     }
@@ -196,23 +209,31 @@ void Step() {
       --mSlidePosY;
       break;
 
-    case tType::eDimUp:
-      if (mSlidePosY >= 0) {
-        SetPixelsX(mSlidePosY, mColor);
-        SetPixelsX(mFanLEDs.GetSizeY_V() - mSlidePosY - 1, mColor);
+    case tType::eBattLevel:
+      if (mBrightness >= 2) {        
+        mBrightness -= 2;
+        uint8_t vBrightness = Gamma8(mBrightness);
+        uint32_t vColorL = ScaleColor(vBrightness, mColor);
+        uint32_t vColorH = ScaleColor(vBrightness, GetColor(0, 0, 30));
+        for (uint16_t vPosY = 0; vPosY < mSlidePosY; vPosY++) {
+          SetPixelsX(vPosY, vColorL);
+        }
+        SetPixelsX(mSlidePosY, ScaleColor(vBrightness, GetColor(255, 255, 0)));
+        for (uint16_t vPosY = mSlidePosY + 1; vPosY < mFanLEDs.GetSizeY_V(); vPosY++) {
+          SetPixelsX(vPosY, vColorH);
+        }
+        mFanLEDs.Show();
       }
-      if (mSlidePosY == 0) {
-        mType = tType::eDimDown;
+      else {
+        mType = tType::eNone;
       }
-      mFanLEDs.Show();
-      --mSlidePosY;
       break;
       
     case tType::eDimDown:
     case tType::eBattLow:
       if (mBrightness >= 2) {
         mBrightness -= 2;
-        mFanLEDs.Fill(ScaleColor(Adafruit_NeoPixel::gamma8(mBrightness), mColor));
+        mFanLEDs.Fill(ScaleColor(Gamma8(mBrightness), mColor));
         mFanLEDs.Show();
       }
       else {
@@ -271,7 +292,7 @@ void Check() {
   mBatteryMV = ((vFilterFIR - 1) * mBatteryMV + mBatteryVoltage.ReadMV()) / vFilterFIR;
 
   // wait long enough after power-on to check battery voltage
-  if (millis() > 10 * GG_BATTERY_MONITOR_INTERVAL_MS * GG_BATTERY_MONITOR_FILTER_FIR) {
+  if (millis() > (10L * GG_BATTERY_MONITOR_FILTER_FIR) * (GG_BATTERY_MONITOR_INTERVAL_US / 1000L)) {
     if (mBatteryMV < GG_BATTERY_MONITOR_MV_EMPTY) {
       PowerOff();
     }
@@ -280,15 +301,31 @@ void Check() {
   // indicate low battery
   if (mBatteryMV < GG_BATTERY_MONITOR_MV_LOW) {
     if (ggAnimation::GetType() == ggAnimation::tType::eNone) {
-      ggAnimation::SetType(ggAnimation::tType::eBattLow);
+      ggAnimation::Start(ggAnimation::tType::eBattLow);
     }
   }
 }
 
+uint8_t GetLevel(uint8_t aLevelMin, uint8_t aLevelMax) {
+  if (mBatteryMV <= GG_BATTERY_MONITOR_MV_EMPTY) {
+    return aLevelMin;
+  }
+  if (mBatteryMV >= GG_BATTERY_MONITOR_MV_FULL) {
+    return aLevelMax;
+  }
+  const uint16_t vDeltaMV = GG_BATTERY_MONITOR_MV_FULL - GG_BATTERY_MONITOR_MV_EMPTY;
+  const uint16_t vDeltaLevel = aLevelMax - aLevelMin;
+  return aLevelMin + (static_cast<uint32_t>(mBatteryMV - GG_BATTERY_MONITOR_MV_EMPTY) * vDeltaLevel + vDeltaMV / 2) / vDeltaMV;
+}
+
 };
 
+uint8_t BatteryMonitorLevel(uint8_t aLevelMin, uint8_t aLevelMax)
+{
+  return ggBatteryMonitor::GetLevel(aLevelMin, aLevelMax);
+}
 
-void BatteryMonitor()
+void BatteryMonitorCheck()
 {
   ggBatteryMonitor::Check();
 }
@@ -305,6 +342,8 @@ void SetupButtonOn()
     if ((!aRepeated)) {
       // switch on fan- and led-power (when powered by ISP)
       PowerOn();
+      // prevent soo early auto-power-off
+      mAutoPowerOff.Reset();
       // arm power off for button next release-event
       vPowerOffArmed = !vPowerOffArmed;
     }
@@ -330,23 +369,26 @@ void SetupButtonsABC()
   constexpr uint16_t vSteps = 20;
   constexpr uint16_t vStepPWM = (mFanPWM.GetDutyCycleMax() - mFanPWM.GetDutyCycleMin()) / vSteps;
   mButtonA.OnPressed([](bool aRepeated) {
+    mAutoPowerOff.Reset();
     if (mFanPWM.IncDutyCycle(vStepPWM)) {
-      ggAnimation::SetType(ggAnimation::tType::eSlideUp);
+      ggAnimation::Start(ggAnimation::tType::eSlideUp);
     }
   });
   mButtonC.OnPressed([](bool aRepeated) {
+    mAutoPowerOff.Reset();
     if (mFanPWM.DecDutyCycle(vStepPWM)) {
-      ggAnimation::SetType(ggAnimation::tType::eSlideDown);
+      ggAnimation::Start(ggAnimation::tType::eSlideDown);
     }
   });
   // use button B for fun and voltage display
   mButtonB.OnPressed([](bool aRepeated) {
+    mAutoPowerOff.Reset();
     if (aRepeated) {
       ggBatteryMonitor::Display();
     }
   });
   mButtonB.OnReleased([]() {
-    ggAnimation::SetType(ggAnimation::tType::eDimUp);
+    ggAnimation::Start(ggAnimation::tType::eBattLevel);
   }); 
 }
 
@@ -384,6 +426,7 @@ void loop()
   mFanTacho.Run();
   mAnimationLEDs.Run();
   mMonitorBattery.Run();
+  mAutoPowerOff.Run();
 /*
   // turn on and off LEDs for each fan blade ...
   {

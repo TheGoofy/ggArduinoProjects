@@ -16,8 +16,15 @@ template<unsigned long TIntervalMicros, // Interval between executions in micros
 class ggTimerT
 {
 public:
+
   // Constructor initializes the next execution time to zero
   ggTimerT() {
+    Reset();
+  }
+
+  //
+  void Reset() {
+    mNextMicros = micros() + TIntervalMicros;
   }
 
   // Run method to be called periodically to check and execute the callback
@@ -40,6 +47,7 @@ public:
   }
 
 private:
+
   // Check if the MSB is set (represents the sign of a number)
   inline bool CheckMSB(const TMicrosType& aValue) const {
     return aValue >> (8 * sizeof(TMicrosType) - 1);
